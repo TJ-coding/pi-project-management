@@ -22,6 +22,7 @@ Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. 
 - → G6 Auto complete / Propagate (ACTIVE)
 - → G7 Upload the project to github repository (ACTIVE)
 - → G8 Reconsider ordering of panels. (ACTIVE)
+- → G9 Warn when exiting change without saving. (ACTIVE)
 
 ## Major Risks
 

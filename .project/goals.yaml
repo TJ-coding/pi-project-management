@@ -116,3 +116,17 @@
   tasks: []
   created: 2026-09-13T16:12:08.779Z
   updated: 2026-09-13T16:12:08.779Z
+- id: G9
+  title: Warn when exiting change without saving.
+  description: I keep on existing edit screens without saving, and it's really annoying. I wish there
+    were like an are you sure warning before it just removes all my changes.
+  priority: 3
+  success_criteria: []
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-13T16:12:51.088Z
+  updated: 2026-09-13T16:12:51.088Z
