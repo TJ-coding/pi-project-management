@@ -414,6 +414,11 @@ async function showText(
     ctx.ui.notify(text, "info");
     return;
   }
+  // Print mode: stdout is a plain text stream, so the text is the command output.
+  if (ctx.mode === "print") {
+    process.stdout.write(`${text}\n`);
+    return;
+  }
   if (pi) {
     pi.appendEntry("project-output", { text });
   }

@@ -40,6 +40,11 @@ const expectTools = getArg("expect-tool", "")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
+const expectText = getArg("expect-text", "")
+  .split("||")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const skipFsChecks = getArg("skip-fs-checks", "false") === "true";
 
 const child = spawn(process.execPath === "" ? "pi" : "pi", ["--mode", "rpc", "--no-session", "-e", ext], {
   cwd,
@@ -127,32 +132,46 @@ async function verify() {
   if (!helpNotify) failures.push("`/project help` did not produce the expected notification");
 
   const goalsFile = join(cwd, ".project", "goals.yaml");
-  if (!existsSync(goalsFile)) {
-    failures.push(".project/goals.yaml was not created by project_init/project_goal");
-  } else if (expectGoal) {
-    const goals = readFileSync(goalsFile, "utf8");
-    if (!goals.includes(expectGoal)) failures.push(`goal '${expectGoal}' not found in goals.yaml`);
-  }
-  for (const file of ["project.yaml", "direction.md", "state.md", "intelligence.yaml", "risks.yaml", "strategy.md", "plan.yaml"]) {
-    if (!existsSync(join(cwd, ".project", file))) failures.push(`missing .project/${file}`);
+  if (!skipFsChecks) {
+    if (!existsSync(goalsFile)) {
+      failures.push(".project/goals.yaml was not created by project_init/project_goal");
+    } else if (expectGoal) {
+      const goals = readFileSync(goalsFile, "utf8");
+      if (!goals.includes(expectGoal)) failures.push(`goal '${expectGoal}' not found in goals.yaml`);
+    }
+    for (const file of ["project.yaml", "direction.md", "state.md", "intelligence.yaml", "risks.yaml", "strategy.md", "plan.yaml"]) {
+      if (!existsSync(join(cwd, ".project", file))) failures.push(`missing .project/${file}`);
+    }
   }
 
   const projectToolCalls = toolCalls.filter((name) => typeof name === "string" && name.startsWith("project_"));
-  if (projectToolCalls.length === 0) failures.push("no project_* tool executions observed");
+  if (!skipFsChecks && projectToolCalls.length === 0) failures.push("no project_* tool executions observed");
   for (const expected of expectTools) {
     if (!projectToolCalls.includes(expected)) failures.push(`expected tool call ${expected} was not executed`);
   }
 
+  const lastAssistant = [...events].reverse().find((event) => event.type === "message_end" && event.message?.role === "assistant");
+  const assistantText = (lastAssistant?.message?.content ?? [])
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("\n");
+
   console.log(`commands: ${names.join(", ")}`);
   console.log(`project tool calls: ${projectToolCalls.join(", ") || "(none)"}`);
+  if (assistantText) console.log(`assistant reply: ${assistantText.replace(/\s+/g, " ").slice(0, 400)}`);
   console.log(`notifications: ${notifications.length}`);
   for (const notification of notifications) console.log(`  - ${(notification.message ?? "").slice(0, 120)}`);
+
+  for (const expected of expectText) {
+    if (!assistantText.includes(expected)) {
+      failures.push(`assistant reply is missing expected text: ${expected}`);
+    }
+  }
 
   if (failures.length > 0) {
     console.error("\nSMOKE FAILURES:");
     for (const failure of failures) console.error(`- ${failure}`);
-    const lastAssistant = [...events].reverse().find((event) => event.type === "message_end" && event.message?.role === "assistant");
-    if (lastAssistant) console.error(`last assistant message: ${JSON.stringify(lastAssistant.message).slice(0, 600)}`);
+    if (lastAssistant) console.error(`last assistant message: ${JSON.stringify(lastAssistant.message).slice(0, 800)}`);
     finish(1);
     return;
   }

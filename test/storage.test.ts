@@ -76,6 +76,7 @@ describe("storage round-trip", () => {
       "strategy.md",
       "plan.yaml",
       "plan.md",
+      "summary.md",
       "history/events.jsonl",
       "history/history.md",
     ]) {

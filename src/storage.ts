@@ -28,6 +28,8 @@ import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
+import { renderCompletionSummary } from "./history.ts";
+
 import {
   cleanProse,
   isPlaceholder,
@@ -978,6 +980,7 @@ export async function saveProject(project: Project, options: SaveOptions = {}): 
   if (!options.skipDerived) {
     await writeFileAtomic(join(dir, "plan.md"), renderPlanDocument(project.plans));
     await writeFileAtomic(join(dir, "history", "history.md"), renderHistoryDocument(project.history));
+    await writeFileAtomic(join(dir, "summary.md"), renderCompletionSummary(project));
   }
 }
 

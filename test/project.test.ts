@@ -117,6 +117,14 @@ describe("project manager", () => {
     assert.equal(results.length, 1);
     assert.equal(results[0]!.outcome, "REPLAN");
     assert.ok(manager.project.history.some((event) => event.kind === "gate.failed"));
+
+    // Gate results survive a full reload from disk.
+    const reloaded = await ProjectManager.open(root, { clock: fixedClock() });
+    const persisted = reloaded.project.plans.plans[0]!.gates;
+    assert.equal(persisted.length, 1);
+    assert.equal(persisted[0]!.outcome, "REPLAN");
+    assert.equal(persisted[0]!.notes, "approach drifted from intent");
+    assert.equal(reloaded.project.plans.plans[0]!.nodes[0]!.status, "COMPLETED");
   });
 
   test("replanning carries valid work, drops invalidated work and adds investigation", async () => {
