@@ -11,6 +11,7 @@ import {
   planGroups,
   renderPlanInteractive,
   statusText,
+  viewCounts,
   widgetLines,
   internals,
 } from "../src/dashboard.ts";
@@ -237,6 +238,46 @@ describe("dashboard", () => {
     // must be labelled honestly rather than with a dead number.
     const reachable = ids.slice(0, 10).map((_, index) => (index === 9 ? "0" : String(index + 1)));
     assert.equal(reachable.length, 10);
+  });
+
+  test("rail badges are keyed by view, so a reorder cannot make them lie", async () => {
+    // Regression: the counts were a positional array. Reordering the rail left
+    // every badge pointing at the wrong view while still rendering a number.
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const counts = viewCounts(project);
+
+    assert.equal(
+      counts.get("goals"),
+      project.goals.filter((goal) => goal.status === "ACTIVE").length,
+      "the goals badge counts active goals",
+    );
+    assert.equal(counts.get("state"), project.state.problems.length, "the state badge counts problems");
+    assert.equal(
+      counts.get("intelligence"),
+      project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL").length,
+      "the intelligence badge counts open questions",
+    );
+    assert.equal(
+      counts.get("risks"),
+      project.risks.filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length,
+      "the risks badge counts open risks",
+    );
+    // Views with nothing to report carry no badge at all.
+    for (const id of ["direction", "dashboard", "strategy", "summary"]) {
+      assert.ok(!counts.get(id), `${id} should not carry a count`);
+    }
+
+    // And the rail places each badge next to its own view.
+    const browser = new ProjectBrowser({ project, theme, onClose: () => undefined, getTerminalRows: () => 30 });
+    const rail = browser.render(70).join("\n");
+    const keyFor = (id: string): string => {
+      const index = VIEWS.findIndex((view) => view.id === id);
+      return index === 9 ? "0" : String(index + 1);
+    };
+    assert.match(rail, new RegExp(`${keyFor("goals")}\\(${counts.get("goals")}\\)`), "goals badge sits on goals");
+    assert.match(rail, new RegExp(`${keyFor("risks")}\\(${counts.get("risks")}\\)`), "risks badge sits on risks");
   });
 
   test("plan browser moves the cursor and emits edit/new/delete actions", async () => {

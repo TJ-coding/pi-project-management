@@ -500,18 +500,14 @@ function planNodeContent(theme: Theme, node: PlanNode, bloated = false, parents 
  */
 function parentBadge(plan: Plan, node: PlanNode): string {
   if (node.dependsOn.length === 0) return "";
-  // Single parent: `←N1✓`. Several: `← ✓N1 N2` — a fixed status slot per parent,
-  // because a selective ✓ after a comma has to be re-bound on every read.
-  if (node.dependsOn.length === 1) {
-    const parent = plan.nodes.find((candidate) => candidate.id === node.dependsOn[0]);
-    if (!parent) return `←${node.dependsOn[0]}?`;
-    return `←${parent.status === "COMPLETED" ? `${parent.id}✓` : parent.id}`;
-  }
+  // One formatter for every arity: `←N1✓` or `←N1✓ N2 N3`. A tick after its own
+  // id always means "that parent is done", so it reads the same in a one-parent
+  // row and a four-parent row instead of flipping notation between boxes.
   return `←${node.dependsOn
     .map((dep) => {
       const parent = plan.nodes.find((candidate) => candidate.id === dep);
       if (!parent) return `${dep}?`;
-      return parent.status === "COMPLETED" ? `✓${dep}` : dep;
+      return parent.status === "COMPLETED" ? `${dep}✓` : dep;
     })
     .join(" ")}`;
 }
@@ -660,26 +656,31 @@ function heading(theme: Theme, title: string, width: number): string[] {
   return [theme.fg("borderMuted", "─".repeat(3)) + label + theme.fg("borderMuted", "─".repeat(remaining))];
 }
 
-/** Per-view count badges for the rail (index matches VIEWS order). */
-export function viewCounts(project: Project): number[] {
+/**
+ * Per-view count badges for the rail, keyed by view id.
+ *
+ * Keyed rather than positional: an array indexed by rail position silently lied
+ * about every view the moment the rail was reordered. A badge means "things here
+ * that want attention", which is why risks counts open ones and history counts
+ * days with activity.
+ */
+export function viewCounts(project: Project): Map<string, number> {
   const openQuestions = project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL").length;
   const openRisks = project.risks.filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
   const plan = activePlan(project);
   const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED").length;
   const activeGoals = project.goals.filter((goal) => goal.status === "ACTIVE").length;
-  return [
-    0, // Dashboard
-    0, // Direction
-    activeGoals, // Goals
-    0, // State
-    openQuestions, // Intelligence
-    openRisks, // Risks
-    0, // Strategy
-    plan ? plan.nodes.length : 0, // Plan
-    0, // History
-    runningRuns || project.runs.length, // Runs
-    0, // Summary
-  ];
+  const problems = project.state.problems.length;
+  const counts = new Map<string, number>([
+    ["goals", activeGoals],
+    ["state", problems],
+    ["intelligence", openQuestions],
+    ["risks", openRisks],
+    ["plan", plan ? plan.nodes.length : 0],
+    ["history", project.history.length],
+    ["runs", runningRuns || project.runs.length],
+  ]);
+  return counts;
 }
 
 function activePlan(project: Project) {
@@ -721,7 +722,9 @@ const dashboardView: ViewDefinition = {
     const running = plan ? runningNodes(plan.nodes) : [];
     const nowLabel = running.length > 0 ? "RUNNING" : "NEXT UP";
     const nowTone: "accent" | "success" = running.length > 0 ? "accent" : "success";
-    lines.push(sectionHeader(theme, nowLabel, plan ? `${plan.id} v${plan.version}` : "", width, nowTone));
+    // The header's right slot is a count everywhere else, so the plan version goes
+    // in the body instead of colliding with that convention.
+    lines.push(sectionHeader(theme, nowLabel, "", width, nowTone));
     const focal = running[0] ?? next;
     if (focal) {
       lines.push(containerRow(theme, strong(theme, `${focal.id} ${focal.title}`), width));
@@ -730,6 +733,7 @@ const dashboardView: ViewDefinition = {
         focal.type,
         focal.question ? `answers ${focal.question}` : null,
         focal.risk ? `reduces ${focal.risk}` : null,
+        plan ? `${plan.id} v${plan.version}` : null,
       ]
         .filter(Boolean)
         .join(" · ");
@@ -819,7 +823,7 @@ const dashboardView: ViewDefinition = {
     }
     if (activeGoals[0]) {
       const goal = activeGoals[0];
-      signals.push(metricLine(theme, "→", "accent", goal.id, goal.title, `P${goal.priority}`, width, bloatedIds.has(`goal:${goal.id}`)));
+      signals.push(metricLine(theme, "●", "accent", goal.id, goal.title, priorityBand(goal.priority), width, bloatedIds.has(`goal:${goal.id}`)));
     }
     if (signals.length === 0) lines.push(containerNote(theme, theme.fg("dim", "nothing recorded yet"), width));
     lines.push(...signals);
@@ -1016,8 +1020,9 @@ const stateView: ViewDefinition = {
     };
 
     // The headline sentence is never ellipsised: it is why the view is opened.
-    const problems = project.state.problems.length;
-    lines.push(sectionHeader(theme, "CURRENT", problems > 0 ? `${problems} problem${problems === 1 ? "" : "s"}` : "", width, "accent"));
+    // No badge here: every sibling puts a *count of its own items* in that slot,
+    // so "1 problem" would read as "one current state" and break the column.
+    lines.push(sectionHeader(theme, "CURRENT", "", width, "accent"));
     const current = wrapTextWithAnsi(theme.fg("text", project.state.current || "not recorded"), Math.max(8, width - 8));
     const currentShown = current.slice(0, 10);
     currentShown.forEach((line, index) => lines.push(index === 0 ? containerRow(theme, line, width) : containerNote(theme, line, width)));
@@ -1198,7 +1203,9 @@ function detailForGoal(goal: Goal): DetailDoc {
   fields.push({ label: "Updated", text: ageText(goal.updated), tone: "dim" });
   return {
     title: `${goal.id} · ${goal.title}`,
-    meta: `${goal.status} · priority P${goal.priority} (${band})`,
+    // Band word first: "HIGH (P4/5)" cannot be misread the way a bare "P4" can,
+  // since P-numbering elsewhere commonly runs the other way (P1 = most urgent).
+  meta: `${goal.status} · priority ${band} (P${goal.priority}/5)`,
     fields,
     lists: goal.successCriteria.length > 0 ? [{ label: `Success criteria (${goal.successCriteria.length})`, items: goal.successCriteria, kind: "line" as const }] : [],
   };
@@ -1360,10 +1367,28 @@ function detailForNode(project: Project, node: PlanNode): DetailDoc {
   if (node.failureReason) fields.push({ label: "Failure", text: node.failureReason, tone: "error", kind: "line" });
   return {
     title: `${node.id} · ${node.title}`,
-    meta: plan ? `${plan.id} v${plan.version}` : undefined,
+    // The meta line carries what the SELECTED box shows, so opening the reading
+    // pane never shows less than the row summary it replaced: type, status,
+    // readiness, links and dependency count.
+    meta: nodeMetaLine(project, node, plan),
     fields,
     lists: node.outputs.length > 0 ? [{ label: `Outputs (${node.outputs.length})`, items: node.outputs, tone: "success" as const, kind: "line" as const }] : [],
   };
+}
+
+/** `P2 v2 · TASK · PENDING (ready) · Q2 · no deps` for the reading-pane header. */
+function nodeMetaLine(project: Project, node: PlanNode, plan: ReturnType<typeof activePlan>): string {
+  const parts: string[] = [];
+  if (plan) parts.push(`${plan.id} v${plan.version}`);
+  parts.push(node.type, node.status);
+  // "ready" and "pending" are different facts, so both are shown: pending is the
+  // stored status, ready is the derived one a reader cares about.
+  if (plan && readyNodes(plan.nodes).some((candidate) => candidate.id === node.id)) parts.push("ready");
+  const links = [node.question, node.risk, node.goal].filter(Boolean);
+  if (links.length > 0) parts.push(links.join(" "));
+  parts.push(node.dependsOn.length === 0 ? "no deps" : `${node.dependsOn.length} dep${node.dependsOn.length === 1 ? "" : "s"}`);
+  void project;
+  return parts.join(" · ");
 }
 
 /**
@@ -1372,12 +1397,14 @@ function detailForNode(project: Project, node: PlanNode): DetailDoc {
  */
 export function renderDetailDoc(theme: Theme, doc: DetailDoc, width: number): string[] {
   const lines: string[] = [];
+  // The title and its meta line live inside the READING box, so the box is opened
+  // by the header and closed only after them. Closing it first left the title
+  // floating outside its own container, which reads as a render bug.
   lines.push(sectionHeader(theme, "READING", "esc back · j/k scroll", width, "accent"));
-  // The title is the longest thing in the pane, so wrap it rather than clip it.
   const rowWidth = Math.max(8, width - 4);
   for (const line of wrapTextWithAnsi(theme.bold(theme.fg("text", doc.title)), rowWidth)) lines.push(containerRow(theme, line, width));
   if (doc.meta) {
-    for (const line of wrapTextWithAnsi(theme.fg("dim", doc.meta), Math.max(8, width - 6))) lines.push(containerNote(theme, line, width));
+    for (const line of wrapTextWithAnsi(theme.fg("dim", doc.meta), rowWidth)) lines.push(containerNote(theme, line, width));
   }
   lines.push(containerClose(theme, width));
   lines.push("");
@@ -1786,26 +1813,25 @@ export class ProjectBrowser {
   private tabLine(width: number): string {
     const theme = this.theme;
     const counts = viewCounts(this.project);
-    const badge = (index: number): string => {
-      const count = counts[index] ?? 0;
+    const badge = (view: { id: string }): string => {
+      const count = counts.get(view.id) ?? 0;
       return count > 0 ? `(${count})` : "";
     };
     // The label is the key that actually reaches the view: 1-9, then 0 for the
-    // tenth. The eleventh has no single key, so it is labelled with dots rather
-    // than a number that would silently do nothing.
-    const keyFor = (index: number): string => (index === 9 ? "0" : index === 10 ? "··" : String(index + 1));
+    // tenth. The eleventh has no single key, so it names the route that does work.
+    const keyFor = (index: number): string => (index === 9 ? "0" : index === 10 ? "tab" : String(index + 1));
 
     // Wide: every tab keeps its name.
     const named = VIEWS.map((view, index) => {
-      const text = `${keyFor(index)}:${view.title}${badge(index)}`;
+      const text = `${keyFor(index)}:${view.title}${badge(view)}`;
       return index === this.viewIndex ? theme.fg("accent", theme.bold(text)) : theme.fg("muted", text);
     }).join(theme.fg("dim", " · "));
     if (visibleWidth(named) <= width) return named;
 
     // Medium: numbered tabs plus the active view's name, so any tab can still be
     // identified by running the cursor over it.
-    const numbers = VIEWS.map((_, index) => {
-      const text = `${keyFor(index)}${badge(index)}`;
+    const numbers = VIEWS.map((view, index) => {
+      const text = `${keyFor(index)}${badge(view)}`;
       return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${text}]`)) : theme.fg("dim", text);
     }).join(theme.fg("borderMuted", "·"));
     const active = theme.fg("accent", theme.bold(VIEWS[this.viewIndex]!.title));
@@ -1916,7 +1942,7 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
   lines.push(
     theme.fg("accent", `◈ ${project.meta.name}`) +
       theme.fg("dim", project.meta.yolo ? " [YOLO]" : "") +
-      theme.fg("muted", `  ${goals} active goals · ${openQuestions} open questions · ${project.risks.length} risks`),
+      theme.fg("muted", `  ${goals} active goals · ${openQuestions} open questions · ${openRisksText(project)}`),
   );
   if (project.meta.paused) {
     lines.push(theme.fg("warning", "  ⏸ PAUSED") + theme.fg("dim", project.meta.resumeNote ? ` · resume: ${project.meta.resumeNote}` : ""));
@@ -1936,6 +1962,12 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
     lines.push(theme.fg("warning", `  ${running.length} run(s) in progress: ${running.map((run) => run.id).join(", ")}`));
   }
   return lines.slice(0, maxLines);
+}
+
+/** `2 open risks` — the qualifier matches the rail badge, which also counts open ones. */
+function openRisksText(project: Project): string {
+  const open = project.risks.filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
+  return `${open} open risks`;
 }
 
 /** Plan progress used by the footer status. */

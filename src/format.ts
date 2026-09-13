@@ -279,8 +279,13 @@ export function renderRunsText(project: Project, limit = 30): string {
   return lines.join("\n").trimEnd();
 }
 
+/**
+ * Goal rows use `●` for ACTIVE rather than the shared `→`: at the start of a row a
+ * leading arrow reads as a cursor, and `→` is already doing ancestry duty in the
+ * plan pane (`N1 → N2 → N4`).
+ */
 export function goalGlyph(status: Goal["status"]): string {
-  return glyph(status);
+  return status === "ACTIVE" ? "●" : glyph(status);
 }
 
 export function statusGlyph(status: NodeStatus): string {
