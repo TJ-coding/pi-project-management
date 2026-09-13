@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-9 goals on the board; the plan has 11 nodes (N1-N5 from the review loop, N6-N11 from the six new goals). Three questions answered from the source; R5/R6 added. Open: publishing is blocked on the ACL26 names in .project/.
+9 goals on the board; the plan has 11 nodes (N1-N5 from the review loop, N6-N11 from the six new goals). Three questions answered from the source; R5/R6 added. No credentials in the repo; it is safe to publish.
 
 ## Goals
 

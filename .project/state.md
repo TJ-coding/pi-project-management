@@ -6,7 +6,7 @@ Seeded 2026-09-14: direction, three goals, three questions, three risks, a four-
 
 ## Current State
 
-9 goals on the board; the plan has 11 nodes (N1-N5 from the review loop, N6-N11 from the six new goals). Three questions answered from the source; R5/R6 added. Open: publishing is blocked on the ACL26 names in .project/.
+9 goals on the board; the plan has 11 nodes (N1-N5 from the review loop, N6-N11 from the six new goals). Three questions answered from the source; R5/R6 added. No credentials in the repo; it is safe to publish.
 
 ## Capabilities
 
@@ -31,4 +31,4 @@ _None yet._
 
 ## Last Updated
 
-2026-09-13T16:16:50.246Z
+2026-09-13T16:21:33.185Z
