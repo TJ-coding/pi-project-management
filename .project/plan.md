@@ -18,9 +18,12 @@ Rationale: Created implicitly when the first node was added.
     Pass MutateOptions through so commit:false really skips the commit; cover it with a test that runs two mutations and checks git log stays clean.
 - [PENDING] N6 TASK — Draw DAG depth and parents {goal:G5}
     Show each node's depth and parents in the plan panel, in the same pane.
+- [PENDING] N7 INVESTIGATION — Audit the 11 panels and features (after N6) {goal:G4}
+    Name the reason each panel and feature exists; propose removals with evidence.
 
 ## Edges
 
 N1 -> N4
 N2 -> N4
 N3 -> N4
+N6 -> N7
