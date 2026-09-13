@@ -137,7 +137,7 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
 };
 
 const DASHBOARD_KEYS =
-  "tab/arrows switch view · 1-9 jump · ↑↓ select a row · enter read it in full (esc back) · j/k scroll · space page · g/G top/bottom · e edit form · E raw text · ? help · r reload · q close";
+  "tab/arrows switch view · 1-9/0 jump · ↑↓ select a row · enter read it in full (esc back) · j/k scroll · space page · g/G top/bottom · e edit form · E raw text · ? help · r reload · q close";
 
 /** Full reference, grouped, generated from SUBCOMMAND_INFO. */
 export function renderHelp(pi?: ExtensionAPI): string {

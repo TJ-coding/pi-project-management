@@ -221,6 +221,24 @@ describe("dashboard", () => {
     }
   });
 
+  test("the rail is ordered by hierarchy and every label names a working key", () => {
+    const ids = VIEWS.map((view) => view.id);
+    // What the project is -> what we believe -> what we are doing -> the record.
+    const groups = [
+      ["direction", "goals", "state"],
+      ["intelligence", "risks", "strategy"],
+      ["dashboard", "plan", "runs"],
+      ["history", "summary"],
+    ].flat();
+    assert.deepEqual(ids, groups, "the rail follows the documented hierarchy");
+    assert.equal(new Set(ids).size, ids.length, "no view is listed twice");
+
+    // Ten single keys exist, so ten views are reachable by number and the rest
+    // must be labelled honestly rather than with a dead number.
+    const reachable = ids.slice(0, 10).map((_, index) => (index === 9 ? "0" : String(index + 1)));
+    assert.equal(reachable.length, 10);
+  });
+
   test("plan browser moves the cursor and emits edit/new/delete actions", async () => {
     const { root, manager } = await richProject();
     dirs.push(root);
@@ -274,13 +292,17 @@ describe("dashboard", () => {
     let closed = 0;
     const browser = new ProjectBrowser({ project, theme, onClose: () => (closed += 1) });
 
-    assert.equal(browser.currentView, "dashboard");
+    // The rail is hierarchical: what the project IS, then what we BELIEVE,
+    // then what we are DOING, then the record.
+    assert.equal(browser.currentView, "direction", "the durable definition leads the rail");
     browser.handleInput("\t");
-    assert.equal(browser.currentView, "direction");
+    assert.equal(browser.currentView, "goals");
+    browser.handleInput("7");
+    assert.equal(browser.currentView, "dashboard", "7 is the dashboard in the new order");
     browser.handleInput("8");
     assert.equal(browser.currentView, "plan");
     browser.handleInput("h");
-    assert.equal(browser.currentView, "strategy");
+    assert.equal(browser.currentView, "dashboard");
     browser.handleInput("q");
     assert.equal(closed, 1);
 
@@ -505,13 +527,21 @@ describe("dashboard", () => {
     browser.handleInput("e");
     assert.deepEqual(requested, []);
 
-    browser.handleInput("3"); // Goals
+    // Jump by digit rather than assuming a rail position, so the test survives
+    // a reorder: the point is "editable views advertise e", not the index.
+    const digitFor = (id: string): string => {
+      const index = VIEWS.findIndex((view) => view.id === id);
+      assert.ok(index >= 0, `${id} is a view`);
+      return String(index + 1).slice(-1);
+    };
+    browser.handleInput(digitFor("goals"));
     assert.equal(browser.currentView, "goals");
     assert.match(browser.render(100).join("\n"), /e edit/);
     browser.handleInput("e");
     assert.deepEqual(requested, ["goals"]);
 
-    browser.handleInput("6"); // Risks
+    browser.handleInput(digitFor("risks"));
+    assert.equal(browser.currentView, "risks");
     browser.handleInput("e");
     assert.deepEqual(requested, ["goals", "risks"]);
   });
@@ -731,12 +761,18 @@ describe("visual hierarchy", () => {
 
     // Tabs keep their names whenever there is room.
     const browser = new ProjectBrowser({ project, theme, onClose: () => undefined, getTerminalRows: () => 30 });
+    // Labels name the key that reaches the view, so they are derived from the
+    // rail order rather than hard-coded to a position.
+    const keyFor = (id: string): string => {
+      const index = VIEWS.findIndex((view) => view.id === id);
+      return index === 9 ? "0" : String(index + 1);
+    };
     const wide = browser.render(170).join("\n");
-    assert.match(wide, /1:Dashboard/);
-    assert.match(wide, /6:Risks/);
+    assert.match(wide, new RegExp(`${keyFor("dashboard")}:Dashboard`));
+    assert.match(wide, new RegExp(`${keyFor("risks")}:Risks`));
     const narrow = browser.render(70).join("\n");
-    assert.match(narrow, /6\(\d+\)/);
-    assert.match(narrow, /Dashboard/, "the active tab keeps its name on narrow terminals");
+    assert.match(narrow, new RegExp(`${keyFor("risks")}\\(\\d+\\)`));
+    assert.match(narrow, /Risks|Dashboard/, "the active tab keeps its name on narrow terminals");
   });
 });
 

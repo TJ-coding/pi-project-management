@@ -1416,17 +1416,25 @@ const planView: ViewDefinition = {
   render: (project, theme, width) => renderPlanInteractive(project, theme, width, null).lines,
 };
 
+/**
+ * Rail order is hierarchical, not alphabetical or by guessed frequency: what the
+ * project is (direction, goals, state), what we believe (intelligence, risks,
+ * strategy), what we are doing (dashboard, plan, runs), then the record
+ * (history, summary). Dashboard leads the execution block because it is the
+ * entry point `/project` opens; it is not first overall, because the durable
+ * definition of the project outranks a snapshot of today.
+ */
 const RAW_VIEWS: ViewDefinition[] = [
-  dashboardView,
   directionView,
   goalsView,
   stateView,
   intelligenceView,
   risksView,
   strategyView,
+  dashboardView,
   planView,
-  historyView,
   runsView,
+  historyView,
   summaryView,
 ];
 
@@ -1700,7 +1708,7 @@ export class ProjectBrowser {
     }
     if (this.helpVisible) {
       // While help is open only the scroll keys below apply.
-      if (matchesKey(data, "tab") || matchesKey(data, "left") || matchesKey(data, "right") || /^([1-9])$/.test(data)) {
+      if (matchesKey(data, "tab") || matchesKey(data, "left") || matchesKey(data, "right") || /^([0-9])$/.test(data)) {
         return;
       }
     } else if (matchesKey(data, "tab") || matchesKey(data, "right") || matchesKey(data, "l")) {
@@ -1712,9 +1720,12 @@ export class ProjectBrowser {
       this.resetView();
       return;
     } else {
-      const digit = /^([1-9])$/.exec(data);
+      // 1-9 then 0 covers ten of the eleven views; tab reaches the rest. Two
+      // views used to be unreachable by number with no hint that they were.
+      const digit = /^([0-9])$/.exec(data);
       if (digit) {
-        const target = Number.parseInt(digit[1]!, 10) - 1;
+        const value = Number.parseInt(digit[1]!, 10);
+        const target = value === 0 ? 9 : value - 1;
         if (target < VIEWS.length) {
           this.viewIndex = target;
           this.resetView();
@@ -1779,10 +1790,14 @@ export class ProjectBrowser {
       const count = counts[index] ?? 0;
       return count > 0 ? `(${count})` : "";
     };
+    // The label is the key that actually reaches the view: 1-9, then 0 for the
+    // tenth. The eleventh has no single key, so it is labelled with dots rather
+    // than a number that would silently do nothing.
+    const keyFor = (index: number): string => (index === 9 ? "0" : index === 10 ? "··" : String(index + 1));
 
     // Wide: every tab keeps its name.
     const named = VIEWS.map((view, index) => {
-      const text = `${index + 1}:${view.title}${badge(index)}`;
+      const text = `${keyFor(index)}:${view.title}${badge(index)}`;
       return index === this.viewIndex ? theme.fg("accent", theme.bold(text)) : theme.fg("muted", text);
     }).join(theme.fg("dim", " · "));
     if (visibleWidth(named) <= width) return named;
@@ -1790,7 +1805,7 @@ export class ProjectBrowser {
     // Medium: numbered tabs plus the active view's name, so any tab can still be
     // identified by running the cursor over it.
     const numbers = VIEWS.map((_, index) => {
-      const text = `${index + 1}${badge(index)}`;
+      const text = `${keyFor(index)}${badge(index)}`;
       return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${text}]`)) : theme.fg("dim", text);
     }).join(theme.fg("borderMuted", "·"));
     const active = theme.fg("accent", theme.bold(VIEWS[this.viewIndex]!.title));
@@ -1870,8 +1885,8 @@ export class ProjectBrowser {
         : this.currentView === "plan"
           ? `↑↓ select · enter read in full · e edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
           : rows.length > 0
-            ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9 jump${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
-            : `tab views · 1-9 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
+            ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9/0 jump${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
+            : `tab views · 1-9/0 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
     const left = theme.fg("dim", ` ${keys}`);
     const right = theme.fg("dim", `${scrollable ? "↕ " : ""}${range} `);
     const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
