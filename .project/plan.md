@@ -16,6 +16,8 @@ Rationale: Created implicitly when the first node was added.
     Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
 - [PENDING] N5 TASK — Forward options in every mutation {risk:R4}
     Pass MutateOptions through so commit:false really skips the commit; cover it with a test that runs two mutations and checks git log stays clean.
+- [PENDING] N6 TASK — Draw DAG depth and parents {goal:G5}
+    Show each node's depth and parents in the plan panel, in the same panel.
 
 ## Edges
 
