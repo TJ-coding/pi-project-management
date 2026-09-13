@@ -30,3 +30,18 @@
   tasks: []
   created: 2026-09-13T15:59:01.296Z
   updated: 2026-09-13T15:59:01.296Z
+- id: G3
+  title: Close the two known gaps
+  description: Rename and digest length are the remaining rough edges reported by the human.
+  priority: 3
+  success_criteria:
+    - A project can be renamed without editing .project files by hand.
+    - The digest carries the important facts without abbreviating state to nothing.
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-13T15:59:01.443Z
+  updated: 2026-09-13T15:59:01.443Z

@@ -16,6 +16,7 @@ _Not recorded._
 
 - → G1 Keep every panel readable at 80 columns (ACTIVE)
 - → G2 Enforce brevity on every write (ACTIVE)
+- → G3 Close the two known gaps (ACTIVE)
 
 ## Major Risks
 

@@ -2,3 +2,4 @@
 {"seq":2,"at":"2026-09-13T15:59:01.000Z","kind":"direction.changed","summary":"Direction changed: human asked for a dedicated project to improve the extension","by":"agent","refs":[],"details":{"autoAccepted":false,"approvedBy":"human"}}
 {"seq":3,"at":"2026-09-13T15:59:01.156Z","kind":"goal.created","summary":"Goal G1 created: Keep every panel readable at 80 columns","by":"agent","refs":["G1"],"details":{"status":"ACTIVE","priority":5}}
 {"seq":4,"at":"2026-09-13T15:59:01.296Z","kind":"goal.created","summary":"Goal G2 created: Enforce brevity on every write","by":"agent","refs":["G2"],"details":{"status":"ACTIVE","priority":5}}
+{"seq":5,"at":"2026-09-13T15:59:01.443Z","kind":"goal.created","summary":"Goal G3 created: Close the two known gaps","by":"agent","refs":["G3"],"details":{"status":"ACTIVE","priority":3}}
