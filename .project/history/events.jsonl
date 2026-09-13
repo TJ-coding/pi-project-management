@@ -85,3 +85,4 @@
 {"seq":85,"at":"2026-09-13T16:22:21.068Z","kind":"decision.made","summary":"Decision D4 (ROUTINE): Remove the other project's name from live state","by":"agent","refs":["D4","Q5","R6"],"details":{"autoAccepted":false}}
 {"seq":86,"at":"2026-09-13T16:24:48.622Z","kind":"goal.created","summary":"Goal G10 created: Start / Pause Project","by":"human","refs":["G10"],"details":{"status":"ACTIVE","priority":3}}
 {"seq":87,"at":"2026-09-13T16:35:16.500Z","kind":"goal.updated","summary":"Goal G10 updated: Start / Pause Project","by":"agent","refs":["G10"]}
+{"seq":88,"at":"2026-09-13T16:35:16.676Z","kind":"question.created","summary":"Question Q6 created: Is pause a new status or a view of existing state?","by":"agent","refs":["Q6"]}
