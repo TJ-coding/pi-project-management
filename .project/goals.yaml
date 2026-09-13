@@ -14,3 +14,19 @@
   tasks: []
   created: 2026-09-13T15:59:01.156Z
   updated: 2026-09-13T15:59:01.156Z
+- id: G2
+  title: Enforce brevity on every write
+  description: Text budgets live in code and are checked before anything is saved.
+  priority: 5
+  success_criteria:
+    - Over-budget new or changed text is refused and nothing is written.
+    - Legacy text is grandfathered and may only shrink.
+    - The agent digest prints the budgets each session.
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-13T15:59:01.296Z
+  updated: 2026-09-13T15:59:01.296Z

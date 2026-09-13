@@ -15,6 +15,7 @@ _Not recorded._
 ## Goals
 
 - → G1 Keep every panel readable at 80 columns (ACTIVE)
+- → G2 Enforce brevity on every write (ACTIVE)
 
 ## Major Risks
 
