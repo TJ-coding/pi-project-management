@@ -13,6 +13,7 @@
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { BUDGETS, countWords, type TextKind } from "./limits.ts";
 
 /** Full-width selection bar: the focused row is the focal point of the form. */
 function paintRow(theme: Theme, lines: string[], selected: boolean, width: number): string[] {
@@ -29,6 +30,12 @@ export interface FormFieldBase {
   label: string;
   /** Short hint shown dim on the right (may be computed from the draft). */
   hint?: string | (() => string);
+  /**
+   * Budget this field is written under. When set, the form shows a live word and
+   * character counter, so an over-long entry is visible before the save rejects
+   * it rather than after.
+   */
+  budget?: TextKind;
 }
 
 export interface TextField extends FormFieldBase {
@@ -687,7 +694,7 @@ export class FormEditor {
       const bullet = field.kind === "refs" ? "•" : "–";
       return paintRow(
         theme,
-        [`${rowPrefix}${theme.fg("dim", `${bullet} `)}${editing ? theme.fg("text", value) : theme.fg("text", raw || theme.fg("dim", "(empty)"))}`],
+        [`${rowPrefix}${theme.fg("dim", `${bullet} `)}${editing ? theme.fg("text", value) : theme.fg("text", raw || theme.fg("dim", "(empty)"))}${this.budgetCounter(row)}`],
         focused && !this.picker,
         width,
       );
@@ -714,7 +721,7 @@ export class FormEditor {
     } else if (field.kind === "prose") {
       const text = field.get();
       const preview = text ? text.split("\n").slice(0, 3).join("\n") : theme.fg("dim", "(empty)");
-      const previewLines = [truncateToWidth(`${prefix}${theme.fg("text", preview.split("\n")[0] ?? "")}${focused ? theme.fg("dim", "  ⏎ edit") : ""}`, width)];
+      const previewLines = [truncateToWidth(`${prefix}${theme.fg("text", preview.split("\n")[0] ?? "")}${this.budgetCounter(row)}${focused ? theme.fg("dim", "  ⏎ edit") : ""}`, width)];
       for (const extra of preview.split("\n").slice(1)) previewLines.push(truncateToWidth(`${"  " + " ".repeat(20)}${theme.fg("muted", extra)}`, width));
       return paintRow(theme, previewLines, focused && !this.picker, width);
     } else {
@@ -724,7 +731,45 @@ export class FormEditor {
 
     const hintText = typeof field.hint === "function" ? field.hint() : field.hint;
     const hint = hintText && !focused ? theme.fg("dim", `  ${hintText}`) : "";
-    return paintRow(theme, [`${prefix}${value}${hint}`], focused && !this.picker, width);
+    return paintRow(theme, [`${prefix}${value}${hint}${this.budgetCounter(row)}`], focused && !this.picker, width);
+  }
+
+  /**
+   * `12/30w 143/220c` for the row being edited, turning red once it is over.
+   * Only the focused row shows it: a counter on every row would be wallpaper,
+   * and the point is to warn about the edit in flight.
+   */
+  private budgetCounter(row: Row): string {
+    const { field, item } = row;
+    if (!field.budget) return "";
+    if (this.rows[this.active] !== row) return "";
+    const text = this.fieldText(field, item);
+    const budget = BUDGETS[field.budget];
+    const words = countWords(text);
+    const chars = text.trim().length;
+    const over = words > budget.words || chars > budget.chars;
+    const tone = over ? "error" : "dim";
+    const mark = over ? " ⚠" : "";
+    return this.theme.fg(tone, `  ${words}/${budget.words}w ${chars}/${budget.chars}c${mark}`);
+  }
+
+  /** The current text of a row, whether it is a scalar field or one list item. */
+  private fieldText(field: FormField, item: number): string {
+    // While a row is being edited, the buffer in flight is what the budget will
+    // judge, so the counter must read it rather than the committed value.
+    const row = this.rows.find((candidate) => candidate.field === field && candidate.item === item);
+    if (this.edit && row && this.rows[this.edit.row] === row) return this.edit.buffer;
+    if (field.kind === "list" || field.kind === "refs") return field.get()[item] ?? "";
+    if (item !== -1) return "";
+    switch (field.kind) {
+      case "ref":
+        return field.get() ?? "";
+      case "int":
+      case "float":
+        return formatNumber(field.get());
+      default:
+        return field.get();
+    }
   }
 
   invalidate(): void {

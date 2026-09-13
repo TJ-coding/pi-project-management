@@ -119,6 +119,7 @@ export function goalForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "title",
+      budget: "title",
       label: "Title",
       required: true,
       placeholder: "(required)",
@@ -130,6 +131,7 @@ export function goalForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "description",
+      budget: "prose",
       label: "Description",
       lines: 3,
       get: () => draft.description,
@@ -172,6 +174,7 @@ export function goalForm(project: Project, id?: string): EntityForm {
     {
       kind: "list",
       key: "successCriteria",
+      budget: "value",
       label: "Success criteria",
       hint: "how we know it is done",
       get: () => draft.successCriteria,
@@ -309,6 +312,7 @@ export function riskForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "title",
+      budget: "title",
       label: "Title",
       required: true,
       placeholder: "(required)",
@@ -320,6 +324,7 @@ export function riskForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "description",
+      budget: "prose",
       label: "Description",
       lines: 3,
       get: () => draft.description,
@@ -356,6 +361,7 @@ export function riskForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "exposure",
+      budget: "title",
       label: "Exposure",
       hint: () => `p × i = ${(draft.probability * draft.impact).toFixed(2)}  ${scoreBand(draft.probability * draft.impact)}`,
       get: () => "",
@@ -374,6 +380,7 @@ export function riskForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "mitigation",
+      budget: "prose",
       label: "Mitigation",
       lines: 3,
       get: () => draft.mitigation,
@@ -384,6 +391,7 @@ export function riskForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "contingency",
+      budget: "prose",
       label: "Contingency",
       lines: 3,
       get: () => draft.contingency,
@@ -394,6 +402,7 @@ export function riskForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "owner",
+      budget: "title",
       label: "Owner",
       placeholder: "(optional)",
       get: () => draft.owner,
@@ -520,6 +529,7 @@ export function questionForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "question",
+      budget: "prose",
       label: "Question",
       required: true,
       lines: 3,
@@ -541,6 +551,7 @@ export function questionForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "answer",
+      budget: "prose",
       label: "Answer",
       lines: 3,
       get: () => draft.answer,
@@ -603,6 +614,7 @@ export function questionForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "score",
+      budget: "title",
       label: "Priority score",
       hint: () => `${score().toFixed(2)}  ${scoreBand(score())}`,
       get: () => "",
@@ -766,6 +778,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "title",
+      budget: "title",
       label: "Title",
       required: true,
       placeholder: "(required)",
@@ -807,6 +820,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "description",
+      budget: "prose",
       label: "Description",
       lines: 3,
       get: () => draft.description,
@@ -869,6 +883,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
     {
       kind: "prose",
       key: "gateCriteria",
+      budget: "prose",
       label: "Gate criteria",
       hint: "used when Type = GATE",
       lines: 2,
@@ -880,6 +895,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
     {
       kind: "list",
       key: "outputs",
+      budget: "value",
       label: "Outputs",
       hint: "evidence produced",
       get: () => draft.outputs,
@@ -890,6 +906,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
     {
       kind: "text",
       key: "failureReason",
+      budget: "line",
       label: "Failure reason",
       hint: "shown when Status = FAILED",
       get: () => draft.failureReason,
@@ -971,6 +988,7 @@ export function directionForm(project: Project): EntityForm {
       {
         kind: "prose",
         key: "vision",
+        budget: "prose",
         label: "Vision",
         lines: 4,
         get: () => draft.vision,
@@ -981,6 +999,7 @@ export function directionForm(project: Project): EntityForm {
       {
         kind: "prose",
         key: "intent",
+        budget: "prose",
         label: "Intent",
         lines: 3,
         get: () => draft.intent,
@@ -991,6 +1010,7 @@ export function directionForm(project: Project): EntityForm {
       {
         kind: "list",
         key: "values",
+        budget: "value",
         label: "Values",
         hint: "guidance when choices are close",
         get: () => draft.values,
@@ -1001,6 +1021,7 @@ export function directionForm(project: Project): EntityForm {
       {
         kind: "list",
         key: "concepts",
+        budget: "value",
         label: "Concepts",
         hint: "format: [type] text",
         get: () => draft.concepts,
@@ -1051,6 +1072,7 @@ export function stateForm(project: Project): EntityForm {
       {
         kind: "prose",
         key: "current",
+        budget: "prose",
         label: "Current state",
         lines: 4,
         get: () => draft.current,
@@ -1061,6 +1083,7 @@ export function stateForm(project: Project): EntityForm {
       {
         kind: "prose",
         key: "initial",
+        budget: "prose",
         label: "Initial state",
         lines: 3,
         get: () => draft.initial,
@@ -1115,6 +1138,7 @@ export function strategyForm(project: Project): EntityForm {
       {
         kind: "prose",
         key: "approach",
+        budget: "prose",
         label: "Approach",
         lines: 4,
         get: () => draft.approach,
@@ -1127,6 +1151,7 @@ export function strategyForm(project: Project): EntityForm {
       {
         kind: "prose",
         key: "rationale",
+        budget: "prose",
         label: "Rationale",
         lines: 3,
         get: () => draft.rationale,

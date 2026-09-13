@@ -316,3 +316,59 @@ describe("unsaved-changes guard", () => {
     assert.deepEqual(actions, [{ kind: "cancel" }], "no prompt for a form that matches its start");
   });
 });
+
+describe("live budget counters", () => {
+  const budgeted = (value: () => string): FormField[] => [
+    { kind: "text", key: "title", label: "Title", budget: "title", get: value, set: () => undefined },
+  ];
+
+  test("the focused row shows words and characters against its budget", () => {
+    const editor = new FormEditor({
+      title: "T",
+      fields: budgeted(() => "four words in here"),
+      theme,
+      getTerminalRows: () => 30,
+      onExit: () => undefined,
+    });
+    const row = editor.render(100).find((line) => /Title/.test(line));
+    assert.match(row!, /4\/12w 18\/80c/, "the counter reads the current value");
+    assert.doesNotMatch(row!, /⚠/, "a value inside budget is not warned");
+  });
+
+  test("the counter warns as soon as the text in flight goes over", () => {
+    let value = "short";
+    const editor = new FormEditor({
+      title: "T",
+      fields: budgeted(() => value),
+      theme,
+      getTerminalRows: () => 30,
+      onExit: () => undefined,
+    });
+    editor.handleInput("\r"); // start editing the title
+    for (const char of " one two three four five six seven eight nine ten eleven twelve") editor.handleInput(char);
+    const row = editor.render(200).find((line) => /Title/.test(line));
+    assert.match(row!, /⚠/, "the warning appears before the save is refused");
+    // The count tracks the buffer, not the committed value.
+    assert.doesNotMatch(row!, /1\/12w/);
+  });
+
+  test("only the focused row carries a counter", () => {
+    const fields: FormField[] = [
+      { kind: "text", key: "title", label: "Title", budget: "title", get: () => "one", set: () => undefined },
+      { kind: "text", key: "other", label: "Other", budget: "title", get: () => "two", set: () => undefined },
+    ];
+    const editor = new FormEditor({ title: "T", fields, theme, getTerminalRows: () => 30, onExit: () => undefined });
+    const counter = /\d+\/\d+w \d+\/\d+c/;
+    const focused = editor.render(100).filter((line) => counter.test(line));
+    assert.equal(focused.length, 1, "exactly one counter is shown, so it is not wallpaper");
+    assert.match(focused[0]!, /Title/);
+  });
+
+  test("a field with no budget shows no counter", () => {
+    const fields: FormField[] = [
+      { kind: "text", key: "plain", label: "Plain", get: () => "anything at all", set: () => undefined },
+    ];
+    const editor = new FormEditor({ title: "T", fields, theme, getTerminalRows: () => 30, onExit: () => undefined });
+    for (const line of editor.render(100)) assert.doesNotMatch(line, /\d+\/\d+w/);
+  });
+});
