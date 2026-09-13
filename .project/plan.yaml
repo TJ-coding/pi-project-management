@@ -215,5 +215,23 @@ plans:
         updated: 2026-09-13T16:16:16.182Z
         started: null
         finished: null
+      - id: N12
+        title: Add start and pause for the project
+        type: TASK
+        status: PENDING
+        description: Add meta.paused plus a resume note; surface it in the digest, widget and status line.
+        depends_on: []
+        goal: G10
+        risk: null
+        question: Q6
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T16:35:27.480Z
+        updated: 2026-09-13T16:35:27.480Z
+        started: null
+        finished: null
     gates: []
 changes: []
