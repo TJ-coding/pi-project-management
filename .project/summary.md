@@ -33,6 +33,7 @@ _Not recorded._
 ## Major Decisions
 
 - D1 Improve this extension through the k3 review loop (SIGNIFICANT)
+- D2 Keep project state in the repo, committed with the code (ROUTINE)
 
 ## Plan Evolution
 
