@@ -60,13 +60,22 @@
   answered: 2026-09-13T16:16:21.205Z
 - id: Q4
   question: Which panels can go without losing a spec requirement?
-  answer: ""
-  status: UNKNOWN
+  answer: "None of the 11 is removable: each is the only place for one record (state, strategy, runs)
+    or is the authoritative log (history). The real waste is duplication, not panels."
+  status: ANSWERED
   importance: 0.65
-  uncertainty: 0.7
+  uncertainty: 0.3
   decision_impact: 0.5
-  confidence: 0
-  evidence: []
+  confidence: 0.75
+  evidence:
+    - description: Per-panel entity coverage shows every panel owns distinct records; overlapping ids are
+        cross-references, not repeated content
+      kind: measurement
+      ref: frame audit of /tmp/pi-pm-demo at 100 cols
+    - description: Summary's PLAN EVOLUTION section restates plan.changed history entries that the History
+        view already carries in full with timestamps
+      kind: measurement
+      ref: src/dashboard.ts:306-320 vs the history view
   goals:
     - G4
   risks: []
@@ -75,8 +84,8 @@
   decisions:
     - D3
   created: 2026-09-13T16:16:29.676Z
-  updated: 2026-09-13T16:16:29.676Z
-  answered: null
+  updated: 2026-09-13T17:22:24.408Z
+  answered: 2026-09-13T17:22:24.408Z
 - id: Q5
   question: Does the tree or git history hold anything unfit to publish?
   answer: No credentials in tree or history; 64 tracked files, no node_modules. Safe to publish.

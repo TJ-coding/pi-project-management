@@ -108,3 +108,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T17:21:15.880Z **state.changed** — State changed: state updated (by agent)
 - 2026-09-13T17:21:16.074Z **goal.completed** — Goal G3 COMPLETED: Close the two known gaps [G3] (by agent)
 - 2026-09-13T17:21:20.789Z **task.updated** — Node N7 PENDING -> RUNNING: Audit the 11 panels and features [N7] (by agent)
+- 2026-09-13T17:22:24.408Z **question.answered** — Question Q4 ANSWERED: Which panels can go without losing a spec requirement? [Q4] (by agent)
