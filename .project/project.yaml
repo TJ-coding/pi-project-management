@@ -1,7 +1,7 @@
 name: Pi Project
 id: pi-project
 created: 2026-09-13T15:59:00.845Z
-updated: 2026-09-13T17:10:09.036Z
+updated: 2026-09-13T17:14:06.204Z
 repositories:
   - ~/Projects/pi-project-management
 resources: []
@@ -11,6 +11,3 @@ auto_commit: true
 active_plan: P1
 completed: false
 completed_at: null
-paused: false
-paused_at: null
-resume_note: null
