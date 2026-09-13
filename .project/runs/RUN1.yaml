@@ -1,7 +1,7 @@
 id: RUN1
 title: k3 usability review loop
 node: null
-status: STARTED
+status: RUNNING
 environment:
   - kind: api
     target: kimi-k3 via opencode-go
@@ -15,6 +15,14 @@ log: null
 exit_code: null
 started: 2026-09-13T15:59:03.626Z
 finished: null
-updated: 2026-09-13T15:59:03.626Z
-entries: []
+updated: 2026-09-13T15:59:03.791Z
+entries:
+  - at: 2026-09-13T15:59:03.791Z
+    kind: note
+    text: "Protocol: dump every view as ANSI-stripped frames (~100 columns) for the demo project and a
+      real project; ask k3 for ranked feedback; fix; re-ask until it says stop."
+  - at: 2026-09-13T15:59:03.791Z
+    kind: note
+    text: "Nine rounds so far (history in the ACL26 project): reading pane, history rebuild, budget
+      enforcement, actionable markers."
 outputs: []
