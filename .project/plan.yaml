@@ -25,5 +25,23 @@ plans:
         updated: 2026-09-13T15:59:02.928Z
         started: null
         finished: null
+      - id: N2
+        title: Show live word counters in entity forms
+        type: TASK
+        status: PENDING
+        description: Count words and characters while typing, so a save is never refused by surprise.
+        depends_on: []
+        goal: G2
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T15:59:03.093Z
+        updated: 2026-09-13T15:59:03.093Z
+        started: null
+        finished: null
     gates: []
 changes: []
