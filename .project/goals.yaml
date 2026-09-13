@@ -92,7 +92,7 @@
     - Editing a goal offers to fill its empty fields.
     - Accepted proposals are written and recorded in history.
     - The human can decline and keep their edit.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
@@ -100,7 +100,7 @@
   tasks:
     - N9
   created: 2026-09-13T16:09:28.224Z
-  updated: 2026-09-13T16:16:03.841Z
+  updated: 2026-09-13T17:44:46.786Z
 - id: G7
   title: Upload the project to github repository
   description: Upload this project to github repository. You can make it a public repo.

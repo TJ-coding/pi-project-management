@@ -19,7 +19,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - ✓ G3 Close the two known gaps (COMPLETED)
 - ✓ G4 Minimalism (COMPLETED)
 - → G5 Visual DAG (ACTIVE)
-- → G6 Auto complete / Propagate (ACTIVE)
+- ✓ G6 Auto complete / Propagate (COMPLETED)
 - → G7 Upload the project to github repository (ACTIVE)
 - ✓ G8 Reconsider ordering of panels. (COMPLETED)
 - → G9 Warn when exiting change without saving. (ACTIVE)
