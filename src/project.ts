@@ -30,7 +30,7 @@ import {
   type Clock,
   type GitResult,
 } from "./storage.ts";
-import { validateProject } from "./validate.ts";
+import { validateProject, validateProjectDetailed } from "./validate.ts";
 import type {
   AnswerStatus,
   AuthorityLevel,
@@ -48,6 +48,7 @@ import type {
   NodeType,
   Plan,
   PlanNode,
+  PlansFile,
   Project,
   ProjectState,
   Question,
@@ -1107,6 +1108,84 @@ export class ProjectManager {
     return value;
   }
 
+  /* ---------------- bulk section edits (human editing) ---------------- */
+
+  /**
+   * Replace the whole goal list. Used by the human edit path (`e` in the TUI or
+   * `/project edit`); it goes through the same validation, history and Git path
+   * as agent-driven changes.
+   */
+  async replaceGoals(goals: Goal[], options: MutateOptions = {}): Promise<Goal[]> {
+    return (
+      await this.mutate(`project: edit goals (${goals.length})`, (project) => {
+        const preexisting = new Set(validateProjectDetailed(project).errors);
+        const before = new Set(project.goals.map((goal) => goal.id));
+        const after = new Set(goals.map((goal) => goal.id));
+        project.goals = goals.map((goal) => ({ ...goal, updated: goal.updated || this.clock.now() }));
+        assertNoNewErrors(project, preexisting, "goals");
+        const added = goals.filter((goal) => !before.has(goal.id)).length;
+        const removed = [...before].filter((id) => !after.has(id)).length;
+        this.record("goal.updated", `Goals edited by hand: ${goals.length} total (+${added}/-${removed})`, [
+          ...after,
+        ]);
+        return project.goals;
+      }, options)
+    ).value;
+  }
+
+  async replaceQuestions(questions: Question[], options: MutateOptions = {}): Promise<Question[]> {
+    return (
+      await this.mutate(`project: edit intelligence (${questions.length})`, (project) => {
+        const preexisting = new Set(validateProjectDetailed(project).errors);
+        const before = new Set(project.questions.map((question) => question.id));
+        project.questions = questions.map((question) => ({ ...question, updated: question.updated || this.clock.now() }));
+        assertNoNewErrors(project, preexisting, "intelligence");
+        const added = questions.filter((question) => !before.has(question.id)).length;
+        this.record(
+          "question.updated",
+          `Intelligence edited by hand: ${questions.length} question(s) (+${added})`,
+          questions.map((question) => question.id),
+        );
+        return project.questions;
+      }, options)
+    ).value;
+  }
+
+  async replaceRisks(risks: Risk[], options: MutateOptions = {}): Promise<Risk[]> {
+    return (
+      await this.mutate(`project: edit risks (${risks.length})`, (project) => {
+        const preexisting = new Set(validateProjectDetailed(project).errors);
+        const before = new Set(project.risks.map((risk) => risk.id));
+        project.risks = risks.map((risk) => ({ ...risk, updated: risk.updated || this.clock.now() }));
+        assertNoNewErrors(project, preexisting, "risks");
+        const added = risks.filter((risk) => !before.has(risk.id)).length;
+        this.record(
+          "risk.updated",
+          `Risks edited by hand: ${risks.length} total (+${added})`,
+          risks.map((risk) => risk.id),
+        );
+        return project.risks;
+      }, options)
+    ).value;
+  }
+
+  async replacePlans(plans: PlansFile, options: MutateOptions = {}): Promise<PlansFile> {
+    return (
+      await this.mutate("project: edit plan", (project) => {
+        const preexisting = new Set(validateProjectDetailed(project).errors);
+        project.plans = plans;
+        const active = plans.active && plans.plans.some((plan) => plan.id === plans.active)
+          ? plans.active
+          : plans.plans[plans.plans.length - 1]?.id ?? null;
+        project.plans.active = active;
+        project.meta.activePlan = active;
+        assertNoNewErrors(project, preexisting, "plan");
+        this.record("plan.changed", `Plan edited by hand (${plans.plans.length} version(s), active ${active ?? "none"})`, active ? [active] : []);
+        return project.plans;
+      }, options)
+    ).value;
+  }
+
   /* ---------------- completion ---------------- */
 
   async completeProject(options: MutateOptions & { approved?: boolean; approvedBy?: string } = {}): Promise<StrategicOutcome<Project>> {
@@ -1227,6 +1306,14 @@ function uncertaintyForStatus(status: AnswerStatus, current: number): number {
       return 0;
     default:
       return current;
+  }
+}
+
+/** Reject an edit that introduces new structural errors (pre-existing ones are kept as-is). */
+function assertNoNewErrors(project: Project, preexisting: ReadonlySet<string>, what: string): void {
+  const introduced = validateProjectDetailed(project).errors.filter((issue) => !preexisting.has(issue));
+  if (introduced.length > 0) {
+    throw new Error(`Edit rejected (${what}):\n- ${introduced.join("\n- ")}`);
   }
 }
 

@@ -43,8 +43,8 @@ export function section(sections: Map<string, string>, ...names: string[]): stri
 export function renderSections(title: string, entries: Array<[string, string]>): string {
   const parts = [`# ${title}`];
   for (const [heading, body] of entries) {
-    parts.push(`## ${heading}\n`);
-    parts.push(body.trim() === "" ? "_None yet._" : body.trim());
+    // Join with exactly one blank line between heading and body.
+    parts.push(`## ${heading}`, body.trim() === "" ? "_None yet._" : body.trim());
   }
   return parts.join("\n\n") + "\n";
 }

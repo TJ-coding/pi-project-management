@@ -24,11 +24,13 @@ import {
 } from "./format.ts";
 import { renderCompletionSummary } from "./history.ts";
 import { ProjectManager } from "./project.ts";
+import { EDITABLE_SECTIONS, editableSection, editableSectionIds, type EditableSection } from "./editing.ts";
 import { renderReplanAnalysis, renderReviewReport } from "./reports.ts";
 
 export const PROJECT_SUBCOMMANDS = [
   "dashboard",
   "init",
+  "edit",
   "status",
   "direction",
   "goals",
@@ -61,6 +63,11 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
     usage: "/project init [name]",
     summary: "create a .project/ in this directory",
     details: "Prompts for vision and intent when a UI is available. Refuses if a project already exists here.",
+  },
+  edit: {
+    usage: "/project edit <section>",
+    summary: "edit a section as text (same path as agent changes)",
+    details: `Sections: ${EDITABLE_SECTIONS.map((section) => section.id).join(", ")}. Also available with the e key in the dashboard. Saving validates the text, records history and commits to git.`,
   },
   status: {
     usage: "/project status",
@@ -109,14 +116,14 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
   help: { usage: "/project help [subcommand]", summary: "this reference, or details for one subcommand" },
 };
 
-const DASHBOARD_KEYS = "tab/arrows switch view · 1-9 jump · j/k or ↑↓ scroll · space page · g/G top/bottom · ? help · r reload · q close";
+const DASHBOARD_KEYS = "tab/arrows switch view · 1-9 jump · j/k or ↑↓ scroll · space page · g/G top/bottom · e edit · ? help · r reload · q close";
 
 /** Full reference, grouped, generated from SUBCOMMAND_INFO. */
 export function renderHelp(pi?: ExtensionAPI): string {
   const lines: string[] = ["Project commands", ""];
   const groups: Array<[string, Subcommand[]]> = [
     ["View", ["dashboard", "status", "direction", "goals", "state", "intelligence", "risks", "strategy", "plan", "history", "evolution", "runs", "summary"]],
-    ["Act", ["init", "review", "replan", "resume", "yolo", "complete", "watch"]],
+    ["Act", ["init", "edit", "review", "replan", "resume", "yolo", "complete", "watch"]],
     ["Discover", ["tools", "projects", "help"]],
   ];
   for (const [title, names] of groups) {
@@ -128,7 +135,8 @@ export function renderHelp(pi?: ExtensionAPI): string {
     lines.push("");
   }
 
-  lines.push("Adding and changing work is done by talking to the agent, for example:");
+  lines.push("Changing work directly: /project edit <section> (or press e in the dashboard).");
+  lines.push("Otherwise work is added by talking to the agent, for example:");
   lines.push('  "add a goal to ship the parser, priority 4"            -> project_goal');
   lines.push('  "record what we do not know about the evaluator"       -> project_question');
   lines.push('  "add a risk that the index fails at scale, 0.4 x 0.9"  -> project_risk');
@@ -312,6 +320,24 @@ async function handleProjectCommand(
     case "summary":
       await showBrowser(pi, ctx, manager, "summary");
       return;
+    case "edit": {
+      if (!rest) {
+        await showText(
+          pi,
+          ctx,
+          `Editable sections: ${editableSectionIds().join(", ")}\n\nUsage: /project edit <section>\nYou can also press e inside the dashboard.`,
+        );
+        return;
+      }
+      const section = editableSection(rest);
+      if (!section) {
+        await showText(pi, ctx, `Unknown section "${rest}". Editable: ${editableSectionIds().join(", ")}.`);
+        return;
+      }
+      await runSectionEditor(pi, ctx, manager, section);
+      await showBrowser(pi, ctx, manager, section.view);
+      return;
+    }
     case "review":
       await runReview(pi, ctx, manager);
       return;
@@ -504,22 +530,47 @@ async function showBrowser(
   view: string,
   notice?: string,
 ): Promise<void> {
+  // The browser can hand control back to an editor; loop until the user closes it.
+  let currentView = view;
+  let pendingNotice = notice;
+  for (;;) {
+    const action = await openBrowser(pi, ctx, manager, currentView, pendingNotice);
+    pendingNotice = undefined;
+    if (!action) return;
+    const [, sectionId] = /^edit:(.+)$/.exec(action) ?? [];
+    if (!sectionId) return;
+    const section = editableSection(sectionId);
+    if (!section) return;
+    currentView = section.view;
+    await runSectionEditor(pi, ctx, manager, section);
+  }
+}
+
+async function openBrowser(
+  pi: ExtensionAPI | undefined,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  view: string,
+  notice?: string,
+): Promise<string | null> {
   if (notice) ctx.ui.notify(notice, "info");
 
   if (ctx.mode !== "tui") {
     const project = await manager.read((current) => current);
     const render = VIEW_FALLBACK[view] ?? renderStatusText;
     await showText(pi, ctx, render(project));
-    return;
+    return null;
   }
 
-  await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
+  return ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
     return new ProjectBrowser({
       project: manager.project,
       theme,
       initialView: view,
       helpText: renderHelp(pi),
-      onClose: () => done(),
+      editableViews: EDITABLE_SECTIONS.map((section) => section.view),
+      onRequestEdit: (editView) => done(`edit:${editView}`),
+      onClose: () => done(null),
       getTerminalRows: () => tui.terminal.rows,
       onChange: () => tui.requestRender(),
       reload: async () => {
@@ -528,6 +579,65 @@ async function showBrowser(
       },
     });
   });
+}
+
+/**
+ * Open the section's on-disk text in Pi's editor. Saving validates, records
+ * history and commits exactly like an agent-driven change would.
+ */
+async function runSectionEditor(
+  pi: ExtensionAPI | undefined,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  section: EditableSection,
+): Promise<void> {
+  if (!ctx.hasUI) {
+    await showText(
+      pi,
+      ctx,
+      `Editing ${section.label} needs interactive mode. Edit .project/${section.file} directly; the next operation reloads it from disk.`,
+    );
+    return;
+  }
+
+  let text = section.read(manager.project);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const edited = await ctx.ui.editor(
+      `Edit ${section.label} — .project/${section.file}  (save = record history + git)`,
+      text,
+    );
+    if (typeof edited !== "string") return; // cancelled
+    if (edited.trim() === text.trim()) return; // unchanged
+
+    // Guard against accidentally clearing a whole section (select-all + save).
+    if (edited.trim() === "" && text.trim() !== "") {
+      const ok = await ctx.ui.confirm("Clear section?", `${section.label} will be emptied. Save anyway?`);
+      if (!ok) return;
+    }
+
+    if (section.strategic && !manager.project.meta.yolo) {
+      const ok = await ctx.ui.confirm(
+        "Strategic change",
+        `${section.label} affects direction. Save this change?`,
+      );
+      if (!ok) return;
+    }
+
+    try {
+      const summary = await section.apply(manager, edited, { approved: true, approvedBy: "human", clock: manager.clock });
+      ctx.ui.notify(`${summary}.`, "info");
+      return;
+    } catch (error) {
+      const message = (error as Error).message;
+      const retry = await ctx.ui.confirm("Edit rejected", `${message}\n\nEdit again with your text?`);
+      if (!retry) {
+        await showText(pi, ctx, message);
+        return;
+      }
+      text = edited; // keep the user's text for the retry
+    }
+  }
+  await showText(pi, ctx, "Gave up after three failed saves. Your changes were not applied.");
 }
 
 async function showText(

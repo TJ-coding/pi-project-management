@@ -696,6 +696,58 @@ function runFromYaml(raw: unknown, fallbackId: string, clock: Clock): Run {
 }
 
 /* ------------------------------------------------------------------ */
+/* Section-level serialization (used by the human edit path)          */
+/* ------------------------------------------------------------------ */
+
+/** Serialize goals as the exact YAML stored in `.project/goals.yaml`. */
+export function serializeGoals(goals: readonly Goal[]): string {
+  return yamlFile(goals.map(goalToYaml));
+}
+
+export function parseGoals(text: string, clock: Clock = systemClock): Goal[] {
+  const raw = parseYaml(text) as unknown;
+  if (!Array.isArray(raw)) throw new Error("goals.yaml must contain a YAML list");
+  return raw.map((goal) => goalFromYaml(goal, clock));
+}
+
+export function serializeQuestions(questions: readonly Question[]): string {
+  return yamlFile(questions.map(questionToYaml));
+}
+
+export function parseQuestions(text: string, clock: Clock = systemClock): Question[] {
+  const raw = parseYaml(text) as unknown;
+  if (!Array.isArray(raw)) throw new Error("intelligence.yaml must contain a YAML list");
+  return raw.map((question) => questionFromYaml(question, clock));
+}
+
+export function serializeRisks(risks: readonly Risk[]): string {
+  return yamlFile(risks.map(riskToYaml));
+}
+
+export function parseRisks(text: string, clock: Clock = systemClock): Risk[] {
+  const raw = parseYaml(text) as unknown;
+  if (!Array.isArray(raw)) throw new Error("risks.yaml must contain a YAML list");
+  return raw.map((risk) => riskFromYaml(risk, clock));
+}
+
+export function serializePlans(plans: PlansFile): string {
+  return yamlFile({
+    active: plans.active,
+    plans: plans.plans.map(planToYaml),
+    changes: plans.changes,
+  });
+}
+
+export function parsePlans(text: string, clock: Clock = systemClock): PlansFile {
+  const raw = asRecord(parseYaml(text) as unknown);
+  return {
+    active: asNullable(raw.active),
+    plans: (Array.isArray(raw.plans) ? raw.plans : []).map((plan) => planFromYaml(plan, clock)),
+    changes: (Array.isArray(raw.changes) ? raw.changes : []).map(planChangeFromYaml),
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Derived human-readable documents                                   */
 /* ------------------------------------------------------------------ */
 

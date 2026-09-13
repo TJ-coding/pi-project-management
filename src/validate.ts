@@ -7,6 +7,26 @@
 import { validateDag } from "./dag.ts";
 import type { Project } from "./types.ts";
 
+export interface ValidationReport {
+  /** Structural/referential problems that make the project inconsistent. */
+  errors: string[];
+  /** Things worth knowing but not fatal (e.g. an empty vision). */
+  warnings: string[];
+}
+
+/**
+ * Split validation into errors and warnings so that human edits can be rejected
+ * only when they introduce a real inconsistency, and so an already-hand-edited
+ * project can still be fixed through the extension.
+ */
+export function validateProjectDetailed(project: Project): ValidationReport {
+  const issues = validateProject(project);
+  const softMarkers = ["vision is empty", "current state is empty"];
+  const errors = issues.filter((issue) => !softMarkers.some((marker) => issue.includes(marker)));
+  const warnings = issues.filter((issue) => softMarkers.some((marker) => issue.includes(marker)));
+  return { errors, warnings };
+}
+
 export function validateProject(project: Project): string[] {
   const issues: string[] = [];
   const goals = new Set(project.goals.map((goal) => goal.id));

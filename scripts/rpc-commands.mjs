@@ -59,7 +59,9 @@ const handle = (message) => {
     if (message.method === "notify") notifications.push([message.message ?? "", message.notifyType]);
     if (message.method === "confirm") send({ type: "extension_ui_response", id: message.id, confirmed: true });
     else if (message.method === "editor" || message.method === "input") {
-      send({ type: "extension_ui_response", id: message.id, value: "" });
+      // Cancel text prompts: commands that open an editor must not mutate the
+      // project during a smoke run.
+      send({ type: "extension_ui_response", id: message.id, cancelled: true });
     } else if (message.method === "select") {
       send({ type: "extension_ui_response", id: message.id, cancelled: true });
     }

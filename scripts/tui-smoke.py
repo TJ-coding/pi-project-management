@@ -168,9 +168,41 @@ def main() -> int:
         help_frame = session.text()
         check("Project commands" in help_frame, "? did not open in-place help", failures)
         check("esc close help" in help_frame, "help footer missing", failures)
+        check("/project edit <section>" in help_frame, "help does not mention direct editing", failures)
         session.send("?")
         session.pump(1.0)
         check("Project commands" not in session.text(), "? did not close in-place help", failures)
+
+        # Direct human editing: `e` on an editable view opens the section text.
+        session.send("3")  # Goals
+        session.pump(1.0)
+        check("Goals" in session.text(), "digit 3 did not open Goals", failures)
+        session.send("e")
+        session.pump(1.5)
+        editor_frame = session.text()
+        check(
+            "goals.yaml" in editor_frame or "id:" in editor_frame,
+            "e did not open the goals editor with the section text",
+            failures,
+        )
+        session.send("\x1b")  # cancel the editor
+        session.pump(1.5)
+        check("Goals" in session.text(), "cancelling the editor did not return to the dashboard", failures)
+
+        # Saving invalid text must be rejected without changing the project.
+        session.send("e")
+        session.pump(1.5)
+        session.send("x")  # append garbage to the YAML
+        session.pump(0.4)
+        session.send("\r")  # submit
+        session.pump(1.8)
+        rejected = session.text()
+        check("Edit rejected" in rejected, "invalid edit was not rejected", failures)
+        session.send("\x1b")  # dismiss the retry dialog
+        session.pump(1.5)
+        check("Goals" in session.text(), "did not return to the dashboard after rejecting an edit", failures)
+        session.send("1")  # back to Dashboard for the navigation checks below
+        session.pump(0.8)
 
         # Tab switches views, digit jumps to a specific view.
         session.send("\t")

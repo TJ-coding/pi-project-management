@@ -84,6 +84,7 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 |---|---|
 | `/project` | open the dashboard |
 | `/project init [name]` | initialize a project here |
+| `/project edit <section>` | edit a section as text (direction, state, strategy, goals, intelligence, risks, plan) |
 | `/project status` | the four core questions: where we are / going / believe / doing |
 | `/project direction` `/goals` `/state` `/intelligence` `/risks` `/strategy` | per-area views |
 | `/project plan` | active DAG, readiness, gate results |
@@ -104,11 +105,34 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 Discovery, without leaving the TUI: press `?` inside the dashboard for the same
 reference, and type `/project ` then Tab for subcommands with descriptions.
 
+## Editing directly (human operations)
+
+Humans and agents share the same operations (spec 2.4). Besides asking the agent,
+you can edit the project yourself:
+
+- **In the dashboard:** press **`e`** on Direction, State, Strategy, Goals,
+  Intelligence, Risks or Plan.
+- **By command:** `/project edit goals`, `/project edit direction`, …
+- **In your own editor:** the section's on-disk text is loaded into Pi's editor;
+  `Ctrl+G` opens `$EDITOR` for larger YAML edits.
+
+Editor keys: **Enter** save · **Shift+Enter** newline · **Esc** cancel ·
+**Ctrl+G** external editor.
+
+Saving goes through exactly the same path as an agent change: the text is parsed,
+new structural errors are rejected (with your text kept so you can fix it),
+strategic changes (vision/intent/values) ask for confirmation, and the change is
+recorded in history and committed to Git. Editing `markdown` sections shows the
+format of `direction.md`/`state.md`/`strategy.md`; the YAML sections show
+`goals.yaml`/`intelligence.yaml`/`risks.yaml`/`plan.yaml`. Keep existing `id`s to
+preserve links.
+
 While the dashboard is open: `tab`/arrows switch views, `1-9` jump, `j`/`k` or
-arrows scroll, `space`/`pgdn` page, `g`/`G` jump to the top/bottom, `?` show the
-command/tool reference, `r` reload from disk, `q` close. The footer always shows
-the visible line range, e.g. `↓ Risks  Lines 7-29/45 · j/k ↑↓ scroll · …`, or
-`nothing more to scroll` when the view already fits.
+arrows scroll, `space`/`pgdn` page, `g`/`G` jump to the top/bottom, `e` edit the
+current section, `?` show the command/tool reference, `r` reload from disk, `q`
+close. The footer always shows the visible line range, e.g.
+`↓ Risks  Lines 7-29/45 · j/k ↑↓ scroll · …`, or `nothing more to scroll` when
+the view already fits.
 
 ## Tools available to the agent
 

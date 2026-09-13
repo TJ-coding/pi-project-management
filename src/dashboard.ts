@@ -523,6 +523,10 @@ export interface ProjectBrowserOptions {
   onChange?: () => void;
   /** Reference text shown when the user presses `?`. */
   helpText?: string;
+  /** Dashboard views that can be edited with `e`. */
+  editableViews?: string[];
+  /** Called when the user presses `e` on an editable view. */
+  onRequestEdit?: (view: string) => void;
 }
 
 /** Minimum number of body rows (chrome is title + tabs + 2 footer lines). */
@@ -538,6 +542,8 @@ export class ProjectBrowser {
   private onChange?: () => void;
   private helpText?: string;
   private helpVisible = false;
+  private editableViews: Set<string>;
+  private onRequestEdit?: (view: string) => void;
   private viewIndex = 0;
   private scroll = 0;
   private cachedWidth = -1;
@@ -551,6 +557,8 @@ export class ProjectBrowser {
     this.getTerminalRows = options.getTerminalRows;
     this.onChange = options.onChange;
     this.helpText = options.helpText;
+    this.editableViews = new Set(options.editableViews ?? []);
+    this.onRequestEdit = options.onRequestEdit;
     const index = options.initialView ? VIEWS.findIndex((view) => view.id === options.initialView) : 0;
     this.viewIndex = index >= 0 ? index : 0;
   }
@@ -581,6 +589,10 @@ export class ProjectBrowser {
       this.helpVisible = !this.helpVisible;
       this.scroll = 0;
       this.onChange?.();
+      return;
+    }
+    if (matchesKey(data, "e") && !this.helpVisible && this.onRequestEdit && this.editableViews.has(this.currentView)) {
+      this.onRequestEdit(this.currentView);
       return;
     }
     if (this.helpVisible) {
@@ -719,7 +731,7 @@ export class ProjectBrowser {
           "dim",
           showingHelp
             ? "? or esc close help · j/k scroll · q close dashboard"
-            : `tab/←→ switch · 1-9 jump · r reload${this.helpText ? " · ? help" : ""} · q close`,
+            : `tab/←→ switch · 1-9 jump · r reload${this.editableViews.has(this.currentView) ? " · e edit" : ""}${this.helpText ? " · ? help" : ""} · q close`,
         ),
         width,
       ),

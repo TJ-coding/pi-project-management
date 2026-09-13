@@ -216,6 +216,36 @@ describe("dashboard", () => {
     assert.match(emptyText, /nothing more to scroll/);
   });
 
+  test("e asks to edit editable views only, and the footer advertises it", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const requested: string[] = [];
+    const browser = new ProjectBrowser({
+      project,
+      theme,
+      onClose: () => undefined,
+      getTerminalRows: () => 30,
+      editableViews: ["goals", "risks", "plan"],
+      onRequestEdit: (view) => requested.push(view),
+    });
+
+    // Dashboard is not editable.
+    assert.doesNotMatch(browser.render(100).join("\n"), /e edit/);
+    browser.handleInput("e");
+    assert.deepEqual(requested, []);
+
+    browser.handleInput("3"); // Goals
+    assert.equal(browser.currentView, "goals");
+    assert.match(browser.render(100).join("\n"), /e edit/);
+    browser.handleInput("e");
+    assert.deepEqual(requested, ["goals"]);
+
+    browser.handleInput("6"); // Risks
+    browser.handleInput("e");
+    assert.deepEqual(requested, ["goals", "risks"]);
+  });
+
   test("commands expose a text fallback for every view", () => {
     const fallbacks = new Set(viewFallbacks());
     for (const view of VIEWS) assert.ok(fallbacks.has(view.id), `no fallback for ${view.id}`);
@@ -228,7 +258,8 @@ describe("dashboard", () => {
       assert.match(help, new RegExp(`\\/project[^\\n]*\\b${sub}\\b`), `help does not document ${sub}`);
       assert.ok(SUBCOMMAND_INFO[sub].summary.length > 5, `${sub} has no summary`);
     }
-    assert.match(help, /Adding and changing work is done by talking to the agent/);
+    assert.match(help, /Changing work directly: \/project edit <section>/);
+    assert.match(help, /work is added by talking to the agent/);
     assert.match(help, /project_goal/);
     assert.match(help, /project_replan/);
     assert.match(help, /Dashboard keys/);
@@ -275,17 +306,17 @@ describe("dashboard", () => {
       helpText: renderHelp(),
     });
     const normal = tall.render(100).join("\n");
-    assert.doesNotMatch(normal, /Adding and changing work/);
+    assert.doesNotMatch(normal, /Changing work directly/);
     assert.match(normal, /\? help/);
 
     tall.handleInput("?");
     const help = tall.render(100).join("\n");
     assert.match(help, /Project commands/);
-    assert.match(help, /Adding and changing work/);
+    assert.match(help, /Changing work directly/);
     assert.match(help, /project_replan/);
     assert.match(help, /esc close help/);
     tall.handleInput("\x1b");
-    assert.doesNotMatch(tall.render(100).join("\n"), /Adding and changing work/);
+    assert.doesNotMatch(tall.render(100).join("\n"), /Changing work directly/);
 
     // Short terminal: help scrolls, and ? toggles it back off.
     const short = new ProjectBrowser({

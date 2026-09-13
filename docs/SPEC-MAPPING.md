@@ -11,6 +11,7 @@ Evidence shorthand:
 
 | Spec | Requirement | Implementation | Evidence |
 |---|---|---|---|
+| 2.4 | Human and agent symmetry: humans can create goals/tasks, change plans, answer questions, create risks, modify direction | All operations exist as `project_*` tools for the agent and as direct human paths: `/project edit <section>` and the dashboard `e` key load the exact `.project/` text into Pi's editor and save through the same validation/history/Git path (`editing.ts`, `project.ts::replace*`) | unit: editing (round-trip per section, history, rejection, strategic approval, pre-existing issues); tui: real terminal opens the editor, rejects invalid YAML, cancels cleanly |
 | 3 | Six conceptual areas + iterative loop | `types.ts`, `format.ts::renderStatusText`, `context.ts::buildDigest`, `dashboard.ts` | unit: project/dashboard, e2e |
 | 4.1 | Vision as prose, changes rarely | `Direction.vision`, `project_direction`, `direction.md` | unit: storage, e2e |
 | 4.2 | Intent answers "why" | `Direction.intent`, direction view | unit: storage/context |
@@ -31,7 +32,7 @@ Evidence shorthand:
 | 12 | DAG node kinds, dependencies, status, description, outputs, failure reason, goal/risk/question links, modifiable during execution | `NODE_TYPES`, `PlanNode`, `project_plan`, `dag.ts` | unit: dag, storage, dashboard, e2e |
 | 13 | Gates with types, PASS/FAIL/REPLAN/ESCALATE, failure triggers replan | `GATE_TYPES`, `project_gate`, `evaluateGate`, `Plan.gates` | unit: project gates, e2e |
 | 13 | Strategic gates compare with vision/intent/values/concepts/goals | `renderReviewReport`, `project_review`, `/project review` | unit: reports; e2e `project_review` |
-| 14 | Humans and agents share the interface; routine/significant/strategic authority | `checkAuthorization`, `withApproval`, `AuthorityLevel`, all `project_*` tools | unit: project ("strategic … require approval"), e2e |
+| 14 | Humans and agents share the interface; routine/significant/strategic authority | `checkAuthorization`, `withApproval`, `AuthorityLevel`, all `project_*` tools, plus human editing via `editing.ts` | unit: project ("strategic … require approval"), editing (strategic edit needs approval unless YOLO), e2e, tui |
 | 15 | YOLO auto-accepts but records ("Pi automatically accepted …") | `meta.yolo`, `checkAuthorization`, history summaries; `/project yolo`, `project_init(yolo)` | unit: project (direction + goal YOLO), e2e |
 | 16 | Long-running work independent of the session; full task status vocabulary; persisted; resumable | `Run`, `runs/RUN*.yaml`, `spawnDetached`, `project_run`, `project_resume`, `reconcileRuns`, `session_start` stale-run warning | unit: project runs/reconcile; e2e (detached `echo` run + completed run) |
 | 16 | External resources referenced, not orchestrated | `ExternalRef`, `Run.environment`, `meta.resources`, `project_resource` | unit: storage/project/tools; e2e (`ssh` ref + `gpu` resource) |
