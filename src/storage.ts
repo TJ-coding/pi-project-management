@@ -30,6 +30,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 import {
   cleanProse,
+  isPlaceholder,
   parseBullets,
   parseConcepts,
   parseFrontMatter,
@@ -122,8 +123,13 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 function asEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
-  const text = asString(value).toUpperCase().replace(/[\s-]+/g, "_");
-  return (allowed as readonly string[]).includes(text) ? (text as T) : fallback;
+  const raw = asString(value).trim();
+  const normalized = raw.toUpperCase().replace(/[\s-]+/g, "_");
+  for (const candidate of allowed) {
+    if (candidate.toUpperCase() === raw.toUpperCase()) return candidate;
+    if (candidate.toUpperCase().replace(/[.\s-]+/g, "_") === normalized) return candidate;
+  }
+  return fallback;
 }
 
 function asNullable(value: unknown): string | null {
@@ -252,10 +258,9 @@ export function parseDirection(markdown: string): Direction {
   const sections = parseSections(markdown);
   const rawVision = section(sections, "vision");
   const rawIntent = section(sections, "intent");
-  const placeholder = /^_?(not defined yet|none yet|_none yet)_?\.?$/i;
   return {
-    vision: cleanProse(placeholder.test(rawVision.trim()) ? "" : rawVision),
-    intent: cleanProse(placeholder.test(rawIntent.trim()) ? "" : rawIntent),
+    vision: cleanProse(isPlaceholder(rawVision) ? "" : rawVision),
+    intent: cleanProse(isPlaceholder(rawIntent) ? "" : rawIntent),
     values: parseBullets(section(sections, "values")),
     concepts: parseConcepts(section(sections, "concepts")),
     ...(asString(section(sections, "last updated")).startsWith("_") || asString(section(sections, "last updated")) === ""
@@ -279,12 +284,11 @@ export function serializeState(state: ProjectState): string {
 
 export function parseState(markdown: string, clock: Clock = systemClock): ProjectState {
   const sections = parseSections(markdown);
-  const placeholder = /^_?(not recorded yet|none yet|_none yet)_?\.?$/i;
   const initial = section(sections, "initial state", "initial");
   const current = section(sections, "current state", "current");
   return {
-    initial: cleanProse(placeholder.test(initial.trim()) ? "" : initial),
-    current: cleanProse(placeholder.test(current.trim()) ? "" : current),
+    initial: cleanProse(isPlaceholder(initial) ? "" : initial),
+    current: cleanProse(isPlaceholder(current) ? "" : current),
     capabilities: parseBullets(section(sections, "capabilities")),
     facts: parseBullets(section(sections, "known facts", "facts")),
     problems: parseBullets(section(sections, "active problems", "problems")),
@@ -307,14 +311,13 @@ export function serializeStrategy(strategy: Strategy): string {
 
 export function parseStrategy(markdown: string): Strategy {
   const sections = parseSections(markdown);
-  const placeholder = /^_?(not defined yet|not recorded yet)_?\.?$/i;
   const approach = section(sections, "current approach", "approach");
   const rationale = section(sections, "rationale");
   return {
-    approach: cleanProse(placeholder.test(approach.trim()) ? "" : approach),
+    approach: cleanProse(isPlaceholder(approach) ? "" : approach),
     hypotheses: parseBullets(section(sections, "strategic hypotheses", "hypotheses")),
     priorities: parseBullets(section(sections, "priorities")),
-    rationale: cleanProse(placeholder.test(rationale.trim()) ? "" : rationale),
+    rationale: cleanProse(isPlaceholder(rationale) ? "" : rationale),
     alternatives: parseBullets(
       section(sections, "major alternatives considered", "alternatives considered", "alternatives"),
     ),

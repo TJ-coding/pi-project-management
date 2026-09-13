@@ -123,3 +123,12 @@ export function cleanProse(text: string | undefined | null): string {
   if (!text) return "";
   return text.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").trim();
 }
+
+/** True for the italic placeholders this module writes for empty sections. */
+export function isPlaceholder(text: string): boolean {
+  const value = text.trim();
+  if (value === "") return true;
+  return /^[_.\s]*(not defined yet|not recorded yet|none yet|none|nothing recorded yet|no plan yet|no plans yet|no active plan|no questions|no risks|no todos)[._\s]*$/i.test(
+    value,
+  );
+}

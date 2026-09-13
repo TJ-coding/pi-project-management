@@ -63,6 +63,8 @@ export interface ReplanProposal {
   notes: string[];
   superseded: string[];
   carried: string[];
+  /** Evidence lines supplied by the caller (spec 25 input 12). */
+  evidenceHints?: string[];
 }
 
 /**
@@ -197,6 +199,7 @@ export function analyzeReplan(project: Project, inputs: ReplanInputs): ReplanPro
     notes,
     superseded,
     carried,
+    evidenceHints: inputs.evidence ?? [],
   };
 }
 

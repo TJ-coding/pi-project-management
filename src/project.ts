@@ -357,7 +357,7 @@ export class ProjectManager {
         approvedBy: options.approvedBy ?? (options.approved ? "human" : null),
       });
       if (autoAccepted) {
-        this.record("decision.made", `Auto-accepted (YOLO): direction change — ${reason}`, [], { autoAccepted: true });
+        this.record("decision.made", `Pi automatically accepted: direction change (${reason})`, [], { autoAccepted: true });
       }
       void before;
       return project.direction;
@@ -459,7 +459,7 @@ export class ProjectManager {
                 : "goal.updated";
       this.record(kind, `Goal ${id} ${status}: ${goal.title}`, [id], { reason });
       if (autoAccepted) {
-        this.record("decision.made", `Auto-accepted (YOLO): goal ${id} ${status}. Reason: ${reason}`, [id], {
+        this.record("decision.made", `Pi automatically accepted: goal ${id} ${status}. Reason: ${reason}`, [id], {
           autoAccepted: true,
         });
       }
