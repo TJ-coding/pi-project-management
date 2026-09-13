@@ -124,3 +124,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T18:25:12.040Z **gate.passed** — Gate N4 (GATE) -> PASS: k3 reviewed the frames in five rounds and signed off, having found four defects tests could not see. [N4] (by agent)
 - 2026-09-13T18:25:25.102Z **task.updated** — Node N4 COMPLETED -> COMPLETED: k3 sign-off on the frames [N4] (by agent)
 - 2026-09-13T18:26:01.295Z **state.changed** — State changed: state updated (by agent)
+- 2026-09-13T18:26:14.757Z **run.finished** — Run RUN2 COMPLETED: Execute the ready plan nodes (N1, N2, N5, N6, N11, N12) [RUN2, N12] (by agent)

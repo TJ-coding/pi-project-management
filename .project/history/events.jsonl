@@ -120,3 +120,4 @@
 {"seq":120,"at":"2026-09-13T18:25:12.040Z","kind":"gate.passed","summary":"Gate N4 (GATE) -> PASS: k3 reviewed the frames in five rounds and signed off, having found four defects tests could not see.","by":"agent","refs":["N4"]}
 {"seq":121,"at":"2026-09-13T18:25:25.102Z","kind":"task.updated","summary":"Node N4 COMPLETED -> COMPLETED: k3 sign-off on the frames","by":"agent","refs":["N4"],"details":{"reason":"Gate PASS, G1 verified"}}
 {"seq":122,"at":"2026-09-13T18:26:01.295Z","kind":"state.changed","summary":"State changed: state updated","by":"agent","refs":[]}
+{"seq":123,"at":"2026-09-13T18:26:14.757Z","kind":"run.finished","summary":"Run RUN2 COMPLETED: Execute the ready plan nodes (N1, N2, N5, N6, N11, N12)","by":"agent","refs":["RUN2","N12"],"details":{"exitCode":null}}
