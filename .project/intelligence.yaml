@@ -76,3 +76,22 @@
   created: 2026-09-13T16:16:29.676Z
   updated: 2026-09-13T16:16:29.676Z
   answered: null
+- id: Q5
+  question: Does the tree or git history hold anything unfit to publish?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.6
+  uncertainty: 0.5
+  decision_impact: 0.5
+  confidence: 0
+  evidence: []
+  goals:
+    - G7
+  risks:
+    - R6
+  tasks:
+    - N10
+  decisions: []
+  created: 2026-09-13T16:16:29.862Z
+  updated: 2026-09-13T16:16:29.862Z
+  answered: null

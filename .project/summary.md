@@ -37,6 +37,7 @@ Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. 
 
 - Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
 - Q4 Which panels can go without losing a spec requirement? — UNKNOWN (MEDIUM)
+- Q5 Does the tree or git history hold anything unfit to publish? — UNKNOWN (MEDIUM)
 - Q2 Should rename touch only meta.name, or ids and paths too? — ANSWERED (LOW)
 - Q3 Do budgets need per-project overrides in project.yaml? — ANSWERED (LOW)
 
