@@ -1048,6 +1048,35 @@ function detailForDirection(project: Project): DetailDoc {
   };
 }
 
+function detailForNode(project: Project, node: PlanNode): DetailDoc {
+  const plan = activePlan(project);
+  const fields: DetailField[] = [
+    { label: "Description", text: node.description || "not recorded" },
+    { label: "Kind", text: `${node.type} · ${node.status}${node.assignee ? ` · assignee ${node.assignee}` : ""}`, tone: "muted" },
+  ];
+  if (node.dependsOn.length > 0) {
+    const described = node.dependsOn.map((dep) => {
+      const target = plan?.nodes.find((candidate) => candidate.id === dep);
+      return `${dep} (${target ? target.status : "missing"})`;
+    });
+    fields.push({ label: "After", text: described.join(", "), tone: "muted" });
+  }
+  const links: string[] = [];
+  if (node.question) links.push(`question ${node.question}`);
+  if (node.risk) links.push(`risk ${node.risk}`);
+  if (node.goal) links.push(`goal ${node.goal}`);
+  if (node.run) links.push(`run ${node.run}`);
+  if (links.length > 0) fields.push({ label: "Links", text: links.join(" · "), tone: "muted" });
+  if (node.gate) fields.push({ label: "Gate", text: `${node.gate.type}${node.gate.criteria ? ` — ${node.gate.criteria}` : ""}`, tone: "warning" });
+  if (node.failureReason) fields.push({ label: "Failure", text: node.failureReason, tone: "error" });
+  return {
+    title: `${node.id} · ${node.title}`,
+    meta: plan ? `${plan.id} v${plan.version}` : undefined,
+    fields,
+    lists: node.outputs.length > 0 ? [{ label: `Outputs (${node.outputs.length})`, items: node.outputs, tone: "success" }] : [],
+  };
+}
+
 /**
  * Render a DetailDoc for the reading pane: headings, wrapped prose and bullet
  * lists, every line inside `width`. Nothing is truncated — the pane scrolls.
@@ -1083,6 +1112,11 @@ export function renderDetailDoc(theme: Theme, doc: DetailDoc, width: number): st
 const planView: ViewDefinition = {
   id: "plan",
   title: "Plan / DAG",
+  rows: (project) => flatPlanNodes(project).map((node) => node.id),
+  detail: (project, focus) => {
+    const node = activePlan(project)?.nodes.find((candidate) => candidate.id === focus);
+    return node ? detailForNode(project, node) : emptyDetail("Plan", "no node selected");
+  },
   render: (project, theme, width) => renderPlanInteractive(project, theme, width, null).lines,
 };
 
@@ -1229,10 +1263,17 @@ export class ProjectBrowser {
 
   /** The row `enter` opens: the cursor if it still exists, else the first row. */
   private focusId(): string | null {
+    if (this.currentView === "plan") return this.planCursor;
     const rows = this.rowIds();
     if (rows.length === 0) return null;
     const cursor = this.cursors.get(this.currentView) ?? null;
     return cursor && rows.includes(cursor) ? cursor : rows[0]!;
+  }
+
+  /** Move the row cursor, keeping the plan's own cursor in step. */
+  private setRowCursor(id: string): void {
+    this.cursors.set(this.currentView, id);
+    if (this.currentView === "plan") this.planCursor = id;
   }
 
   /** Open the reading pane for the focused row (or the whole section). */
@@ -1338,6 +1379,10 @@ export class ProjectBrowser {
         if (this.planCursor) this.onPlanAction({ kind: "edit", id: this.planCursor });
         return;
       }
+      if (data === "d" && this.viewDef().detail) {
+        this.openDetail();
+        return;
+      }
       if (data === "a") {
         this.onPlanAction({ kind: "new" });
         return;
@@ -1387,23 +1432,23 @@ export class ProjectBrowser {
       const index = Math.max(0, rows.indexOf(this.focusId() ?? rows[0]!));
       if (matchesKey(data, "down") || matchesKey(data, "j")) {
         const next = rows[Math.min(rows.length - 1, index + 1)];
-        if (next) this.cursors.set(this.currentView, next);
+        if (next) this.setRowCursor(next);
         this.onChange?.();
         return;
       }
       if (matchesKey(data, "up") || matchesKey(data, "k")) {
         const previous = rows[Math.max(0, index - 1)];
-        if (previous) this.cursors.set(this.currentView, previous);
+        if (previous) this.setRowCursor(previous);
         this.onChange?.();
         return;
       }
       if (matchesKey(data, "home")) {
-        this.cursors.set(this.currentView, rows[0]!);
+        this.setRowCursor(rows[0]!);
         this.onChange?.();
         return;
       }
       if (matchesKey(data, "end")) {
-        this.cursors.set(this.currentView, rows[rows.length - 1]!);
+        this.setRowCursor(rows[rows.length - 1]!);
         this.onChange?.();
         return;
       }
@@ -1527,7 +1572,7 @@ export class ProjectBrowser {
       : this.detailOpen
         ? "esc back to the list · j/k scroll · g/G ends · q close"
         : this.currentView === "plan"
-          ? `↑↓ select · enter edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
+          ? `↑↓ select · enter edit · d read in full · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
           : rows.length > 0
             ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9 jump${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
             : `tab views · 1-9 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;

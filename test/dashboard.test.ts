@@ -171,6 +171,16 @@ describe("dashboard", () => {
     browser.handleInput("D");
     assert.deepEqual(actions.at(-1), { kind: "delete", id: ids[0] });
 
+    // `d` reads the selected node in full (criteria and outputs are clipped in
+    // the one-line list, and the form is for editing).
+    browser.handleInput("d");
+    const pane = browser.render(120).join("\n");
+    assert.match(pane, /READING/);
+    assert.match(pane, /esc back to the list/);
+    assert.match(pane, /KIND/);
+    browser.handleInput("\x1b");
+    assert.match(browser.render(120).join("\n"), /enter edit · d read in full/);
+
     for (const width of [60, 100, 140]) {
       for (const line of browser.render(width)) {
         assert.ok(visibleWidth(line) <= width, `plan line exceeds ${width}: ${JSON.stringify(line)}`);
