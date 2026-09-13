@@ -23,6 +23,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - → G7 Upload the project to github repository (ACTIVE)
 - → G8 Reconsider ordering of panels. (ACTIVE)
 - → G9 Warn when exiting change without saving. (ACTIVE)
+- → G10 Start / Pause Project (ACTIVE)
 
 ## Major Risks
 
