@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-6 of 11 original nodes done (N1, N2, N3, N5, N6, N11) plus N12 for G10. G3 and G10 closed; R4 resolved. 108 tests, TUI smoke and a pause round-trip pass. Ready: N7, N9; N4/N10 blocked behind reviews and publishing.
+11 of 12 nodes done. Closed: G3 (rename, digest), G10 (pause/start), G4 (panel audit), G6 (goal fill-in), G8 (rail order), plus G1 via the k3 gate. 116 tests, TUI smoke and five k3 review rounds pass. Only N10 (publish) remains and it needs human approval.
 
 ## Goals
 
