@@ -1,10 +1,19 @@
 name: Pi Project
 id: pi-project
 created: 2026-09-13T15:59:00.845Z
-updated: 2026-09-13T15:59:03.791Z
+updated: 2026-09-13T15:59:03.953Z
 repositories:
   - ~/Projects/pi-project-management
-resources: []
+resources:
+  repositories:
+    - ~/Projects/pi-project-management
+  resources:
+    - kind: local
+      target: ~/Projects/pi-project-management
+      note: the extension source; installed globally via pi install
+    - kind: api
+      target: kimi-k3 (opencode-go)
+      note: external usability reviewer for panel changes
 workspace: ~/Projects
 yolo: false
 auto_commit: true
