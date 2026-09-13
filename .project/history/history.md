@@ -122,3 +122,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T17:44:46.602Z **task.updated** — Node N9 RUNNING -> COMPLETED: Offer to fill empty goal fields on save [N9] (by agent)
 - 2026-09-13T17:44:46.786Z **goal.completed** — Goal G6 COMPLETED: Auto complete / Propagate [G6] (by agent)
 - 2026-09-13T18:25:12.040Z **gate.passed** — Gate N4 (GATE) -> PASS: k3 reviewed the frames in five rounds and signed off, having found four defects tests could not see. [N4] (by agent)
+- 2026-09-13T18:25:25.102Z **task.updated** — Node N4 COMPLETED -> COMPLETED: k3 sign-off on the frames [N4] (by agent)

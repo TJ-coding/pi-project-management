@@ -17,7 +17,7 @@ Rationale: Created implicitly when the first node was added.
     outputs: A capped NEXT list names how many ready nodes it hid and where to read them; Digest answers Q1; test asserts the pointer appears only when something is hidden
 - [COMPLETED] N4 REVIEW — k3 sign-off on the frames (after N1, N2, N3) {goal:G1 risk:R1}
     Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
-    outputs: gate PASS: k3 reviewed the frames in five rounds and signed off, having found four defects tests could not see.
+    outputs: gate PASS: k3 reviewed the frames in five rounds and signed off, having found four defects tests could not see.; k3 signed off after five rounds; It found a positional count array that lied after the rail reorder; Also: unconnected box walls, a cross-reference in a count slot, inconsistent parent ticks
 - [COMPLETED] N5 TASK — Forward options in every mutation {risk:R4}
     Pass MutateOptions through so commit:false really skips the commit; cover it with a test that runs two mutations and checks git log stays clean.
     outputs: All 37 mutate call sites forward options; Regression test: every mutation with commit:false leaves HEAD unmoved; updateDirection, recordDecision and setNodeStatus were the last three leaks

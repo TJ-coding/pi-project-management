@@ -118,3 +118,4 @@
 {"seq":118,"at":"2026-09-13T17:44:46.602Z","kind":"task.updated","summary":"Node N9 RUNNING -> COMPLETED: Offer to fill empty goal fields on save","by":"agent","refs":["N9"],"details":{"reason":"G6 delivered; 114 tests and TUI smoke pass"}}
 {"seq":119,"at":"2026-09-13T17:44:46.786Z","kind":"goal.completed","summary":"Goal G6 COMPLETED: Auto complete / Propagate","by":"agent","refs":["G6"],"details":{"reason":"All three success criteria met"}}
 {"seq":120,"at":"2026-09-13T18:25:12.040Z","kind":"gate.passed","summary":"Gate N4 (GATE) -> PASS: k3 reviewed the frames in five rounds and signed off, having found four defects tests could not see.","by":"agent","refs":["N4"]}
+{"seq":121,"at":"2026-09-13T18:25:25.102Z","kind":"task.updated","summary":"Node N4 COMPLETED -> COMPLETED: k3 sign-off on the frames","by":"agent","refs":["N4"],"details":{"reason":"Gate PASS, G1 verified"}}
