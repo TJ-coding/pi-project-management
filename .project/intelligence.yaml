@@ -108,18 +108,27 @@
   answered: 2026-09-13T16:21:36.893Z
 - id: Q6
   question: Is pause a new status or a view of existing state?
-  answer: ""
-  status: UNKNOWN
+  answer: A new reversible meta status plus a resume note. completed already means terminal, so pause
+    needs its own field.
+  status: ANSWERED
   importance: 0.6
-  uncertainty: 0.6
+  uncertainty: 0.3
   decision_impact: 0.6
-  confidence: 0
-  evidence: []
+  confidence: 0.75
+  evidence:
+    - description: ProjectMeta has completed/completedAt but no reversible pause field; meta is the
+        natural home for a project-level switch
+      kind: measurement
+      ref: src/types.ts:378
+    - description: Digest, widget and statusText all render progress unconditionally, so a pause flag
+        needs to reach all three
+      kind: measurement
+      ref: src/context.ts:57, src/dashboard.ts:1812, src/dashboard.ts:1842
   goals:
     - G10
   risks: []
   tasks: []
   decisions: []
   created: 2026-09-13T16:35:16.676Z
-  updated: 2026-09-13T16:35:16.676Z
-  answered: null
+  updated: 2026-09-13T16:35:27.288Z
+  answered: 2026-09-13T16:35:27.288Z

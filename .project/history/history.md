@@ -90,3 +90,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:24:48.622Z **goal.created** — Goal G10 created: Start / Pause Project [G10] (by human)
 - 2026-09-13T16:35:16.500Z **goal.updated** — Goal G10 updated: Start / Pause Project [G10] (by agent)
 - 2026-09-13T16:35:16.676Z **question.created** — Question Q6 created: Is pause a new status or a view of existing state? [Q6] (by agent)
+- 2026-09-13T16:35:27.288Z **question.answered** — Question Q6 ANSWERED: Is pause a new status or a view of existing state? [Q6] (by agent)
