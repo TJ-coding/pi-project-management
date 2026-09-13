@@ -32,8 +32,9 @@ Rationale: Created implicitly when the first node was added.
 - [COMPLETED] N11 TASK — Confirm before discarding a dirty form {goal:G9}
     Esc on a form with unsaved changes asks before discarding; unchanged forms close at once.
     outputs: Inline discard prompt on a dirty form; clean forms close at once; Only y/enter discard, so a stray key cannot lose work; Reverting a field edit counts as clean again
-- [RUNNING] N12 TASK — Add start and pause for the project {goal:G10 q:Q6}
+- [COMPLETED] N12 TASK — Add start and pause for the project {goal:G10 q:Q6}
     Add meta.paused plus a resume note; surface it in the digest, widget and status line.
+    outputs: meta.paused/pausedAt/resumeNote with project_pause tool and /project pause|start; Resume note defaults to the next ready node; Paused shows in digest, widget and status line; resume clears it
 
 ## Edges
 

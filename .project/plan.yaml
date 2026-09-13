@@ -227,20 +227,23 @@ plans:
       - id: N12
         title: Add start and pause for the project
         type: TASK
-        status: RUNNING
+        status: COMPLETED
         description: Add meta.paused plus a resume note; surface it in the digest, widget and status line.
         depends_on: []
         goal: G10
         risk: null
         question: Q6
-        outputs: []
+        outputs:
+          - meta.paused/pausedAt/resumeNote with project_pause tool and /project pause|start
+          - Resume note defaults to the next ready node
+          - Paused shows in digest, widget and status line; resume clears it
         failure_reason: null
         assignee: agent
         gate: null
         run: RUN2
         created: 2026-09-13T16:35:27.480Z
-        updated: 2026-09-13T16:35:34.684Z
+        updated: 2026-09-13T16:52:50.005Z
         started: 2026-09-13T16:35:34.684Z
-        finished: null
+        finished: 2026-09-13T16:52:50.005Z
     gates: []
 changes: []
