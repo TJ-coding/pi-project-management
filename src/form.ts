@@ -612,16 +612,21 @@ export class FormEditor {
     }
 
     if (field.kind === "list" || field.kind === "refs") {
+      const count = field.get().length;
+      // Show the label on the first row of the field (or on "+ add" when empty),
+      // and indent the remaining rows under it.
+      const showLabel = item === 0 || (item === ADD_ROW && count === 0);
+      const rowPrefix = showLabel ? prefix : `  ${" ".repeat(labelWidth)}`;
       if (item === ADD_ROW) {
-        return [truncateToWidth(`${prefix}${theme.fg("dim", "+ add")}`, width)];
+        return [truncateToWidth(`${rowPrefix}${theme.fg("dim", "+ add")}`, width)];
       }
       const editing = this.edit && this.rows[this.edit.row] === row;
-      const raw = field.kind === "list" ? field.get()[item] ?? "" : field.get()[item] ?? "";
+      const raw = field.get()[item] ?? "";
       const value = editing ? renderEditor(this.edit!.buffer, this.edit!.cursor) : raw;
       const bullet = field.kind === "refs" ? "•" : "–";
       return [
         truncateToWidth(
-          `    ${theme.fg("dim", `${bullet} `)}${editing ? theme.fg("text", value) : theme.fg("text", raw || theme.fg("dim", "(empty)"))}`,
+          `${rowPrefix}${theme.fg("dim", `${bullet} `)}${editing ? theme.fg("text", value) : theme.fg("text", raw || theme.fg("dim", "(empty)"))}`,
           width,
         ),
       ];
