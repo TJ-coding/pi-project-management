@@ -110,3 +110,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T17:21:20.789Z **task.updated** — Node N7 PENDING -> RUNNING: Audit the 11 panels and features [N7] (by agent)
 - 2026-09-13T17:22:24.408Z **question.answered** — Question Q4 ANSWERED: Which panels can go without losing a spec requirement? [Q4] (by agent)
 - 2026-09-13T17:24:48.419Z **task.updated** — Node N7 RUNNING -> COMPLETED: Audit the 11 panels and features [N7] (by agent)
+- 2026-09-13T17:24:48.602Z **goal.updated** — Goal G4 updated: Minimalism [G4] (by agent)
