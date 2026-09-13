@@ -81,3 +81,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:21:29.428Z **direction.changed** — Direction changed: Remove the ACL26 name; keep the shadowing constraint, which is about $HOME/.project generally (by agent)
 - 2026-09-13T16:21:29.612Z **risk.updated** — Risk R6 updated: Publishing leaks secrets or private project data [R6] (by agent)
 - 2026-09-13T16:21:33.185Z **state.changed** — State changed: state updated (by agent)
+- 2026-09-13T16:21:36.720Z **state.changed** — State changed: Clear the publish blocker: the human confirmed no cross-project privacy concern (by agent)

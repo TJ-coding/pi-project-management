@@ -18,7 +18,7 @@ _None yet._
 
 ## Active Problems
 
-- Publishing G7 would make the ACL26 project names and a local absolute path public.
+_None yet._
 
 ## Constraints
 
@@ -31,4 +31,4 @@ _None yet._
 
 ## Last Updated
 
-2026-09-13T16:21:33.185Z
+2026-09-13T16:21:36.720Z

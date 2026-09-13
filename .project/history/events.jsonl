@@ -77,3 +77,4 @@
 {"seq":77,"at":"2026-09-13T16:21:29.428Z","kind":"direction.changed","summary":"Direction changed: Remove the ACL26 name; keep the shadowing constraint, which is about $HOME/.project generally","by":"agent","refs":[],"details":{"autoAccepted":false,"approvedBy":null}}
 {"seq":78,"at":"2026-09-13T16:21:29.612Z","kind":"risk.updated","summary":"Risk R6 updated: Publishing leaks secrets or private project data","by":"agent","refs":["R6"]}
 {"seq":79,"at":"2026-09-13T16:21:33.185Z","kind":"state.changed","summary":"State changed: state updated","by":"agent","refs":[]}
+{"seq":80,"at":"2026-09-13T16:21:36.720Z","kind":"state.changed","summary":"State changed: Clear the publish blocker: the human confirmed no cross-project privacy concern","by":"agent","refs":[]}
