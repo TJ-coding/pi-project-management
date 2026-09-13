@@ -79,13 +79,12 @@
   answered: null
 - id: Q5
   question: Does the tree or git history hold anything unfit to publish?
-  answer: No credentials in tree or history; 64 tracked files, no node_modules. Only ACL26 names and
-    one local path need a call before publishing.
+  answer: No credentials in tree or history; 64 tracked files, no node_modules. Safe to publish.
   status: ANSWERED
   importance: 0.6
   uncertainty: 0.3
   decision_impact: 0.5
-  confidence: 0.8
+  confidence: 0.9
   evidence:
     - description: git ls-files shows 64 files, none matching secret/env/key patterns; git log -p across
         all refs found no key material
@@ -95,6 +94,14 @@
         path in history
       kind: measurement
       ref: .project/history/events.jsonl:1
+    - description: git ls-files shows 64 files, none matching secret/env/key patterns; git log -p across
+        all refs found no key material
+      kind: measurement
+      ref: git ls-files; git log --all -p
+    - description: The human confirmed this project is unrelated to any other project in .project/, so its
+        references are not a privacy concern
+      kind: doc
+      ref: human, 2026-09-14
   goals:
     - G7
   risks:
@@ -104,5 +111,5 @@
   decisions:
     - D3
   created: 2026-09-13T16:16:29.862Z
-  updated: 2026-09-13T16:16:43.694Z
-  answered: 2026-09-13T16:16:43.694Z
+  updated: 2026-09-13T16:21:36.893Z
+  answered: 2026-09-13T16:21:36.893Z

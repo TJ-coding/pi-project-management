@@ -82,3 +82,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:21:29.612Z **risk.updated** — Risk R6 updated: Publishing leaks secrets or private project data [R6] (by agent)
 - 2026-09-13T16:21:33.185Z **state.changed** — State changed: state updated (by agent)
 - 2026-09-13T16:21:36.720Z **state.changed** — State changed: Clear the publish blocker: the human confirmed no cross-project privacy concern (by agent)
+- 2026-09-13T16:21:36.893Z **question.answered** — Question Q5 ANSWERED: Does the tree or git history hold anything unfit to publish? [Q5, R6] (by agent)
