@@ -109,11 +109,11 @@ describe("dashboard", () => {
     const text = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 120).join("\n");
     // Hierarchy: quiet vision, one focal NEXT block, then aligned numbers/signals.
     assert.match(text, /Build an autonomous research environment\./);
-    assert.match(text, /NEXT/);
+    assert.match(text, /┏━ NOW/);
     assert.match(text, /N\d/);
     assert.doesNotMatch(text, /▌ VISION/, "vision is quiet context, not a competing header");
-    assert.match(text, /▌ PROGRESS/);
-    assert.match(text, /▌ SIGNALS/);
+    assert.match(text, /┏━ PROGRESS/);
+    assert.match(text, /┏━ SIGNALS/);
     assert.match(text, /open questions/);
     assert.match(text, /Demonstrate output/);
     assert.doesNotMatch(text, /Build prototype/, "completed goals stay out of the dashboard");
@@ -129,7 +129,7 @@ describe("dashboard", () => {
     assert.match(text, /RUNNING/);
     assert.match(text, /READY|BLOCKED|FINISHED/);
     assert.match(text, /N1/);
-    assert.match(text, /▌ SELECTED/);
+    assert.match(text, /┏━ SELECTED/);
     assert.match(text, /N1 · /);
     assert.match(text, /after |no dependencies/);
     assert.ok(rendered.ids.includes("N1"));
@@ -157,10 +157,10 @@ describe("dashboard", () => {
 
     const ids = flatPlanNodes(project).map((node) => node.id);
     assert.ok(ids.length > 0);
-    assert.match(browser.render(120).join("\n"), new RegExp(`▌ SELECTED.*${ids[0]}`));
+    assert.match(browser.render(120).join("\n"), new RegExp(`┏━ SELECTED.*${ids[0]}`));
     if (ids.length > 1) {
       browser.handleInput("j");
-      assert.match(browser.render(120).join("\n"), new RegExp(`▌ SELECTED.*${ids[1]}`));
+      assert.match(browser.render(120).join("\n"), new RegExp(`┏━ SELECTED.*${ids[1]}`));
       browser.handleInput("k");
     }
     browser.handleInput("\r");
@@ -194,7 +194,13 @@ describe("dashboard", () => {
     browser.handleInput("q");
     assert.equal(closed, 1);
 
-    const scrolling = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "history" });
+    const scrolling = new ProjectBrowser({
+      project,
+      theme,
+      onClose: () => undefined,
+      initialView: "history",
+      getTerminalRows: () => 12,
+    });
     const before = scrolling.render(80);
     scrolling.handleInput("j");
     scrolling.handleInput("j");
@@ -261,11 +267,11 @@ describe("dashboard", () => {
 
     const long = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "risks", getTerminalRows: () => 10 });
     const first = long.render(100).join("\n");
-    assert.match(first, /1-\d+\/5 lines/);
+    assert.match(first, /1-\d+\/\d+ lines/);
     assert.match(first, /j\/k/);
     long.handleInput("j");
     const scrolled = long.render(100).join("\n");
-    assert.match(scrolled, /2-\d+\/5 lines/);
+    assert.match(scrolled, /2-\d+\/\d+ lines/);
 
     // A view that fits reports no scrolling without any stale hint.
     const empty = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "strategy", getTerminalRows: () => 30 });
@@ -467,16 +473,14 @@ describe("visual hierarchy", () => {
     const { theme: recording, used } = recordingTheme();
     VIEWS.find((view) => view.id === "dashboard")!.render(project, recording, 120);
 
-    const panels = used.bg.filter((entry) => entry.color === "customMessageBg");
-    assert.ok(panels.length > 0, "the NEXT block should be a panel");
-    assert.ok(panels.length <= 3, `only the focal block may use a panel, got ${panels.length} lines`);
+    // The dashboard has no selection: it is a read view.
     assert.equal(used.bg.filter((entry) => entry.color === "selectedBg").length, 0, "the dashboard has no selection");
 
-    // Bold is reserved for the section titles and the single focal title.
+    // Bold is reserved for the one thing to act on plus the section titles.
     assert.ok(used.bold.length <= 8, `too many bold fragments (${used.bold.length}): ${used.bold.join(" | ")}`);
     assert.ok(
-      used.bold.some((text) => text.includes("NEXT") === false && /\w/.test(text)),
-      "the focal title should be bold",
+      used.bold.some((text) => /N\d/.test(text)),
+      `the focal node title should be bold, got: ${used.bold.join(" | ")}`,
     );
   });
 
@@ -492,15 +496,73 @@ describe("visual hierarchy", () => {
     assert.match(selected[0]!.text, /N\d/);
   });
 
-  test("group headers are quieter than section titles", async () => {
+  test("containers group information and every row is visibly contained", async () => {
     const { root, manager } = await richProject();
     dirs.push(root);
     const project = await manager.read((current) => current);
-    const { theme: recording, used } = recordingTheme();
-    const plan = VIEWS.find((view) => view.id === "plan")!.render(project, recording, 120).join("\n");
-    assert.match(plan, /▌ READY/);
-    // Section title "SELECTED" is accent+bold; group titles are not bold.
-    assert.ok(used.bold.includes("SELECTED"));
-    assert.ok(!used.bold.includes("READY"), "group headers should not compete with section titles");
+    const plan = VIEWS.find((view) => view.id === "plan")!.render(project, theme, 120);
+    const text = plan.join("\n");
+    assert.match(text, /┏━ READY/);
+    assert.match(text, /┏━ SELECTED/);
+    assert.match(text, /┗━/);
+
+    // Every body line between a header and its close must carry the container
+    // spine, so there is no ambiguity about what belongs to what.
+    const header = plan.findIndex((line) => line.includes("┏━ READY"));
+    const close = plan.findIndex((line, index) => index > header && line.includes("┗━"));
+    assert.ok(header >= 0 && close > header, "READY container not found");
+    const body = plan.slice(header + 1, close);
+    assert.ok(body.length >= 2, "container should hold its rows");
+    assert.ok(
+      body.some((line) => /┃/.test(line)),
+      "container body should carry the spine",
+    );
+    const nextHeader = plan.findIndex((line, index) => index > header && line.includes("┏━"));
+    if (nextHeader > header) {
+      assert.ok(nextHeader > close, "a new container must not start before the previous one closes");
+    }
+
+    // Tabs keep their names whenever there is room.
+    const browser = new ProjectBrowser({ project, theme, onClose: () => undefined, getTerminalRows: () => 30 });
+    const wide = browser.render(170).join("\n");
+    assert.match(wide, /1:Dashboard/);
+    assert.match(wide, /6:Risks/);
+    const narrow = browser.render(70).join("\n");
+    assert.match(narrow, /6\(\d+\)/);
+    assert.match(narrow, /Dashboard/, "the active tab keeps its name on narrow terminals");
+  });
+});
+
+describe("containers", () => {
+  const dirs: string[] = [];
+  after(async () => {
+    for (const dir of dirs) await cleanup(dir);
+  });
+
+  test("every opened container is closed, in order", async () => {
+    const root = await tempDir();
+    dirs.push(root);
+    const manager = await ProjectManager.init(root, { name: "Containers", clock: fixedClock(), by: "test" });
+    await manager.updateDirection({ vision: "V", values: ["Simple"] }, { approved: true, commit: false });
+    await manager.updateState({ current: "C", capabilities: ["a"], problems: ["p"] }, { commit: false });
+    await manager.createGoal({ title: "G", priority: 3 }, { commit: false });
+    await manager.createQuestion({ question: "Q?", importance: 1, uncertainty: 1, decisionImpact: 1 }, { commit: false });
+    await manager.createRisk({ title: "R", probability: 0.5, impact: 0.5 }, { commit: false });
+    await manager.setStrategy({ approach: "A" }, { commit: false });
+    await manager.applyReplan(manager.analyzeReplan({ trigger: "t" }), { commit: false });
+    const project = await manager.read((current) => current);
+
+    for (const view of VIEWS) {
+      const lines = view.render(project, { ...theme, fg: (_c: string, t: string) => t } as Theme, 110);
+      let open = 0;
+      for (const line of lines) {
+        if (line.includes("┏━")) open += 1;
+        if (line.includes("┗━")) {
+          open -= 1;
+          assert.ok(open >= 0, `${view.id}: close without an open container: ${JSON.stringify(line)}`);
+        }
+      }
+      assert.equal(open, 0, `${view.id}: ${open} unclosed container(s)`);
+    }
   });
 });

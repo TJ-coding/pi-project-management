@@ -237,22 +237,23 @@ def main() -> int:
         session.pump(1.2)
         risks = session.text()
         check("› Risks" in risks, "digit 6 did not open Risks", failures)
-        check("▌" in risks, "structured section headers missing", failures)
+        check("┏━" in risks, "structured section headers missing", failures)
+        check("┗━" in risks, "containers are not closed", failures)
 
         # DAG browser: grouped nodes, a selected-node detail pane, and a node form.
         session.send("8")
         session.pump(1.5)
         plan_view = session.text()
-        check("▌ SELECTED" in plan_view, "plan view has no selected-node detail pane", failures)
+        check("┏━ SELECTED" in plan_view, "plan view has no selected-node detail pane", failures)
         check("NEXT" in plan_view or "READY" in plan_view or "FINISHED" in plan_view, "plan groups missing", failures)
-        check("READY" in plan_view or "RUNNING" in plan_view or "FINISHED" in plan_view, "plan groups missing", failures)
+        check("┏━ READY" in plan_view or "┏━ RUNNING" in plan_view or "┏━ FINISHED" in plan_view, "plan groups missing", failures)
         session.send("\r")
         session.pump(1.8)
         node_form = session.text()
         check("Depends on" in node_form and "Type" in node_form, "plan node form did not open", failures)
         session.send("\x1b")  # cancel the node form
         session.pump(1.5)
-        check("▌ SELECTED" in session.text(), "cancelling the node form did not return to the plan", failures)
+        check("┏━ SELECTED" in session.text(), "cancelling the node form did not return to the plan", failures)
         session.send("1")
 
         # Every rendered line must fit the terminal.

@@ -21,6 +21,378 @@ export interface ViewDefinition {
   render: (project: Project, theme: Theme, width: number) => string[];
 }
 
+/**
+ * Visual hierarchy
+ * ----------------
+ * Terminal emphasis has three usable levels. Using them consistently is what
+ * tells the eye where to land:
+ *
+ *   level 1  bold + accent   the one focal thing on screen (section titles, the
+ *                            selected row, the primary call to action)
+ *   level 2  text            content the user reads (titles, values)
+ *   level 3  muted           secondary content (ids, labels, lists)
+ *   level 4  dim             metadata and chrome (badges, counts, footer, hints)
+ *
+ * Status colour is reserved for status: success/error/warning. Accent means
+ * "structure or focus", never decoration.
+ */
+export function strong(theme: Theme, text: string): string {
+  return theme.fg("accent", theme.bold(text));
+}
+
+/**
+ * `┏━ TITLE ━ meta ━┓` — starts a container. The corners plus the continuous `┃`
+ * spine on the rows below (see `containerRow`) show exactly which information
+ * belongs together.
+ */
+export function sectionHeader(
+  theme: Theme,
+  title: string,
+  meta: string,
+  width: number,
+  tone: "accent" | "success" | "warning" | "muted" = "accent",
+): string {
+  const left = theme.fg(tone, "┏━ ") + theme.fg(tone, theme.bold(title));
+  const right = meta ? theme.fg("dim", ` ${meta} `) : "";
+  const used = visibleWidth(left) + visibleWidth(right);
+  const rule = Math.max(0, width - used - 2);
+  return truncateToWidth(`${left}${theme.fg("borderMuted", "━".repeat(rule))}${right}${theme.fg(tone, "━┓")}`, width);
+}
+
+/** A row inside a container: two-space gutter, a `┃` spine, then content. */
+export function containerRow(theme: Theme, content: string, width: number, selected = false): string {
+  return selectionRow(theme, theme.fg("borderMuted", "  ┃ ") + content, width, selected);
+}
+
+/** A continuation row inside a container (no spine, aligned with the content). */
+export function containerNote(theme: Theme, content: string, width: number): string {
+  return truncateToWidth(`      ${content}`, width);
+}
+
+/** `  ┗━━━┛` — closes a container. */
+export function containerClose(theme: Theme, width: number): string {
+  const rule = Math.max(2, width - 6);
+  return truncateToWidth(`  ${theme.fg("borderMuted", "┗")}${theme.fg("borderMuted", "━".repeat(rule))}${theme.fg("borderMuted", "┛")}`, width);
+}
+
+function padStyled(text: string, width: number): string {
+  const visible = visibleWidth(text);
+  if (visible >= width) return text;
+  return text + " ".repeat(width - visible);
+}
+
+/** Full-width selection bar — the strongest affordance available in a terminal. */
+export function selectionRow(theme: Theme, text: string, width: number, selected: boolean): string {
+  const padded = padStyled(text, width);
+  return selected ? theme.bg("selectedBg", padded) : truncateToWidth(padded, width);
+}
+
+/** A quiet panel used for the single primary block on a screen. */
+export function panel(theme: Theme, lines: string[], width: number): string[] {
+  return lines.map((line) => theme.bg("customMessageBg", truncateToWidth(padStyled(line, width), width)));
+}
+
+/** `label   value` with an aligned, quiet label column. */
+export function keyValue(theme: Theme, label: string, value: string, width: number, labelWidth = 8): string {
+  return truncateToWidth(`${theme.fg("muted", label.padEnd(labelWidth))}${value}`, width);
+}
+
+const historyView: ViewDefinition = {
+  id: "history",
+  title: "History",
+  render(project, theme, width) {
+    const lines: string[] = [];
+    if (project.history.length === 0) return [`  ${theme.fg("dim", "nothing recorded yet")}`];
+    lines.push(sectionHeader(theme, "EVENTS", `${Math.min(project.history.length, 200)}`, width, "accent"));
+    for (const event of [...project.history].reverse().slice(0, 200)) {
+      const color =
+        event.kind.includes("fail") || event.kind.includes("abandon")
+          ? "error"
+          : event.kind.includes("completed") || event.kind.includes("passed") || event.kind.includes("answered")
+            ? "success"
+            : event.kind.includes("plan")
+              ? "accent"
+              : "muted";
+      const refs = event.refs.length > 0 ? ` ${theme.fg("dim", `[${event.refs.join(", ")}]`)}` : "";
+      lines.push(containerRow(theme, `${theme.fg("dim", event.at.slice(0, 19))} ${theme.fg(color as "muted", event.kind.padEnd(18))} ${theme.fg("text", event.summary)}${refs}`, width));
+    }
+    lines.push(containerClose(theme, width));
+    return lines;
+  },
+};
+
+const runsView: ViewDefinition = {
+  id: "runs",
+  title: "Runs",
+  render(project, theme, width) {
+    if (project.runs.length === 0) return [`  ${theme.fg("dim", "no runs recorded")}`];
+    const lines: string[] = [];
+    for (const run of [...project.runs].reverse()) {
+      lines.push(sectionHeader(theme, `${run.id}`, `${run.status} · ${run.title}`, width, run.status === "FAILED" ? "warning" : "accent"));
+      lines.push(containerRow(theme, `${theme.fg("accent", statusGlyph(run.status === "RUNNING" ? "RUNNING" : run.status))} ${theme.fg("text", run.title)} ${theme.fg("dim", run.status)}`, width));
+      const meta: string[] = [`started ${run.started}`];
+      if (run.finished) meta.push(`finished ${run.finished}`);
+      if (run.node) meta.push(`node ${run.node}`);
+      if (run.pid) meta.push(`pid ${run.pid}`);
+      if (run.host) meta.push(`host ${run.host}`);
+      lines.push(containerNote(theme, theme.fg("dim", meta.join(" · ")), width));
+      if (run.command) lines.push(containerNote(theme, theme.fg("muted", `$ ${run.command}`), width));
+      for (const environment of run.environment) {
+        lines.push(containerNote(theme, theme.fg("dim", `env ${environment.kind}: ${environment.target}${environment.note ? ` (${environment.note})` : ""}`), width));
+      }
+      for (const entry of run.entries.slice(-3)) {
+        lines.push(containerNote(theme, `${theme.fg("dim", `${entry.at.slice(11, 19)} [${entry.kind}]`)} ${theme.fg("muted", entry.text)}`, width));
+      }
+      for (const output of run.outputs.slice(-3)) {
+        lines.push(containerNote(theme, `${theme.fg("success", "→")} ${theme.fg("muted", output.description)}`, width));
+      }
+      lines.push(containerClose(theme, width));
+      lines.push("");
+    }
+    return lines;
+  },
+};
+
+const summaryView: ViewDefinition = {
+  id: "summary",
+  title: "Summary",
+  render(project, theme, width) {
+    const lines: string[] = [];
+    lines.push(...heading(theme, "GOAL OUTCOMES", width));
+    if (project.goals.length === 0) lines.push(theme.fg("dim", "no goals"));
+    for (const goal of project.goals) {
+      const glyph = statusGlyph(goal.status);
+      const color = goal.status === "COMPLETED" ? "success" : goal.status === "FAILED" ? "error" : "muted";
+      lines.push(`${theme.fg(color as "muted", glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", goal.status)}`);
+    }
+
+    lines.push(...heading(theme, "PLAN EVOLUTION", width));
+    const evolution = planEvolution(project);
+    if (evolution.length === 0) lines.push(theme.fg("dim", "no plans"));
+    for (const entry of evolution) {
+      lines.push(`${theme.fg("accent", "•")} ${theme.fg("text", `${entry.plan} v${entry.version} — ${entry.title}`)}`);
+      if (entry.change) lines.push(`    ${theme.fg("muted", `why: ${entry.change.reason}`)}`);
+      if (entry.supersededBy) lines.push(`    ${theme.fg("dim", `superseded by ${entry.supersededBy}`)}`);
+    }
+
+    lines.push(...heading(theme, "MAJOR DECISIONS", width));
+    if (project.decisions.length === 0) lines.push(theme.fg("dim", "no decisions"));
+    for (const decision of project.decisions) {
+      lines.push(
+        `${theme.fg("accent", "•")} ${theme.fg("text", `${decision.id} ${decision.title}`)} ${theme.fg("dim", `[${decision.authority}${decision.autoAccepted ? ", auto" : ""}]`)}`,
+      );
+    }
+
+    lines.push(...heading(theme, "LESSONS / FINDINGS", width));
+    const findings = [...project.state.discoveries, ...project.questions.filter((question) => question.status === "CONFIRMED").map((question) => question.answer)];
+    if (findings.length === 0) lines.push(theme.fg("dim", "none recorded"));
+    for (const finding of findings) lines.push(`${theme.fg("accent", "•")} ${theme.fg("muted", finding)}`);
+    return lines;
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Plan browser (master / detail)                                     */
+/* ------------------------------------------------------------------ */
+
+const NODE_TYPE_ABBREVIATIONS: Record<string, string> = {
+  TASK: "TASK",
+  INVESTIGATION: "INVE",
+  EXPERIMENT: "EXPE",
+  DECISION: "DECI",
+  REVIEW: "REVI",
+  GATE: "GATE",
+  WAIT: "WAIT",
+};
+
+export interface PlanGroup {
+  key: string;
+  label: string;
+  tone: "accent" | "success" | "warning" | "muted";
+  nodes: PlanNode[];
+  hidden: number;
+}
+
+/** Group the active plan's nodes by what the user can do with them (spec 12). */
+export function planGroups(project: Project, cap = 6): PlanGroup[] {
+  const plan = activePlan(project);
+  if (!plan) return [];
+  const readyIds = new Set(readyNodes(plan.nodes).map((node) => node.id));
+  const blocked = blockedByDependencies(plan.nodes);
+
+  const groups: PlanGroup[] = [
+    { key: "running", label: "RUNNING", tone: "accent", nodes: [], hidden: 0 },
+    { key: "ready", label: "READY", tone: "success", nodes: [], hidden: 0 },
+    { key: "blocked", label: "BLOCKED", tone: "warning", nodes: [], hidden: 0 },
+    { key: "finished", label: "FINISHED", tone: "muted", nodes: [], hidden: 0 },
+  ];
+  const byKey = new Map(groups.map((group) => [group.key, group]));
+
+  for (const node of topoOrder(plan.nodes)) {
+    if (node.status === "RUNNING") byKey.get("running")!.nodes.push(node);
+    else if (readyIds.has(node.id)) byKey.get("ready")!.nodes.push(node);
+    else if (node.status === "PENDING" || node.status === "BLOCKED" || node.status === "INTERRUPTED") {
+      byKey.get("blocked")!.nodes.push(node);
+    } else byKey.get("finished")!.nodes.push(node);
+  }
+  void blocked;
+
+  for (const group of groups) {
+    if (group.nodes.length > cap) {
+      group.hidden = group.nodes.length - cap;
+      group.nodes = group.nodes.slice(0, cap);
+    }
+  }
+  return groups.filter((group) => group.nodes.length > 0);
+}
+
+/** Nodes in visual order, used for cursor movement. */
+export function flatPlanNodes(project: Project): PlanNode[] {
+  return planGroups(project).flatMap((group) => group.nodes);
+}
+
+export interface PlanRender {
+  lines: string[];
+  /** Visible node ids in order, so the caller can move a cursor. */
+  ids: string[];
+}
+
+/**
+ * A scannable DAG: status groups with counts, one line per node, and a detail
+ * pane for the selected node. Nothing is hidden behind raw YAML.
+ */
+export function renderPlanInteractive(
+  project: Project,
+  theme: Theme,
+  width: number,
+  cursor: string | null,
+): PlanRender {
+  const plan = activePlan(project);
+  if (!plan) {
+    return { lines: [theme.fg("dim", "no active plan yet"), "", theme.fg("dim", "the agent can create one when you ask for a plan")], ids: [] };
+  }
+  const groups = planGroups(project);
+  const ids = groups.flatMap((group) => group.nodes.map((node) => node.id));
+  const activeId = cursor && ids.includes(cursor) ? cursor : ids[0] ?? null;
+  const stats = dagStats(plan.nodes);
+
+  const lines: string[] = [];
+  const done = stats.byStatus.COMPLETED;
+  const barWidth = Math.max(8, Math.min(24, width - 34));
+  const filled = stats.total === 0 ? 0 : Math.round((done / stats.total) * barWidth);
+  lines.push(
+    theme.fg("accent", theme.bold(`${plan.id} v${plan.version}`)) +
+      theme.fg("muted", `  ${plan.title}`) +
+      theme.fg("success", `  ${"█".repeat(filled)}`) +
+      theme.fg("dim", `${"░".repeat(barWidth - filled)} ${done}/${stats.total}`),
+  );
+  lines.push(theme.fg("dim", `${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked · ${stats.byStatus.COMPLETED} done · ${stats.byStatus.FAILED} failed`));
+  lines.push("");
+
+  for (const group of groups) {
+    lines.push(sectionHeader(theme, group.label, `${group.nodes.length + group.hidden}`, width, group.tone));
+    for (const node of group.nodes) {
+      lines.push(containerRow(theme, planNodeContent(theme, node), width, node.id === activeId));
+    }
+    if (group.hidden > 0) {
+      lines.push(containerNote(theme, theme.fg("dim", `… +${group.hidden} more (folded; open one with the agent or the node form)`), width));
+    }
+    lines.push(containerClose(theme, width));
+  }
+
+  const selected = activeId ? plan.nodes.find((node) => node.id === activeId) : undefined;
+  if (selected) lines.push("", ...renderPlanDetail(theme, project, selected, width));
+
+  return { lines, ids };
+}
+
+/** Row content for a node; the container adds the gutter and the selection bar. */
+function planNodeContent(theme: Theme, node: PlanNode): string {
+  const glyphColor = node.status === "COMPLETED" ? "success" : node.status === "FAILED" ? "error" : node.status === "RUNNING" ? "accent" : "dim";
+  const glyph = theme.fg(glyphColor, statusGlyph(node.status));
+  const id = theme.fg("muted", node.id.padEnd(4));
+  const type = theme.fg("dim", (NODE_TYPE_ABBREVIATIONS[node.type] ?? node.type).padEnd(5));
+
+  const badges: string[] = [];
+  if (node.question) badges.push(node.question);
+  if (node.risk) badges.push(node.risk);
+  if (node.goal) badges.push(node.goal);
+  if (node.dependsOn.length > 0) badges.push(`←${node.dependsOn.join(",")}`);
+
+  const head = `${glyph} ${id}${type} `;
+  const badgeText = badges.length > 0 ? ` ${badges.join(" ")}` : "";
+  const available = Math.max(8, 68 - visibleWidth(head) - visibleWidth(badgeText));
+  const title = node.title.length > available ? `${node.title.slice(0, available - 1)}…` : node.title;
+  const fill = " ".repeat(Math.max(1, available - visibleWidth(title) + 1));
+  const badgesStyled = badges.length > 0 ? theme.fg("dim", `${fill}${badges.join(" ")}`) : "";
+  return `${head}${theme.fg("text", title)}${badgesStyled}`;
+}
+
+function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width: number): string[] {
+  const lines: string[] = [];
+  lines.push(sectionHeader(theme, "SELECTED", `${node.id} · ${node.type} · ${node.status}`, width, "accent"));
+  lines.push(containerRow(theme, theme.bold(theme.fg("text", truncateToWidth(node.title, width - 8))), width));
+  if (node.description) {
+    lines.push(containerNote(theme, theme.fg("muted", truncateToWidth(node.description.replace(/\s+/g, " "), width - 8)), width));
+  }
+  const meta: string[] = [];
+  if (node.assignee) meta.push(`assignee ${node.assignee}`);
+  if (node.dependsOn.length > 0) {
+    const plan = activePlan(project);
+    const described = node.dependsOn.map((dep) => {
+      const target = plan?.nodes.find((candidate) => candidate.id === dep);
+      return `${dep}${target ? ` (${target.status})` : " (missing)"}`;
+    });
+    meta.push(`after ${described.join(", ")}`);
+  } else {
+    meta.push("no dependencies");
+  }
+  lines.push(containerNote(theme, theme.fg("dim", meta.join("  ·  ")), width));
+  const links: string[] = [];
+  if (node.question) links.push(`question ${node.question}`);
+  if (node.risk) links.push(`risk ${node.risk}`);
+  if (node.goal) links.push(`goal ${node.goal}`);
+  if (node.run) links.push(`run ${node.run}`);
+  if (node.gate) links.push(`gate ${node.gate.type}`);
+  if (links.length > 0) lines.push(containerNote(theme, theme.fg("muted", links.join("  ·  ")), width));
+  if (node.gate?.criteria) lines.push(containerNote(theme, theme.fg("muted", `criteria: ${truncateToWidth(node.gate.criteria, width - 18)}`), width));
+  if (node.failureReason) lines.push(containerNote(theme, theme.fg("error", `failure: ${truncateToWidth(node.failureReason, width - 16)}`), width));
+  if (node.outputs.length > 0) lines.push(containerNote(theme, theme.fg("success", `outputs: ${truncateToWidth(node.outputs.join("; "), width - 16)}`), width));
+  lines.push(containerNote(theme, theme.fg("dim", "↑↓ select · enter edit · a new node · D delete · E raw yaml"), width));
+  lines.push(containerClose(theme, width));
+  return lines;
+}
+
+
+/** Guarantee the Component contract: no rendered line may exceed `width`. */
+function fitLines(lines: string[], width: number): string[] {
+  const safeWidth = Math.max(1, Math.floor(width));
+  return lines
+    .flatMap((line) => wrapTextWithAnsi(line, safeWidth))
+    .map((line) => truncateToWidth(line, safeWidth));
+}
+
+function computeDepths(nodes: { id: string; dependsOn: string[] }[]): Map<string, number> {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const depths = new Map<string, number>();
+  const visit = (id: string, seen: Set<string>): number => {
+    const cached = depths.get(id);
+    if (cached !== undefined) return cached;
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const node = byId.get(id);
+    if (!node || node.dependsOn.length === 0) {
+      depths.set(id, 0);
+      return 0;
+    }
+    const depth = Math.max(...node.dependsOn.map((dep) => visit(dep, seen) + 1));
+    depths.set(id, depth);
+    return depth;
+  };
+  for (const node of nodes) visit(node.id, new Set());
+  return depths;
+}
+
 /* ------------------------------------------------------------------ */
 /* Views                                                              */
 /* ------------------------------------------------------------------ */
@@ -123,34 +495,38 @@ const dashboardView: ViewDefinition = {
     }
 
     // ── The single focal point: the one thing to act on now. ──────────────
-    const focus: string[] = [];
+    lines.push(sectionHeader(theme, "NOW", plan ? `${plan.id} v${plan.version}` : "", width, "success"));
     if (next) {
-      focus.push(` ${theme.fg("dim", "NEXT")}  ${strong(theme, `${next.id} ${next.title}`)}`);
-      const meta = [`${next.type}`, next.question ? `answers ${next.question}` : null, next.risk ? `reduces ${next.risk}` : null, plan ? `${plan.id} v${plan.version}` : null]
+      lines.push(containerRow(theme, strong(theme, `${next.id} ${next.title}`), width));
+      const rationale = [next.type, next.question ? `answers ${next.question}` : null, next.risk ? `reduces ${next.risk}` : null]
         .filter(Boolean)
         .join(" · ");
-      focus.push(`       ${theme.fg("dim", meta)}`);
-    } else if (plan) {
-      focus.push(` ${theme.fg("dim", "NEXT")}  ${theme.fg("warning", "nothing actionable — replan needed")}`);
+      lines.push(containerNote(theme, theme.fg("dim", rationale), width));
     } else {
-      focus.push(` ${theme.fg("dim", "NEXT")}  ${theme.fg("warning", "no plan yet — ask the agent to replan")}`);
+      lines.push(containerRow(theme, theme.fg("warning", "nothing actionable — ask the agent to replan"), width));
     }
-    lines.push(...panel(theme, focus, width));
+    lines.push(containerClose(theme, width));
     lines.push("");
 
     // Support: state and running work, de-emphasised.
     lines.push(
-      keyValue(
+      sectionHeader(theme, "STATE", "", width, "muted"),
+      containerRow(
         theme,
-        "state",
-        theme.fg("text", truncateToWidth(project.state.current || "not recorded", width - 12)) +
-          (project.state.problems.length > 0 ? `  ${theme.fg("warning", `(${project.state.problems.length} problem${project.state.problems.length === 1 ? "" : "s"})`)}` : ""),
+        theme.fg("text", truncateToWidth(project.state.current || "not recorded", width - 14)) +
+          (project.state.problems.length > 0
+            ? `  ${theme.fg("warning", `(${project.state.problems.length} problem${project.state.problems.length === 1 ? "" : "s"})`)}`
+            : ""),
         width,
-        7,
       ),
+      containerClose(theme, width),
     );
     if (runningRuns.length > 0) {
-      lines.push(keyValue(theme, "runs", theme.fg("warning", `${runningRuns.length} in progress`) + theme.fg("dim", `  ${runningRuns.map((run) => run.id).join(", ")}`), width, 7));
+      lines.push(
+        sectionHeader(theme, "RUNS", `${runningRuns.length} in progress`, width, "warning"),
+        containerRow(theme, theme.fg("text", runningRuns.map((run) => `${run.id} ${run.title}`).join(" · ")), width),
+        containerClose(theme, width),
+      );
     }
     lines.push("");
 
@@ -160,22 +536,28 @@ const dashboardView: ViewDefinition = {
       const barWidth = Math.max(8, Math.min(18, width - 48));
       const filled = stats.total === 0 ? 0 : Math.round((stats.byStatus.COMPLETED / stats.total) * barWidth);
       lines.push(
-        keyValue(
+        containerRow(
           theme,
-          "plan",
+          keyValue(
+            theme,
+            "plan",
           theme.fg("success", "█".repeat(filled)) +
             theme.fg("dim", "░".repeat(barWidth - filled)) +
             theme.fg("muted", `  ${stats.byStatus.COMPLETED}/${stats.total}`) +
             theme.fg("dim", `   ${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked`),
+            width - 4,
+            7,
+          ),
           width,
-          7,
         ),
       );
     }
     lines.push(
-      keyValue(
+      containerRow(
         theme,
-        "goals",
+        keyValue(
+          theme,
+          "goals",
         theme.fg("text", `${doneGoals.length}/${project.goals.length} done`) +
           theme.fg("dim", "   ") +
           theme.fg("text", `${openQuestions.length}`) +
@@ -183,9 +565,12 @@ const dashboardView: ViewDefinition = {
           theme.fg("dim", " · ") +
           theme.fg("text", `${openRisks.length}`) +
           theme.fg("dim", " open risks"),
+          width - 4,
+          7,
+        ),
         width,
-        7,
       ),
+      containerClose(theme, width),
     );
     lines.push("");
 
@@ -204,8 +589,9 @@ const dashboardView: ViewDefinition = {
       const goal = activeGoals[0];
       signals.push(metricLine(theme, "→", "accent", goal.id, goal.title, `P${goal.priority}`, width));
     }
-    if (signals.length === 0) lines.push(`  ${theme.fg("dim", "nothing recorded yet")}`);
+    if (signals.length === 0) lines.push(containerNote(theme, theme.fg("dim", "nothing recorded yet"), width));
     lines.push(...signals);
+    lines.push(containerClose(theme, width));
 
     const full: string[] = [];
     if (project.goals.length > 0) full.push("3 goals");
@@ -227,12 +613,12 @@ function metricLine(
   metric: string,
   width: number,
 ): string {
-  const head = `  ${theme.fg(tone, glyph)} ${theme.fg("muted", id.padEnd(4))}`;
+  const head = `${theme.fg(tone, glyph)} ${theme.fg("muted", id.padEnd(4))}`;
   const tail = theme.fg(tone === "accent" ? "dim" : tone, metric);
   const available = Math.max(10, width - visibleWidth(head) - visibleWidth(tail) - 3);
   const text = title.length > available ? `${title.slice(0, available - 1)}…` : title;
-  const gap = Math.max(1, width - visibleWidth(head) - visibleWidth(text) - visibleWidth(tail) - 1);
-  return truncateToWidth(`${head}${theme.fg("text", text)}${" ".repeat(gap)}${tail}`, width);
+  const gap = Math.max(1, width - visibleWidth(head) - visibleWidth(text) - visibleWidth(tail) - 6);
+  return containerRow(theme, `${head}${theme.fg("text", text)}${" ".repeat(gap)}${tail}`, width);
 }
 
 /** Wrap prose to at most `maxLines` lines, adding an ellipsis when truncated. */
@@ -298,22 +684,18 @@ const goalsView: ViewDefinition = {
         .filter((goal) => group.statuses.includes(goal.status))
         .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id, undefined, { numeric: true }));
       if (goals.length === 0) continue;
-      lines.push(groupHeader(theme, group.label, `${goals.length}/${project.goals.length}`, width, group.tone));
+      lines.push(sectionHeader(theme, group.label, `${goals.length}/${project.goals.length}`, width, group.tone));
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
-        const head = `  ${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
-        const meta = `${band.padEnd(8)} P${goal.priority}`;
-        const available = Math.max(10, width - visibleWidth(head) - meta.length - 8);
-        const title = goal.title.length > available ? `${goal.title.slice(0, available - 1)}…` : goal.title;
+        const head = `${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} criteria` : "no criteria";
-        lines.push(
-          truncateToWidth(
-            `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, width - visibleWidth(head) - visibleWidth(title) - meta.length - 2))}${bandColor(theme, band)(band)} ${theme.fg("dim", `P${goal.priority} · ${extra}`)}`,
-            width,
-          ),
-        );
-        if (goal.supersededBy) lines.push(`       ${theme.fg("dim", `superseded by ${goal.supersededBy}`)}`);
+        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `P${goal.priority} · ${extra}`)}`;
+        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
+        const title = goal.title.length > available ? `${goal.title.slice(0, available - 1)}…` : goal.title;
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width));
+        if (goal.supersededBy) lines.push(containerNote(theme, theme.fg("dim", `superseded by ${goal.supersededBy}`), width));
       }
+      lines.push(containerClose(theme, width));
       lines.push("");
     }
     lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a goal")}`);
@@ -341,20 +723,23 @@ const stateView: ViewDefinition = {
       if (items.length === 0) return;
       lines.push(sectionHeader(theme, title, `${items.length}`, width, tone));
       for (const item of items.slice(0, cap)) {
-        lines.push(`  ${theme.fg("accent", "· ")}${theme.fg("muted", truncateToWidth(item, width - 6))}`);
+        lines.push(containerRow(theme, theme.fg("muted", truncateToWidth(item, width - 8)), width));
       }
-      if (items.length > cap) lines.push(`  ${theme.fg("dim", `… +${items.length - cap} more`)}`);
+      if (items.length > cap) lines.push(containerNote(theme, theme.fg("dim", `… +${items.length - cap} more`), width));
+      lines.push(containerClose(theme, width));
     };
 
     lines.push(sectionHeader(theme, "CURRENT", "", width, "accent"));
-    lines.push(...truncateWrapped(project.state.current || "not recorded", width, 4).map((line) => `  ${theme.fg("text", line)}`));
+    lines.push(...truncateWrapped(project.state.current || "not recorded", width - 8, 4).map((line) => containerRow(theme, theme.fg("text", line), width)));
+    lines.push(containerClose(theme, width));
     list("PROBLEMS", project.state.problems, "warning");
     list("CAPABILITIES", project.state.capabilities, "success");
     list("KNOWN FACTS", project.state.facts, "muted");
     list("CONSTRAINTS", project.state.constraints, "muted");
     list("DISCOVERIES", project.state.discoveries, "success");
     lines.push(sectionHeader(theme, "INITIAL", "", width, "muted"));
-    lines.push(...truncateWrapped(project.state.initial || "not recorded", width, 2).map((line) => `  ${theme.fg("dim", line)}`));
+    lines.push(...truncateWrapped(project.state.initial || "not recorded", width - 8, 2).map((line) => containerRow(theme, theme.fg("dim", line), width)));
+    lines.push(containerClose(theme, width));
     lines.push(`  ${theme.fg("dim", "press e to edit the state")}`);
     return lines;
   },
@@ -374,16 +759,16 @@ const intelligenceView: ViewDefinition = {
 
     const group = (label: string, questions: typeof open, tone: "warning" | "success" | "muted"): void => {
       if (questions.length === 0) return;
-      lines.push(groupHeader(theme, label, `${questions.length}`, width, tone));
+      lines.push(sectionHeader(theme, label, `${questions.length}`, width, tone));
       for (const question of questions) {
         const band = scoreBand(questionScore(question));
-        const head = `  ${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
-        const available = Math.max(10, width - visibleWidth(head) - band.length - question.status.length - 8);
+        const head = `${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
+        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", question.status)}`;
+        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = question.question.length > available ? `${question.question.slice(0, available - 1)}…` : question.question;
-        lines.push(
-          truncateToWidth(`${head}${theme.fg("text", title)}  ${bandColor(theme, band)(band)} ${theme.fg("dim", question.status)}`, width),
-        );
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width));
       }
+      lines.push(containerClose(theme, width));
       lines.push("");
     };
     group("OPEN", open, "warning");
@@ -405,17 +790,16 @@ const risksView: ViewDefinition = {
     for (const group of riskGroups) {
       const risks = byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status)));
       if (risks.length === 0) continue;
-      lines.push(groupHeader(theme, group.label, `${risks.length}`, width, group.tone));
+      lines.push(sectionHeader(theme, group.label, `${risks.length}`, width, group.tone));
       for (const risk of risks) {
         const band = scoreBand(riskScore(risk));
-        const head = `  ${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
-        const meta = `exposure ${riskExposure(risk).toFixed(2)}`;
-        const available = Math.max(10, width - visibleWidth(head) - meta.length - band.length - 6);
+        const head = `${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
+        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `exp ${riskExposure(risk).toFixed(2)} · ${risk.status}`)}`;
+        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = risk.title.length > available ? `${risk.title.slice(0, available - 1)}…` : risk.title;
-        lines.push(
-          truncateToWidth(`${head}${theme.fg("text", title)}  ${bandColor(theme, band)(band)} ${theme.fg("dim", `exp ${riskExposure(risk).toFixed(2)} · ${risk.status}`)}`, width),
-        );
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width));
       }
+      lines.push(containerClose(theme, width));
       lines.push("");
     }
     lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a risk")}`);
@@ -452,333 +836,6 @@ const planView: ViewDefinition = {
   render: (project, theme, width) => renderPlanInteractive(project, theme, width, null).lines,
 };
 
-/* ------------------------------------------------------------------ */
-/* Plan browser (master / detail)                                     */
-/* ------------------------------------------------------------------ */
-
-const NODE_TYPE_ABBREVIATIONS: Record<string, string> = {
-  TASK: "TASK",
-  INVESTIGATION: "INVE",
-  EXPERIMENT: "EXPE",
-  DECISION: "DECI",
-  REVIEW: "REVI",
-  GATE: "GATE",
-  WAIT: "WAIT",
-};
-
-export interface PlanGroup {
-  key: string;
-  label: string;
-  tone: "accent" | "success" | "warning" | "muted";
-  nodes: PlanNode[];
-  hidden: number;
-}
-
-/** Group the active plan's nodes by what the user can do with them (spec 12). */
-export function planGroups(project: Project, cap = 6): PlanGroup[] {
-  const plan = activePlan(project);
-  if (!plan) return [];
-  const readyIds = new Set(readyNodes(plan.nodes).map((node) => node.id));
-  const blocked = blockedByDependencies(plan.nodes);
-
-  const groups: PlanGroup[] = [
-    { key: "running", label: "RUNNING", tone: "accent", nodes: [], hidden: 0 },
-    { key: "ready", label: "READY", tone: "success", nodes: [], hidden: 0 },
-    { key: "blocked", label: "BLOCKED", tone: "warning", nodes: [], hidden: 0 },
-    { key: "finished", label: "FINISHED", tone: "muted", nodes: [], hidden: 0 },
-  ];
-  const byKey = new Map(groups.map((group) => [group.key, group]));
-
-  for (const node of topoOrder(plan.nodes)) {
-    if (node.status === "RUNNING") byKey.get("running")!.nodes.push(node);
-    else if (readyIds.has(node.id)) byKey.get("ready")!.nodes.push(node);
-    else if (node.status === "PENDING" || node.status === "BLOCKED" || node.status === "INTERRUPTED") {
-      byKey.get("blocked")!.nodes.push(node);
-    } else byKey.get("finished")!.nodes.push(node);
-  }
-  void blocked;
-
-  for (const group of groups) {
-    if (group.nodes.length > cap) {
-      group.hidden = group.nodes.length - cap;
-      group.nodes = group.nodes.slice(0, cap);
-    }
-  }
-  return groups.filter((group) => group.nodes.length > 0);
-}
-
-/** Nodes in visual order, used for cursor movement. */
-export function flatPlanNodes(project: Project): PlanNode[] {
-  return planGroups(project).flatMap((group) => group.nodes);
-}
-
-export interface PlanRender {
-  lines: string[];
-  /** Visible node ids in order, so the caller can move a cursor. */
-  ids: string[];
-}
-
-/**
- * A scannable DAG: status groups with counts, one line per node, and a detail
- * pane for the selected node. Nothing is hidden behind raw YAML.
- */
-export function renderPlanInteractive(
-  project: Project,
-  theme: Theme,
-  width: number,
-  cursor: string | null,
-): PlanRender {
-  const plan = activePlan(project);
-  if (!plan) {
-    return { lines: [theme.fg("dim", "no active plan yet"), "", theme.fg("dim", "the agent can create one when you ask for a plan")], ids: [] };
-  }
-  const groups = planGroups(project);
-  const ids = groups.flatMap((group) => group.nodes.map((node) => node.id));
-  const activeId = cursor && ids.includes(cursor) ? cursor : ids[0] ?? null;
-  const stats = dagStats(plan.nodes);
-
-  const lines: string[] = [];
-  const done = stats.byStatus.COMPLETED;
-  const barWidth = Math.max(8, Math.min(24, width - 34));
-  const filled = stats.total === 0 ? 0 : Math.round((done / stats.total) * barWidth);
-  lines.push(
-    theme.fg("accent", theme.bold(`${plan.id} v${plan.version}`)) +
-      theme.fg("muted", `  ${plan.title}`) +
-      theme.fg("success", `  ${"█".repeat(filled)}`) +
-      theme.fg("dim", `${"░".repeat(barWidth - filled)} ${done}/${stats.total}`),
-  );
-  lines.push(theme.fg("dim", `${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked · ${stats.byStatus.COMPLETED} done · ${stats.byStatus.FAILED} failed`));
-  lines.push("");
-
-  for (const group of groups) {
-    lines.push(groupHeader(theme, group.label, `${group.nodes.length + group.hidden}`, width, group.tone));
-    for (const node of group.nodes) {
-      lines.push(planNodeLine(theme, node, width, node.id === activeId));
-    }
-    if (group.hidden > 0) lines.push(`     ${theme.fg("dim", `… +${group.hidden} more (folded; use the agent or the form to see them)`)}`);
-  }
-
-  const selected = activeId ? plan.nodes.find((node) => node.id === activeId) : undefined;
-  if (selected) lines.push("", ...renderPlanDetail(theme, project, selected, width));
-
-  return { lines, ids };
-}
-
-function planNodeLine(theme: Theme, node: PlanNode, width: number, selected: boolean): string {
-  const marker = selected ? theme.fg("accent", theme.bold("▸")) : theme.fg("dim", " ");
-  const glyphColor = node.status === "COMPLETED" ? "success" : node.status === "FAILED" ? "error" : node.status === "RUNNING" ? "accent" : "dim";
-  const glyph = theme.fg(glyphColor, statusGlyph(node.status));
-  const id = theme.fg(selected ? "accent" : "dim", node.id.padEnd(4));
-  const type = theme.fg("dim", (NODE_TYPE_ABBREVIATIONS[node.type] ?? node.type).padEnd(5));
-
-  const badges: string[] = [];
-  if (node.question) badges.push(node.question);
-  if (node.risk) badges.push(node.risk);
-  if (node.goal) badges.push(node.goal);
-  if (node.dependsOn.length > 0) badges.push(`←${node.dependsOn.join(",")}`);
-  const badgeText = badges.length > 0 ? ` ${badges.join(" ")}` : "";
-
-  const head = ` ${marker} ${glyph} ${id}${type} `;
-  const available = Math.max(8, width - visibleWidth(head) - visibleWidth(badgeText) - 2);
-  const title = node.title.length > available ? `${node.title.slice(0, available - 1)}…` : node.title;
-  const body = selected ? theme.fg("text", theme.bold(title)) : theme.fg("muted", title);
-  const fill = " ".repeat(Math.max(1, width - visibleWidth(head) - visibleWidth(title) - visibleWidth(badgeText) - 1));
-  const badgesStyled = badges.length > 0 ? theme.fg("dim", `${fill}${badges.join(" ")}`) : "";
-  return selectionRow(theme, `${head}${body}${badgesStyled}`, width, selected);
-}
-
-function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width: number): string[] {
-  const lines: string[] = [];
-  lines.push(sectionHeader(theme, "SELECTED", `${node.id} · ${node.type} · ${node.status}`, width, "accent"));
-  lines.push(`  ${theme.bold(theme.fg("text", truncateToWidth(node.title, width - 4)))}`);
-  if (node.description) lines.push(`  ${theme.fg("muted", truncateToWidth(node.description.replace(/\s+/g, " "), width - 4))}`);
-  const meta: string[] = [];
-  if (node.assignee) meta.push(`assignee ${node.assignee}`);
-  if (node.dependsOn.length > 0) {
-    const plan = activePlan(project);
-    const described = node.dependsOn.map((dep) => {
-      const target = plan?.nodes.find((candidate) => candidate.id === dep);
-      return `${dep}${target ? ` (${target.status})` : " (missing)"}`;
-    });
-    meta.push(`after ${described.join(", ")}`);
-  } else {
-    meta.push("no dependencies");
-  }
-  lines.push(`  ${theme.fg("dim", meta.join("  ·  "))}`);
-  const links: string[] = [];
-  if (node.question) links.push(`question ${node.question}`);
-  if (node.risk) links.push(`risk ${node.risk}`);
-  if (node.goal) links.push(`goal ${node.goal}`);
-  if (node.run) links.push(`run ${node.run}`);
-  if (node.gate) links.push(`gate ${node.gate.type}`);
-  if (links.length > 0) lines.push(`  ${theme.fg("muted", links.join("  ·  "))}`);
-  if (node.gate?.criteria) lines.push(`  ${theme.fg("muted", `criteria: ${truncateToWidth(node.gate.criteria, width - 15)}`)}`);
-  if (node.failureReason) lines.push(`  ${theme.fg("error", `failure: ${truncateToWidth(node.failureReason, width - 12)}`)}`);
-  if (node.outputs.length > 0) lines.push(`  ${theme.fg("success", `outputs: ${truncateToWidth(node.outputs.join("; "), width - 12)}`)}`);
-  lines.push(`  ${theme.fg("dim", "↑↓ select · enter edit · a new node · D delete · E raw yaml")}`);
-  return lines;
-}
-
-/**
- * Visual hierarchy
- * ----------------
- * Terminal emphasis has three usable levels. Using them consistently is what
- * tells the eye where to land:
- *
- *   level 1  bold + accent   the one focal thing on screen (section titles, the
- *                            selected row, the primary call to action)
- *   level 2  text            content the user reads (titles, values)
- *   level 3  muted           secondary content (ids, labels, lists)
- *   level 4  dim             metadata and chrome (badges, counts, footer, hints)
- *
- * Status colour is reserved for status: success/error/warning. Accent means
- * "structure or focus", never decoration.
- */
-export function strong(theme: Theme, text: string): string {
-  return theme.fg("accent", theme.bold(text));
-}
-
-/** `▌ TITLE   meta` — a quiet, consistent section header. */
-export function sectionHeader(
-  theme: Theme,
-  title: string,
-  meta: string,
-  width: number,
-  tone: "accent" | "success" | "warning" | "muted" = "accent",
-): string {
-  const left = theme.fg(tone, "▌") + " " + theme.fg(tone, theme.bold(title));
-  const right = meta ? theme.fg("dim", meta) : "";
-  const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right) - 1);
-  return truncateToWidth(`${left}${" ".repeat(gap)}${right}`, width);
-}
-
-function padStyled(text: string, width: number): string {
-  const visible = visibleWidth(text);
-  if (visible >= width) return text;
-  return text + " ".repeat(width - visible);
-}
-
-/** `▌ GROUP   n` — structure inside a view; quieter than a section title. */
-export function groupHeader(
-  theme: Theme,
-  title: string,
-  meta: string,
-  width: number,
-  tone: "accent" | "success" | "warning" | "muted" = "muted",
-): string {
-  const left = theme.fg(tone, "▌") + " " + theme.fg("text", title);
-  const right = meta ? theme.fg("dim", meta) : "";
-  const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right) - 1);
-  return truncateToWidth(`${left}${" ".repeat(gap)}${right}`, width);
-}
-
-/** Full-width selection bar — the strongest affordance available in a terminal. */
-export function selectionRow(theme: Theme, text: string, width: number, selected: boolean): string {
-  const padded = padStyled(text, width);
-  return selected ? theme.bg("selectedBg", padded) : truncateToWidth(padded, width);
-}
-
-/** A quiet panel used for the single primary block on a screen. */
-export function panel(theme: Theme, lines: string[], width: number): string[] {
-  return lines.map((line) => theme.bg("customMessageBg", truncateToWidth(padStyled(line, width), width)));
-}
-
-/** `label   value` with an aligned, quiet label column. */
-export function keyValue(theme: Theme, label: string, value: string, width: number, labelWidth = 8): string {
-  return truncateToWidth(`${theme.fg("muted", label.padEnd(labelWidth))}${value}`, width);
-}
-
-const historyView: ViewDefinition = {
-  id: "history",
-  title: "History",
-  render(project, theme) {
-    const lines: string[] = [];
-    if (project.history.length === 0) return [theme.fg("dim", "nothing recorded yet")];
-    for (const event of [...project.history].reverse().slice(0, 200)) {
-      const color =
-        event.kind.includes("fail") || event.kind.includes("abandon")
-          ? "error"
-          : event.kind.includes("completed") || event.kind.includes("passed") || event.kind.includes("answered")
-            ? "success"
-            : event.kind.includes("plan")
-              ? "accent"
-              : "muted";
-      const refs = event.refs.length > 0 ? ` ${theme.fg("dim", `[${event.refs.join(", ")}]`)}` : "";
-      lines.push(`${theme.fg("dim", event.at.slice(0, 19))} ${theme.fg(color as "muted", event.kind)} ${theme.fg("text", event.summary)}${refs}`);
-    }
-    return lines;
-  },
-};
-
-const runsView: ViewDefinition = {
-  id: "runs",
-  title: "Runs",
-  render(project, theme) {
-    if (project.runs.length === 0) return [theme.fg("dim", "no runs recorded")];
-    const lines: string[] = [];
-    for (const run of [...project.runs].reverse()) {
-      lines.push(
-        `${theme.fg("accent", statusGlyph(run.status === "RUNNING" ? "RUNNING" : run.status))} ${theme.fg("text", theme.bold(`${run.id} ${run.title}`))} ${theme.fg("dim", run.status)}`,
-      );
-      const meta: string[] = [`started ${run.started}`];
-      if (run.finished) meta.push(`finished ${run.finished}`);
-      if (run.node) meta.push(`node ${run.node}`);
-      if (run.pid) meta.push(`pid ${run.pid}`);
-      if (run.host) meta.push(`host ${run.host}`);
-      lines.push(`    ${theme.fg("dim", meta.join(" · "))}`);
-      if (run.command) lines.push(`    ${theme.fg("muted", `$ ${run.command}`)}`);
-      for (const environment of run.environment) {
-        lines.push(`    ${theme.fg("dim", `env ${environment.kind}: ${environment.target}${environment.note ? ` (${environment.note})` : ""}`)}`);
-      }
-      for (const entry of run.entries.slice(-3)) {
-        lines.push(`    ${theme.fg("dim", `${entry.at.slice(11, 19)} [${entry.kind}]`)} ${theme.fg("muted", entry.text)}`);
-      }
-      for (const output of run.outputs.slice(-3)) {
-        lines.push(`    ${theme.fg("success", "→")} ${theme.fg("muted", output.description)}`);
-      }
-    }
-    return lines;
-  },
-};
-
-const summaryView: ViewDefinition = {
-  id: "summary",
-  title: "Summary",
-  render(project, theme, width) {
-    const lines: string[] = [];
-    lines.push(...heading(theme, "GOAL OUTCOMES", width));
-    if (project.goals.length === 0) lines.push(theme.fg("dim", "no goals"));
-    for (const goal of project.goals) {
-      const glyph = statusGlyph(goal.status);
-      const color = goal.status === "COMPLETED" ? "success" : goal.status === "FAILED" ? "error" : "muted";
-      lines.push(`${theme.fg(color as "muted", glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", goal.status)}`);
-    }
-
-    lines.push(...heading(theme, "PLAN EVOLUTION", width));
-    const evolution = planEvolution(project);
-    if (evolution.length === 0) lines.push(theme.fg("dim", "no plans"));
-    for (const entry of evolution) {
-      lines.push(`${theme.fg("accent", "•")} ${theme.fg("text", `${entry.plan} v${entry.version} — ${entry.title}`)}`);
-      if (entry.change) lines.push(`    ${theme.fg("muted", `why: ${entry.change.reason}`)}`);
-      if (entry.supersededBy) lines.push(`    ${theme.fg("dim", `superseded by ${entry.supersededBy}`)}`);
-    }
-
-    lines.push(...heading(theme, "MAJOR DECISIONS", width));
-    if (project.decisions.length === 0) lines.push(theme.fg("dim", "no decisions"));
-    for (const decision of project.decisions) {
-      lines.push(
-        `${theme.fg("accent", "•")} ${theme.fg("text", `${decision.id} ${decision.title}`)} ${theme.fg("dim", `[${decision.authority}${decision.autoAccepted ? ", auto" : ""}]`)}`,
-      );
-    }
-
-    lines.push(...heading(theme, "LESSONS / FINDINGS", width));
-    const findings = [...project.state.discoveries, ...project.questions.filter((question) => question.status === "CONFIRMED").map((question) => question.answer)];
-    if (findings.length === 0) lines.push(theme.fg("dim", "none recorded"));
-    for (const finding of findings) lines.push(`${theme.fg("accent", "•")} ${theme.fg("muted", finding)}`);
-    return lines;
-  },
-};
-
 const RAW_VIEWS: ViewDefinition[] = [
   dashboardView,
   directionView,
@@ -797,35 +854,6 @@ export const VIEWS: ViewDefinition[] = RAW_VIEWS.map((view) => ({
   ...view,
   render: (project, theme, width) => fitLines(view.render(project, theme, width), width),
 }));
-
-/** Guarantee the Component contract: no rendered line may exceed `width`. */
-function fitLines(lines: string[], width: number): string[] {
-  const safeWidth = Math.max(1, Math.floor(width));
-  return lines
-    .flatMap((line) => wrapTextWithAnsi(line, safeWidth))
-    .map((line) => truncateToWidth(line, safeWidth));
-}
-
-function computeDepths(nodes: { id: string; dependsOn: string[] }[]): Map<string, number> {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const depths = new Map<string, number>();
-  const visit = (id: string, seen: Set<string>): number => {
-    const cached = depths.get(id);
-    if (cached !== undefined) return cached;
-    if (seen.has(id)) return 0;
-    seen.add(id);
-    const node = byId.get(id);
-    if (!node || node.dependsOn.length === 0) {
-      depths.set(id, 0);
-      return 0;
-    }
-    const depth = Math.max(...node.dependsOn.map((dep) => visit(dep, seen) + 1));
-    depths.set(id, depth);
-    return depth;
-  };
-  for (const node of nodes) visit(node.id, new Set());
-  return depths;
-}
 
 /* ------------------------------------------------------------------ */
 /* Browser component                                                  */
@@ -1028,19 +1056,31 @@ export class ProjectBrowser {
   private tabLine(width: number): string {
     const theme = this.theme;
     const counts = viewCounts(this.project);
-    const numbers = VIEWS.map((_, index) => {
-      const label = String(index + 1);
+    const badge = (index: number): string => {
       const count = counts[index] ?? 0;
-      const badge = count > 0 ? `(${count})` : "";
-      const text = `${label}${badge}`;
-      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${text}]`)) : theme.fg("dim", ` ${text} `);
+      return count > 0 ? `(${count})` : "";
+    };
+
+    // Wide: every tab keeps its name.
+    const named = VIEWS.map((view, index) => {
+      const text = `${index + 1}:${view.title}${badge(index)}`;
+      return index === this.viewIndex ? theme.fg("accent", theme.bold(text)) : theme.fg("muted", text);
+    }).join(theme.fg("dim", " · "));
+    if (visibleWidth(named) <= width) return named;
+
+    // Medium: numbered tabs plus the active view's name, so any tab can still be
+    // identified by running the cursor over it.
+    const numbers = VIEWS.map((_, index) => {
+      const text = `${index + 1}${badge(index)}`;
+      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${text}]`)) : theme.fg("dim", text);
     }).join(theme.fg("borderMuted", "·"));
-    const active = theme.fg("muted", VIEWS[this.viewIndex]!.title);
+    const active = theme.fg("accent", theme.bold(VIEWS[this.viewIndex]!.title));
     const combined = `${numbers}  ${active}`;
     if (visibleWidth(combined) <= width) return combined;
-    const activeText = theme.fg("accent", theme.bold(`[${VIEWS[this.viewIndex]!.title}]`));
-    if (visibleWidth(numbers) + visibleWidth(activeText) + 4 <= width) return `${numbers}  ${activeText}`;
-    return truncateToWidth(activeText, width);
+
+    // Narrow: at least the active name survives.
+    if (visibleWidth(numbers) + visibleWidth(active) + 1 <= width) return `${numbers} ${active}`;
+    return truncateToWidth(active, width);
   }
 
   render(width: number): string[] {
