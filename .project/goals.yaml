@@ -37,14 +37,14 @@
   success_criteria:
     - A project can be renamed without editing .project files by hand.
     - The digest carries the important facts without abbreviating state to nothing.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
   risks: []
   tasks: []
   created: 2026-09-13T15:59:01.443Z
-  updated: 2026-09-13T15:59:01.443Z
+  updated: 2026-09-13T17:21:16.074Z
 - id: G4
   title: Minimalism
   description: Do we really need to show 11 panels to users? Remove ones you think are unnecesary,

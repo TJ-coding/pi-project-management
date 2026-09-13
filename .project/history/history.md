@@ -106,3 +106,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T17:14:06.378Z **task.updated** — Node N6 PENDING -> COMPLETED: Draw DAG depth and parents [N6] (by agent)
 - 2026-09-13T17:20:55.694Z **task.updated** — Node N2 PENDING -> COMPLETED: Show live word counters in entity forms [N2] (by agent)
 - 2026-09-13T17:21:15.880Z **state.changed** — State changed: state updated (by agent)
+- 2026-09-13T17:21:16.074Z **goal.completed** — Goal G3 COMPLETED: Close the two known gaps [G3] (by agent)

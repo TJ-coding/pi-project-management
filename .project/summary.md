@@ -16,7 +16,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 - → G1 Keep every panel readable at 80 columns (ACTIVE)
 - → G2 Enforce brevity on every write (ACTIVE)
-- → G3 Close the two known gaps (ACTIVE)
+- ✓ G3 Close the two known gaps (COMPLETED)
 - → G4 Minimalism (ACTIVE)
 - → G5 Visual DAG (ACTIVE)
 - → G6 Auto complete / Propagate (ACTIVE)

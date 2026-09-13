@@ -102,3 +102,4 @@
 {"seq":102,"at":"2026-09-13T17:14:06.378Z","kind":"task.updated","summary":"Node N6 PENDING -> COMPLETED: Draw DAG depth and parents","by":"agent","refs":["N6"],"details":{"reason":"G5 delivered and k3-reviewed; 104 tests and TUI smoke pass"}}
 {"seq":103,"at":"2026-09-13T17:20:55.694Z","kind":"task.updated","summary":"Node N2 PENDING -> COMPLETED: Show live word counters in entity forms","by":"agent","refs":["N2"],"details":{"reason":"G2 reinforced; 108 tests and TUI smoke pass"}}
 {"seq":104,"at":"2026-09-13T17:21:15.880Z","kind":"state.changed","summary":"State changed: state updated","by":"agent","refs":[]}
+{"seq":105,"at":"2026-09-13T17:21:16.074Z","kind":"goal.completed","summary":"Goal G3 COMPLETED: Close the two known gaps","by":"agent","refs":["G3"],"details":{"reason":"Both success criteria met: rename (N1) and digest length (N3)"}}
