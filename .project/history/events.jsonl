@@ -64,3 +64,4 @@
 {"seq":64,"at":"2026-09-13T16:16:16.182Z","kind":"task.updated","summary":"Node N11 updated in P1","by":"agent","refs":["N11"]}
 {"seq":65,"at":"2026-09-13T16:16:16.360Z","kind":"task.updated","summary":"Node N7 updated in P1","by":"agent","refs":["N7"]}
 {"seq":66,"at":"2026-09-13T16:16:21.011Z","kind":"question.answered","summary":"Question Q2 ANSWERED: Should rename touch only meta.name, or ids and paths too?","by":"agent","refs":["Q2"],"details":{}}
+{"seq":67,"at":"2026-09-13T16:16:21.205Z","kind":"question.answered","summary":"Question Q3 ANSWERED: Do budgets need per-project overrides in project.yaml?","by":"agent","refs":["Q3"],"details":{}}
