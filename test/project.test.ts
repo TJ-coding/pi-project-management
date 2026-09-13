@@ -335,6 +335,20 @@ describe("history and formatting", () => {
     assert.match(digest, /PROJECT: Context/);
     assert.match(digest, /TOP UNKNOWN/);
     assert.match(digest, /NEXT:/);
+    // A capped NEXT list says how many ready nodes it hid, so the digest never
+    // looks complete while withholding work.
+    assert.doesNotMatch(digest, /\(\+\d+ more ready/, "nothing is hidden yet, so no pointer is expected");
+    for (const node of manager.project.plans.plans[0]!.nodes) {
+      await manager.updateNode(node.id, { status: "COMPLETED" }, { commit: false });
+    }
+    await manager.addNode({ title: "Fifth ready task", type: "TASK" }, { commit: false });
+    await manager.addNode({ title: "Sixth ready task", type: "TASK" }, { commit: false });
+    for (const extra of ["Seventh", "Eighth", "Ninth"]) {
+      await manager.addNode({ title: `${extra} ready task`, type: "TASK" }, { commit: false });
+    }
+    const capped = buildDigest(manager.project);
+    assert.match(capped, /NEXT:/);
+    assert.match(capped, /\(\+\d+ more ready — \/project plan\)/, "a capped NEXT list must point at the full list");
 
     const node = manager.project.plans.plans[0]!.nodes[0]!;
     const targeted = buildTargetedContext(manager.project, { node: node.id, history: true });

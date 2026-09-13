@@ -53,8 +53,15 @@ export function buildDigest(project: Project): string {
   if (topRisk) lines.push(`TOP RISK: ${topRisk.id} ${truncate(topRisk.title, 120)} [${topRisk.status}]`);
   if (active) {
     lines.push(`PLAN: ${active.id} v${active.version} — ${truncate(active.title, 80)}`);
-    const ready = readyNodes(active.nodes).slice(0, 4);
-    if (ready.length > 0) lines.push(`NEXT: ${ready.map((node) => `${node.id} ${truncate(node.title, 50)}`).join("; ")}`);
+    const readyAll = readyNodes(active.nodes);
+    const ready = readyAll.slice(0, 4);
+    // Never drop facts silently: a capped list says how much it hid and where to
+    // read the rest, so the agent never believes it has seen the whole DAG.
+    const more = readyAll.length - ready.length;
+    if (ready.length > 0) {
+      const hidden = more > 0 ? ` (+${more} more ready — /project plan)` : "";
+      lines.push(`NEXT: ${ready.map((node) => `${node.id} ${truncate(node.title, 50)}`).join("; ")}${hidden}`);
+    }
   } else {
     lines.push("PLAN: none");
   }
