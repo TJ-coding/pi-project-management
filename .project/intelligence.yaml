@@ -143,13 +143,22 @@
   answered: 2026-09-13T16:35:27.288Z
 - id: Q7
   question: Hierarchy or frequency for the panel rail order?
-  answer: ""
-  status: UNKNOWN
+  answer: Hierarchy. The spec's order (direction to decisions to outcomes) is a stable mental model;
+    frequency is unknowable here, and it would shuffle as habits change.
+  status: ANSWERED
   importance: 0.5
-  uncertainty: 0.6
+  uncertainty: 0.3
   decision_impact: 0.6
-  confidence: 0
-  evidence: []
+  confidence: 0.7
+  evidence:
+    - description: The rail is a fixed VIEW_DEFS array and number keys map to array indexes, so any order
+        is one edit; the spec already lists the areas in a deliberate sequence
+      kind: measurement
+      ref: src/dashboard.ts:1442, spec 3/22
+    - description: Only 1-9 are bound while 11 views exist, so two views are unreachable by number
+        regardless of order
+      kind: measurement
+      ref: src/dashboard.ts:1715
   goals:
     - G8
   risks: []
@@ -157,5 +166,5 @@
     - N8
   decisions: []
   created: 2026-09-13T17:25:21.961Z
-  updated: 2026-09-13T17:25:21.961Z
-  answered: null
+  updated: 2026-09-13T17:25:46.053Z
+  answered: 2026-09-13T17:25:46.053Z
