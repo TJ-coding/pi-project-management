@@ -51,15 +51,20 @@
     don't remove any if you think they are all necessary. Same goes with features. We want to
     prevent bloating software.
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - Every view has a stated reason to exist.
+    - A view or feature without a reason is removed.
+    - No new view is added without a reason.
   status: ACTIVE
   parent: null
   superseded_by: null
   questions: []
   risks: []
-  tasks: []
+  tasks:
+    - N6
+    - N7
   created: 2026-09-13T16:07:06.066Z
-  updated: 2026-09-13T16:07:06.066Z
+  updated: 2026-09-13T16:15:20.725Z
 - id: G5
   title: Visual DAG
   description: It is difficult to identify how the DAG hierarhy are structred. Within the same pannel
