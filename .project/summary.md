@@ -32,7 +32,7 @@ _Not recorded._
 
 ## Major Decisions
 
-_No decisions recorded._
+- D1 Improve this extension through the k3 review loop (SIGNIFICANT)
 
 ## Plan Evolution
 

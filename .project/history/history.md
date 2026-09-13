@@ -14,3 +14,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:02.121Z **risk.created** — Risk R2 created: This project is shadowed by $HOME/.project [R2] (by agent)
 - 2026-09-13T15:59:02.269Z **risk.created** — Risk R3 created: Budgets block legitimate long content [R3] (by agent)
 - 2026-09-13T15:59:02.431Z **strategy.changed** — Strategy changed: seed the improvement strategy (by agent)
+- 2026-09-13T15:59:02.600Z **decision.made** — Decision D1 (SIGNIFICANT): Improve this extension through the k3 review loop [D1, G1] (by agent)

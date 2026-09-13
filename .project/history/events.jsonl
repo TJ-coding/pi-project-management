@@ -10,3 +10,4 @@
 {"seq":10,"at":"2026-09-13T15:59:02.121Z","kind":"risk.created","summary":"Risk R2 created: This project is shadowed by $HOME/.project","by":"agent","refs":["R2"],"details":{"probability":0.9,"impact":0.3}}
 {"seq":11,"at":"2026-09-13T15:59:02.269Z","kind":"risk.created","summary":"Risk R3 created: Budgets block legitimate long content","by":"agent","refs":["R3"],"details":{"probability":0.3,"impact":0.4}}
 {"seq":12,"at":"2026-09-13T15:59:02.431Z","kind":"strategy.changed","summary":"Strategy changed: seed the improvement strategy","by":"agent","refs":[]}
+{"seq":13,"at":"2026-09-13T15:59:02.600Z","kind":"decision.made","summary":"Decision D1 (SIGNIFICANT): Improve this extension through the k3 review loop","by":"agent","refs":["D1","G1"],"details":{"autoAccepted":false}}
