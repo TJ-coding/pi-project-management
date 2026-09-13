@@ -1,1 +1,16 @@
-[]
+- id: G1
+  title: Keep every panel readable at 80 columns
+  description: Panels are the interface; a row that hides its content or overflows its container is a bug.
+  priority: 5
+  success_criteria:
+    - No rendered line exceeds the terminal width at 40, 80 or 120 columns.
+    - Any truncated row is readable in full after pressing Enter.
+    - k3 signs off on the frames after each panel change.
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-13T15:59:01.156Z
+  updated: 2026-09-13T15:59:01.156Z

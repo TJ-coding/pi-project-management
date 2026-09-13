@@ -1,2 +1,3 @@
 {"seq":1,"at":"2026-09-13T15:59:00.847Z","kind":"project.init","summary":"Project initialized at /Users/tomoyuki-j/Projects/pi-project-management","by":"agent","refs":[]}
 {"seq":2,"at":"2026-09-13T15:59:01.000Z","kind":"direction.changed","summary":"Direction changed: human asked for a dedicated project to improve the extension","by":"agent","refs":[],"details":{"autoAccepted":false,"approvedBy":"human"}}
+{"seq":3,"at":"2026-09-13T15:59:01.156Z","kind":"goal.created","summary":"Goal G1 created: Keep every panel readable at 80 columns","by":"agent","refs":["G1"],"details":{"status":"ACTIVE","priority":5}}

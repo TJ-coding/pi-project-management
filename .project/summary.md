@@ -14,7 +14,7 @@ _Not recorded._
 
 ## Goals
 
-_No goals recorded._
+- → G1 Keep every panel readable at 80 columns (ACTIVE)
 
 ## Major Risks
 
