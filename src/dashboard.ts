@@ -525,8 +525,8 @@ export interface ProjectBrowserOptions {
   helpText?: string;
   /** Dashboard views that can be edited with `e`. */
   editableViews?: string[];
-  /** Called when the user presses `e` on an editable view. */
-  onRequestEdit?: (view: string) => void;
+  /** Called when the user presses `e` (form) or `E` (raw text) on an editable view. */
+  onRequestEdit?: (view: string, raw?: boolean) => void;
 }
 
 /** Minimum number of body rows (chrome is title + tabs + 2 footer lines). */
@@ -543,7 +543,7 @@ export class ProjectBrowser {
   private helpText?: string;
   private helpVisible = false;
   private editableViews: Set<string>;
-  private onRequestEdit?: (view: string) => void;
+  private onRequestEdit?: (view: string, raw?: boolean) => void;
   private viewIndex = 0;
   private scroll = 0;
   private cachedWidth = -1;
@@ -591,8 +591,13 @@ export class ProjectBrowser {
       this.onChange?.();
       return;
     }
-    if (matchesKey(data, "e") && !this.helpVisible && this.onRequestEdit && this.editableViews.has(this.currentView)) {
-      this.onRequestEdit(this.currentView);
+    if (
+      !this.helpVisible &&
+      this.onRequestEdit &&
+      this.editableViews.has(this.currentView) &&
+      (matchesKey(data, "e") || matchesKey(data, "shift+e"))
+    ) {
+      this.onRequestEdit(this.currentView, matchesKey(data, "shift+e"));
       return;
     }
     if (this.helpVisible) {
@@ -731,7 +736,7 @@ export class ProjectBrowser {
           "dim",
           showingHelp
             ? "? or esc close help · j/k scroll · q close dashboard"
-            : `tab/←→ switch · 1-9 jump · r reload${this.editableViews.has(this.currentView) ? " · e edit" : ""}${this.helpText ? " · ? help" : ""} · q close`,
+            : `tab/←→ switch · 1-9 jump · r reload${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.helpText ? " · ? help" : ""} · q close`,
         ),
         width,
       ),

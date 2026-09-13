@@ -7,8 +7,21 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
+import type { SelectItem } from "@earendil-works/pi-tui";
+import { Container, SelectList, Text } from "@earendil-works/pi-tui";
+import { DynamicBorder } from "@earendil-works/pi-coding-agent";
+
 import { buildResumeReport } from "./context.ts";
 import { ProjectBrowser, VIEWS } from "./dashboard.ts";
+import { FormEditor, type FormAction } from "./form.ts";
+import {
+  documentForm,
+  entityChoices,
+  entityForm,
+  entityKindLabel,
+  type EntityForm,
+  type EntityKind,
+} from "./entity-forms.ts";
 import {
   renderDirectionText,
   renderPlanEvolutionText,
@@ -65,9 +78,9 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
     details: "Prompts for vision and intent when a UI is available. Refuses if a project already exists here.",
   },
   edit: {
-    usage: "/project edit <section>",
-    summary: "edit a section as text (same path as agent changes)",
-    details: `Sections: ${EDITABLE_SECTIONS.map((section) => section.id).join(", ")}. Also available with the e key in the dashboard. Saving validates the text, records history and commits to git.`,
+    usage: "/project edit <section> [raw]",
+    summary: "edit goals/risks/questions/direction/state/strategy in a form",
+    details: `Forms are used by default; goals/risks/questions open a picker first. Add \`raw\` (or press E in the dashboard) to edit the underlying text, and \`/project edit plan\` always uses text. Saving validates, records history and commits to git.`,
   },
   status: {
     usage: "/project status",
@@ -116,7 +129,7 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
   help: { usage: "/project help [subcommand]", summary: "this reference, or details for one subcommand" },
 };
 
-const DASHBOARD_KEYS = "tab/arrows switch view · 1-9 jump · j/k or ↑↓ scroll · space page · g/G top/bottom · e edit · ? help · r reload · q close";
+const DASHBOARD_KEYS = "tab/arrows switch view · 1-9 jump · j/k or ↑↓ scroll · space page · g/G top/bottom · e edit form · E raw text · ? help · r reload · q close";
 
 /** Full reference, grouped, generated from SUBCOMMAND_INFO. */
 export function renderHelp(pi?: ExtensionAPI): string {
@@ -135,7 +148,8 @@ export function renderHelp(pi?: ExtensionAPI): string {
     lines.push("");
   }
 
-  lines.push("Changing work directly: /project edit <section> (or press e in the dashboard).");
+  lines.push("Changing work directly: /project edit <section> — forms for goals/risks/questions/direction/state/strategy");
+  lines.push("(or press e in the dashboard; E edits the raw text, useful for the plan).");
   lines.push("Otherwise work is added by talking to the agent, for example:");
   lines.push('  "add a goal to ship the parser, priority 4"            -> project_goal');
   lines.push('  "record what we do not know about the evaluator"       -> project_question');
@@ -325,16 +339,21 @@ async function handleProjectCommand(
         await showText(
           pi,
           ctx,
-          `Editable sections: ${editableSectionIds().join(", ")}\n\nUsage: /project edit <section>\nYou can also press e inside the dashboard.`,
+          `Editable sections: ${editableSectionIds().join(", ")}\n\nUsage: /project edit <section> [raw]\n\n` +
+            "Forms are used by default (e.g. goals, risks, questions, direction, state, strategy).\n" +
+            "Add `raw` to edit the underlying text, or press e / E in the dashboard.",
         );
         return;
       }
-      const section = editableSection(rest);
+      const wantsRaw = /(^|\s)raw(\s|$)/.test(rest);
+      const name = rest.replace(/(^|\s)raw(\s|$)/, " ").trim();
+      const section = editableSection(name);
       if (!section) {
-        await showText(pi, ctx, `Unknown section "${rest}". Editable: ${editableSectionIds().join(", ")}.`);
+        await showText(pi, ctx, `Unknown section "${name}". Editable: ${editableSectionIds().join(", ")}.`);
         return;
       }
-      await runSectionEditor(pi, ctx, manager, section);
+      if (wantsRaw || section.id === "plan") await runSectionEditor(pi, ctx, manager, section);
+      else await runGraphicalEditor(pi, ctx, manager, section.id);
       await showBrowser(pi, ctx, manager, section.view);
       return;
     }
@@ -537,12 +556,174 @@ async function showBrowser(
     const action = await openBrowser(pi, ctx, manager, currentView, pendingNotice);
     pendingNotice = undefined;
     if (!action) return;
-    const [, sectionId] = /^edit:(.+)$/.exec(action) ?? [];
-    if (!sectionId) return;
-    const section = editableSection(sectionId);
+    const rawMatch = /^raw:(.+)$/.exec(action);
+    const editMatch = /^edit:(.+)$/.exec(action);
+    const section = editableSection((rawMatch ?? editMatch)?.[1] ?? "");
     if (!section) return;
     currentView = section.view;
-    await runSectionEditor(pi, ctx, manager, section);
+    if (rawMatch) await runSectionEditor(pi, ctx, manager, section);
+    else await runGraphicalEditor(pi, ctx, manager, section.id);
+  }
+}
+
+/**
+ * Form-based editing (the default for `e`): pick an entity, then edit its fields
+ * with arrows/enter instead of looking at YAML. `E` and the plan section keep the
+ * raw text editor.
+ */
+async function runGraphicalEditor(
+  pi: ExtensionAPI | undefined,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  sectionId: string,
+): Promise<void> {
+  // Forms need a real TUI; RPC/print fall back to the text editor (or a message).
+  if (ctx.mode !== "tui") {
+    const section = editableSection(sectionId);
+    if (section) await runSectionEditor(pi, ctx, manager, section);
+    return;
+  }
+
+  const kind: EntityKind | undefined =
+    sectionId === "goals" ? "goal" : sectionId === "risks" ? "risk" : sectionId === "intelligence" ? "question" : undefined;
+
+  const project = await manager.read((current) => current);
+  if (kind) {
+    const choice = await pickEntity(ctx, project, kind);
+    if (!choice) return;
+    const form = entityForm(kind, project, choice === "__new__" ? undefined : choice);
+    await runForm(pi, ctx, manager, form);
+    return;
+  }
+
+  const form = documentForm(sectionId, project);
+  if (form) {
+    await runForm(pi, ctx, manager, form);
+    return;
+  }
+
+  // Plan and any future sections without a form fall back to text editing.
+  const section = editableSection(sectionId);
+  if (section) await runSectionEditor(pi, ctx, manager, section);
+}
+
+/** Entity picker shown before the form. */
+async function pickEntity(
+  ctx: ExtensionCommandContext,
+  project: Parameters<typeof entityChoices>[0],
+  kind: EntityKind,
+): Promise<string | null> {
+  const items: SelectItem[] = [
+    { value: "__new__", label: `＋ New ${entityKindLabel(kind)}` },
+    ...entityChoices(project, kind).map((choice) => ({
+      value: choice.id,
+      label: choice.label,
+      description: choice.description,
+    })),
+  ];
+
+  return ctx.ui.custom<string | null>((tui, theme, _keybindings, done) => {
+    const container = new Container();
+    container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
+    container.addChild(new Text(theme.fg("accent", theme.bold(` ${kind === "goal" ? "Goals" : kind === "risk" ? "Risks" : "Questions"} `)), 1, 0));
+    const list = new SelectList(items, Math.min(Math.max(items.length, 3), 14), {
+      selectedPrefix: (text) => theme.fg("accent", text),
+      selectedText: (text) => theme.fg("accent", text),
+      description: (text) => theme.fg("muted", text),
+      scrollInfo: (text) => theme.fg("dim", text),
+      noMatch: (text) => theme.fg("warning", text),
+    });
+    list.onSelect = (item) => done(item.value);
+    list.onCancel = () => done(null);
+    container.addChild(list);
+    container.addChild(new Text(theme.fg("dim", " enter edit · esc back"), 1, 0));
+    container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
+    return {
+      render: (width: number) => container.render(width),
+      invalidate: () => container.invalidate(),
+      handleInput: (data: string) => {
+        list.handleInput(data);
+        tui.requestRender();
+      },
+    };
+  });
+}
+
+/** Show a form until it saves, cancels or asks to edit a prose field. */
+async function runForm(
+  pi: ExtensionAPI | undefined,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  form: EntityForm,
+): Promise<void> {
+  let error: string | undefined;
+  let notice: string | undefined;
+  for (let round = 0; round < 40; round += 1) {
+    const action = await ctx.ui.custom<FormAction | null>((tui, theme, _keybindings, done) =>
+      new FormEditor({
+        title: form.title,
+        fields: form.fields,
+        theme,
+        ...(error ? { error } : {}),
+        ...(notice ? { notice } : {}),
+        getTerminalRows: () => tui.terminal.rows,
+        onChange: () => tui.requestRender(),
+        onExit: (exitAction) => done(exitAction),
+      }),
+    );
+    error = undefined;
+    notice = undefined;
+    if (!action || action.kind === "cancel") return;
+
+    if (action.kind === "edit-prose") {
+      const field = form.fields.find((candidate) => candidate.key === action.key);
+      if (field && field.kind === "prose") {
+        const edited = await ctx.ui.editor(`Edit ${field.label}`, field.get());
+        if (typeof edited === "string" && edited !== field.get()) {
+          field.set(edited);
+          notice = `${field.label} changed`;
+        }
+      }
+      continue;
+    }
+
+    if (action.kind === "delete") {
+      if (!form.remove) {
+        error = "Nothing to delete yet — save it first, or press esc to leave.";
+        continue;
+      }
+      const confirmed = await ctx.ui.confirm("Delete", `${form.title}: delete this and remove links to it?`);
+      if (!confirmed) continue;
+      const summary = await form.remove(manager);
+      ctx.ui.notify(`${summary}.`, "info");
+      return;
+    }
+
+    if (action.kind === "save") {
+      try {
+        const summary = await form.save(manager);
+        ctx.ui.notify(`${summary}.`, "info");
+        void pi;
+        return;
+      } catch (saveError) {
+        const message = (saveError as Error).message;
+        // Strategic changes (e.g. abandoning a goal) ask for confirmation, then retry.
+        if (/requires human approval|STRATEGIC change/i.test(message) && ctx.hasUI) {
+          const confirmed = await ctx.ui.confirm("Strategic change", message);
+          if (confirmed) {
+            try {
+              const summary = await form.save(manager, { approved: true, approvedBy: "human" });
+              ctx.ui.notify(`${summary}.`, "info");
+              return;
+            } catch (retryError) {
+              error = (retryError as Error).message;
+              continue;
+            }
+          }
+        }
+        error = message;
+      }
+    }
   }
 }
 
@@ -569,7 +750,7 @@ async function openBrowser(
       initialView: view,
       helpText: renderHelp(pi),
       editableViews: EDITABLE_SECTIONS.map((section) => section.view),
-      onRequestEdit: (editView) => done(`edit:${editView}`),
+      onRequestEdit: (editView, raw) => done(`${raw ? "raw" : "edit"}:${editView}`),
       onClose: () => done(null),
       getTerminalRows: () => tui.terminal.rows,
       onChange: () => tui.requestRender(),

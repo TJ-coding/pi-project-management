@@ -410,6 +410,11 @@ export class ProjectManager {
     patch: Partial<GoalInput> & { supersededBy?: string | null },
     options: MutateOptions = {},
   ): Promise<Goal> {
+    if (patch.status !== undefined) {
+      throw new Error(
+        "Goal status is not changed by updateGoal: use setGoalStatus (it is gated for ABANDONED/SUPERSEDED).",
+      );
+    }
     return (
       await this.mutate(`project: update goal ${id}`, (project) => {
         const goal = mustFind(project.goals, id, "goal");
@@ -422,9 +427,6 @@ export class ProjectManager {
         if (patch.risks !== undefined) goal.risks = patch.risks;
         if (patch.tasks !== undefined) goal.tasks = patch.tasks;
         if (patch.supersededBy !== undefined) goal.supersededBy = patch.supersededBy;
-        if (patch.status !== undefined && patch.status !== goal.status) {
-          goal.status = patch.status;
-        }
         goal.updated = this.clock.now();
         this.record("goal.updated", `Goal ${id} updated: ${goal.title}`, [id]);
         return goal;
@@ -1106,6 +1108,66 @@ export class ProjectManager {
       options,
     );
     return value;
+  }
+
+  /* ---------------- deletions (human editing) ---------------- */
+
+  async deleteGoal(id: string, options: MutateOptions = {}): Promise<void> {
+    await this.mutate(`project: delete goal ${id}`, (project) => {
+      mustFind(project.goals, id, "goal");
+      project.goals = project.goals.filter((goal) => goal.id !== id);
+      this.unlink(project, id);
+      this.record("goal.updated", `Goal ${id} deleted (and links removed)`, [id]);
+    }, options);
+  }
+
+  async deleteQuestion(id: string, options: MutateOptions = {}): Promise<void> {
+    await this.mutate(`project: delete question ${id}`, (project) => {
+      mustFind(project.questions, id, "question");
+      project.questions = project.questions.filter((question) => question.id !== id);
+      this.unlink(project, id);
+      this.record("question.updated", `Question ${id} deleted (and links removed)`, [id]);
+    }, options);
+  }
+
+  async deleteRisk(id: string, options: MutateOptions = {}): Promise<void> {
+    await this.mutate(`project: delete risk ${id}`, (project) => {
+      mustFind(project.risks, id, "risk");
+      project.risks = project.risks.filter((risk) => risk.id !== id);
+      this.unlink(project, id);
+      this.record("risk.updated", `Risk ${id} deleted (and links removed)`, [id]);
+    }, options);
+  }
+
+  /** Remove every reference to a deleted entity so validation stays clean. */
+  private unlink(project: Project, id: string): void {
+    const strip = (values: string[]): string[] => values.filter((value) => value !== id);
+    for (const goal of project.goals) {
+      if (goal.parent === id) goal.parent = null;
+      if (goal.supersededBy === id) goal.supersededBy = null;
+      goal.questions = strip(goal.questions);
+      goal.risks = strip(goal.risks);
+      goal.tasks = strip(goal.tasks);
+    }
+    for (const question of project.questions) {
+      question.goals = strip(question.goals);
+      question.risks = strip(question.risks);
+      question.tasks = strip(question.tasks);
+      question.decisions = strip(question.decisions);
+    }
+    for (const risk of project.risks) {
+      risk.goals = strip(risk.goals);
+      risk.questions = strip(risk.questions);
+      risk.tasks = strip(risk.tasks);
+    }
+    for (const plan of project.plans.plans) {
+      if (plan.supersededBy === id) plan.supersededBy = null;
+      for (const node of plan.nodes) {
+        if (node.goal === id) node.goal = null;
+        if (node.question === id) node.question = null;
+        if (node.risk === id) node.risk = null;
+      }
+    }
   }
 
   /* ---------------- bulk section edits (human editing) ---------------- */

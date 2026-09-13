@@ -408,6 +408,19 @@ export function registerProjectTools(pi: ExtensionAPI): void {
             tasks: params.tasks,
             supersededBy: params.supersededBy,
           });
+          if (params.status && params.status !== goal.status) {
+            const outcome = await withApproval(
+              ctx,
+              (approved, approvedBy) =>
+                manager.setGoalStatus(params.id!, params.status as GoalStatus, {
+                  approved: approved || params.approved === true,
+                  approvedBy,
+                  reason: params.reason,
+                }),
+              `Mark goal ${params.id} as ${params.status}${params.reason ? ` (${params.reason})` : ""}.`,
+            );
+            return ok(outcomeText(outcome, (updated) => `Goal ${updated.id} is now ${updated.status}: ${updated.title}`));
+          }
           return ok(`Updated goal ${goal.id}: ${goal.title}`, { goal });
         }
         case "status": {

@@ -114,6 +114,7 @@ def main() -> int:
     args = parser.parse_args()
 
     failures: list[str] = []
+    session_cwd = os.path.abspath(args.cwd)
     session = PiSession(os.path.abspath(args.ext), os.path.abspath(args.cwd), args.cols, args.rows)
     try:
         session.pump(7)
@@ -173,31 +174,48 @@ def main() -> int:
         session.pump(1.0)
         check("Project commands" not in session.text(), "? did not close in-place help", failures)
 
-        # Direct human editing: `e` on an editable view opens the section text.
+        # Graphical editing: e on Goals opens a picker, then a form.
         session.send("3")  # Goals
         session.pump(1.0)
         check("Goals" in session.text(), "digit 3 did not open Goals", failures)
         session.send("e")
         session.pump(1.5)
-        editor_frame = session.text()
-        check(
-            "goals.yaml" in editor_frame or "id:" in editor_frame,
-            "e did not open the goals editor with the section text",
-            failures,
-        )
-        session.send("\x1b")  # cancel the editor
-        session.pump(1.5)
-        check("Goals" in session.text(), "cancelling the editor did not return to the dashboard", failures)
+        picker = session.text()
+        check("New goal" in picker, "e did not open the goal picker", failures)
+        check("G1" in picker or "G2" in picker, "goal picker does not list existing goals", failures)
 
-        # Saving invalid text must be rejected without changing the project.
-        session.send("e")
+        session.send("\r")  # choose "＋ New goal"
         session.pump(1.5)
+        form = session.text()
+        check("Title" in form and "Priority" in form, "new goal form did not open", failures)
+        check("↑↓" in form or "field" in form, "form help line missing", failures)
+
+        session.send("\r")  # edit Title
+        session.pump(0.6)
+        session.send("Smoke goal")
+        session.pump(0.6)
+        session.send("\r")  # commit the field
+        session.pump(0.6)
+        session.send("s")  # save
+        session.pump(2.0)
+        saved_frame = session.text()
+        check("Smoke goal" in saved_frame or "Goals" in saved_frame, "did not return to the dashboard after saving", failures)
+        try:
+            goals_file = os.path.join(session_cwd, ".project", "goals.yaml")
+            check("Smoke goal" in open(goals_file, encoding="utf-8").read(), "saved goal missing from goals.yaml", failures)
+        except OSError as error:
+            failures.append(f"could not read goals.yaml: {error}")
+
+        # Raw text editing: E on the same view opens the YAML, invalid text is rejected.
+        session.send("E")
+        session.pump(1.5)
+        raw_frame = session.text()
+        check("goals.yaml" in raw_frame or "id:" in raw_frame, "E did not open the raw text editor", failures)
         session.send("x")  # append garbage to the YAML
         session.pump(0.4)
         session.send("\r")  # submit
         session.pump(1.8)
-        rejected = session.text()
-        check("Edit rejected" in rejected, "invalid edit was not rejected", failures)
+        check("Edit rejected" in session.text(), "invalid raw edit was not rejected", failures)
         session.send("\x1b")  # dismiss the retry dialog
         session.pump(1.5)
         check("Goals" in session.text(), "did not return to the dashboard after rejecting an edit", failures)
