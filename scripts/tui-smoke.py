@@ -162,6 +162,16 @@ def main() -> int:
         else:
             check("nothing more to scroll" in dashboard, "a view that fits should say so in the footer", failures)
 
+        # In-place help on ?
+        session.send("?")
+        session.pump(1.0)
+        help_frame = session.text()
+        check("Project commands" in help_frame, "? did not open in-place help", failures)
+        check("esc close help" in help_frame, "help footer missing", failures)
+        session.send("?")
+        session.pump(1.0)
+        check("Project commands" not in session.text(), "? did not close in-place help", failures)
+
         # Tab switches views, digit jumps to a specific view.
         session.send("\t")
         session.pump(1.2)

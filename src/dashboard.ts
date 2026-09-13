@@ -521,6 +521,8 @@ export interface ProjectBrowserOptions {
   getTerminalRows?: () => number;
   /** Called when the component's state changed and needs a repaint. */
   onChange?: () => void;
+  /** Reference text shown when the user presses `?`. */
+  helpText?: string;
 }
 
 /** Minimum number of body rows (chrome is title + tabs + 2 footer lines). */
@@ -534,6 +536,8 @@ export class ProjectBrowser {
   private reload?: () => Promise<Project>;
   private getTerminalRows?: () => number;
   private onChange?: () => void;
+  private helpText?: string;
+  private helpVisible = false;
   private viewIndex = 0;
   private scroll = 0;
   private cachedWidth = -1;
@@ -546,6 +550,7 @@ export class ProjectBrowser {
     this.reload = options.reload;
     this.getTerminalRows = options.getTerminalRows;
     this.onChange = options.onChange;
+    this.helpText = options.helpText;
     const index = options.initialView ? VIEWS.findIndex((view) => view.id === options.initialView) : 0;
     this.viewIndex = index >= 0 ? index : 0;
   }
@@ -563,27 +568,44 @@ export class ProjectBrowser {
 
   handleInput(data: string): void {
     if (matchesKey(data, "escape") || matchesKey(data, "q") || matchesKey(data, "ctrl+c")) {
+      // Escape first leaves the help screen, so `?` is never a trap.
+      if (matchesKey(data, "escape") && this.helpVisible) {
+        this.helpVisible = false;
+        this.onChange?.();
+        return;
+      }
       this.onClose();
       return;
     }
-    if (matchesKey(data, "tab") || matchesKey(data, "right") || matchesKey(data, "l")) {
+    if (matchesKey(data, "?") && this.helpText) {
+      this.helpVisible = !this.helpVisible;
+      this.scroll = 0;
+      this.onChange?.();
+      return;
+    }
+    if (this.helpVisible) {
+      // While help is open only the scroll keys below apply.
+      if (matchesKey(data, "tab") || matchesKey(data, "left") || matchesKey(data, "right") || /^([1-9])$/.test(data)) {
+        return;
+      }
+    } else if (matchesKey(data, "tab") || matchesKey(data, "right") || matchesKey(data, "l")) {
       this.viewIndex = (this.viewIndex + 1) % VIEWS.length;
       this.scroll = 0;
       return;
-    }
-    if (matchesKey(data, "shift+tab") || matchesKey(data, "left") || matchesKey(data, "h")) {
+    } else if (matchesKey(data, "shift+tab") || matchesKey(data, "left") || matchesKey(data, "h")) {
       this.viewIndex = (this.viewIndex - 1 + VIEWS.length) % VIEWS.length;
       this.scroll = 0;
       return;
-    }
-    const digit = /^([1-9])$/.exec(data);
-    if (digit) {
-      const target = Number.parseInt(digit[1]!, 10) - 1;
-      if (target < VIEWS.length) {
-        this.viewIndex = target;
-        this.scroll = 0;
+    } else {
+      const digit = /^([1-9])$/.exec(data);
+      if (digit) {
+        const target = Number.parseInt(digit[1]!, 10) - 1;
+        if (target < VIEWS.length) {
+          this.viewIndex = target;
+          this.scroll = 0;
+        }
+        return;
       }
-      return;
     }
     if (matchesKey(data, "down") || matchesKey(data, "j")) {
       this.scroll += 1;
@@ -609,7 +631,7 @@ export class ProjectBrowser {
       this.scroll = Number.MAX_SAFE_INTEGER;
       return;
     }
-    if (matchesKey(data, "r") && this.reload) {
+    if (matchesKey(data, "r") && !this.helpVisible && this.reload) {
       void this.reload()
         .then((project) => {
           this.project = project;
@@ -650,16 +672,22 @@ export class ProjectBrowser {
     const out: string[] = [];
     const view = VIEWS[this.viewIndex]!;
     const viewport = this.viewportHeight();
+    const showingHelp = this.helpVisible && Boolean(this.helpText);
 
     // Title bar (single line).
-    const title = `${this.project.meta.name} — ${view.title} (${this.viewIndex + 1}/${VIEWS.length})`;
+    const titleLabel = showingHelp ? "Help" : view.title;
+    const title = showingHelp
+      ? `${this.project.meta.name} — Help`
+      : `${this.project.meta.name} — ${view.title} (${this.viewIndex + 1}/${VIEWS.length})`;
     out.push(truncateToWidth(theme.bg("customMessageBg", theme.fg("accent", theme.bold(` ${title} `))), width));
 
     // Tab bar (single line, never wraps).
-    out.push(this.tabLine(width));
+    out.push(showingHelp ? theme.fg("muted", " project commands and agent tools") : this.tabLine(width));
 
     // Content window.
-    const content = view.render(this.project, theme, width);
+    const content = showingHelp
+      ? fitLines((this.helpText ?? "").split("\n"), width)
+      : view.render(this.project, theme, width);
     const maxScroll = Math.max(0, content.length - viewport);
     this.scroll = Math.max(0, Math.min(this.scroll, maxScroll));
     const end = Math.min(content.length, this.scroll + viewport);
@@ -680,14 +708,19 @@ export class ProjectBrowser {
     out.push(
       truncateToWidth(
         theme.fg("dim", `${up}${down} `) +
-          theme.fg("muted", view.title) +
+          theme.fg("muted", titleLabel) +
           theme.fg("dim", `  ${range}${scrollable ? " · j/k ↑↓ scroll · space page · g/G top/bottom" : " · nothing more to scroll"}${notice}`),
         width,
       ),
     );
     out.push(
       truncateToWidth(
-        theme.fg("dim", "tab/←→ switch · 1-9 jump · r reload · q close"),
+        theme.fg(
+          "dim",
+          showingHelp
+            ? "? or esc close help · j/k scroll · q close dashboard"
+            : `tab/←→ switch · 1-9 jump · r reload${this.helpText ? " · ? help" : ""} · q close`,
+        ),
         width,
       ),
     );

@@ -97,13 +97,18 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 | `/project complete` | mark the project complete and render the summary |
 | `/project watch [on\|off]` | toggle the editor widget |
 | `/project projects` | list projects in the local workspace |
+| `/project tools` | list the `project_*` tools the agent can call |
+| `/project help [sub]` | full reference, or details for one subcommand |
 | `/pm` | shorthand for `/project` |
 
+Discovery, without leaving the TUI: press `?` inside the dashboard for the same
+reference, and type `/project ` then Tab for subcommands with descriptions.
+
 While the dashboard is open: `tab`/arrows switch views, `1-9` jump, `j`/`k` or
-arrows scroll, `space`/`pgdn` page, `g`/`G` jump to the top/bottom, `r` reload
-from disk, `q` close. The footer always shows the visible line range, e.g.
-`↓ Risks  Lines 7-29/45 · j/k ↑↓ scroll · …`, or `nothing more to scroll` when
-the view already fits.
+arrows scroll, `space`/`pgdn` page, `g`/`G` jump to the top/bottom, `?` show the
+command/tool reference, `r` reload from disk, `q` close. The footer always shows
+the visible line range, e.g. `↓ Risks  Lines 7-29/45 · j/k ↑↓ scroll · …`, or
+`nothing more to scroll` when the view already fits.
 
 ## Tools available to the agent
 

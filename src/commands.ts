@@ -5,6 +5,7 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
 import { buildResumeReport } from "./context.ts";
 import { ProjectBrowser, VIEWS } from "./dashboard.ts";
@@ -47,63 +48,169 @@ export const PROJECT_SUBCOMMANDS = [
   "complete",
   "watch",
   "projects",
+  "tools",
   "help",
 ] as const;
+
+type Subcommand = (typeof PROJECT_SUBCOMMANDS)[number];
+
+/** Single source of truth for discovery: Tab completion, `/project help` and help text. */
+export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: string; details?: string }> = {
+  dashboard: { usage: "/project", summary: "open the project dashboard (TUI)" },
+  init: {
+    usage: "/project init [name]",
+    summary: "create a .project/ in this directory",
+    details: "Prompts for vision and intent when a UI is available. Refuses if a project already exists here.",
+  },
+  status: {
+    usage: "/project status",
+    summary: "where we are / going / believe / doing",
+    details: "The four core questions. In print mode (pi -p) this prints to stdout without a model call.",
+  },
+  direction: { usage: "/project direction", summary: "vision, intent, values, concepts" },
+  goals: { usage: "/project goals", summary: "goals, priorities and outcomes" },
+  state: { usage: "/project state", summary: "initial state, current state, capabilities, problems" },
+  intelligence: { usage: "/project intelligence", summary: "prioritized questions and answers" },
+  risks: { usage: "/project risks", summary: "prioritized risk registry" },
+  strategy: { usage: "/project strategy", summary: "approach, hypotheses, priorities, alternatives" },
+  plan: {
+    usage: "/project plan",
+    summary: "active plan DAG, readiness and gate results",
+    details: "To execute a node, ask the agent (project_plan node_status). Nodes move PENDING -> RUNNING -> COMPLETED/FAILED.",
+  },
+  history: { usage: "/project history", summary: "semantic history of significant changes" },
+  evolution: { usage: "/project evolution", summary: "how the plan changed and why" },
+  runs: { usage: "/project runs", summary: "long-running work records and logs" },
+  summary: { usage: "/project summary", summary: "final summary: goal outcomes, risks, decisions, lessons" },
+  review: {
+    usage: "/project review",
+    summary: "strategic review against direction and goals",
+    details: "Checks consistency with vision/intent/values/concepts, top unknowns and risks, plan readiness and integrity; offers to record the review as a decision.",
+  },
+  replan: {
+    usage: "/project replan [apply]",
+    summary: "analyze (and optionally apply) the smallest useful plan",
+    details: "Without 'apply' it shows the analysis and asks before applying. Pivoting is strategic and needs approval (unless YOLO).",
+  },
+  resume: {
+    usage: "/project resume",
+    summary: "unfinished runs, interrupted nodes and next actions",
+    details: "Optionally reconciles runs whose process is gone to INTERRUPTED.",
+  },
+  yolo: { usage: "/project yolo [on|off]", summary: "toggle YOLO auto-accept (still recorded)" },
+  complete: { usage: "/project complete", summary: "mark the project complete and show the summary" },
+  watch: { usage: "/project watch [on|off]", summary: "toggle the editor widget" },
+  projects: { usage: "/project projects", summary: "list projects in the local workspace" },
+  tools: {
+    usage: "/project tools",
+    summary: "list the project_* tools the agent can call",
+    details: "Human and agent operations are the same; tools are what the agent uses.",
+  },
+  help: { usage: "/project help [subcommand]", summary: "this reference, or details for one subcommand" },
+};
+
+const DASHBOARD_KEYS = "tab/arrows switch view · 1-9 jump · j/k or ↑↓ scroll · space page · g/G top/bottom · ? help · r reload · q close";
+
+/** Full reference, grouped, generated from SUBCOMMAND_INFO. */
+export function renderHelp(pi?: ExtensionAPI): string {
+  const lines: string[] = ["Project commands", ""];
+  const groups: Array<[string, Subcommand[]]> = [
+    ["View", ["dashboard", "status", "direction", "goals", "state", "intelligence", "risks", "strategy", "plan", "history", "evolution", "runs", "summary"]],
+    ["Act", ["init", "review", "replan", "resume", "yolo", "complete", "watch"]],
+    ["Discover", ["tools", "projects", "help"]],
+  ];
+  for (const [title, names] of groups) {
+    lines.push(`${title}:`);
+    for (const name of names) {
+      const info = SUBCOMMAND_INFO[name];
+      lines.push(`  ${info.usage.padEnd(26)} ${info.summary}`);
+    }
+    lines.push("");
+  }
+
+  lines.push("Adding and changing work is done by talking to the agent, for example:");
+  lines.push('  "add a goal to ship the parser, priority 4"            -> project_goal');
+  lines.push('  "record what we do not know about the evaluator"       -> project_question');
+  lines.push('  "add a risk that the index fails at scale, 0.4 x 0.9"  -> project_risk');
+  lines.push('  "turn this into the smallest useful plan"              -> project_replan');
+  lines.push('  "start N1 and keep it after I close pi"                -> project_run');
+  lines.push("");
+
+  const tools = projectTools(pi);
+  if (tools.length > 0) {
+    lines.push(`Agent tools (${tools.length}) — run /project tools for details, or ask the agent directly:`);
+    lines.push(`  ${tools.map((tool) => tool.name).join(", ")}`);
+    lines.push("");
+  }
+
+  lines.push(`Dashboard keys: ${DASHBOARD_KEYS}.`);
+  return lines.join("\n");
+}
+
+/** Details for one subcommand (used by `/project help <sub>`). */
+export function renderSubcommandHelp(name: string): string {
+  const sub = name.toLowerCase().replace(/^\//, "") as Subcommand;
+  const info = SUBCOMMAND_INFO[sub];
+  if (!info) return `Unknown subcommand "${name}".\n\n${renderHelp()}`;
+  const aliases = sub === "dashboard" ? "\nAliases: `/project` with no argument, `status` in non-TUI modes." : "";
+  return [
+    `Usage: ${info.usage}`,
+    "",
+    info.summary,
+    ...(info.details ? ["", info.details] : []),
+    aliases,
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+interface ToolSummary {
+  name: string;
+  description: string;
+  active: boolean;
+}
+
+/** The project tools currently visible to the agent (name + first line of description). */
+export function projectTools(pi?: ExtensionAPI): ToolSummary[] {
+  if (!pi) return [];
+  const active = new Set(pi.getActiveTools());
+  return pi
+    .getAllTools()
+    .filter((tool) => tool.name.startsWith("project_"))
+    .map((tool) => ({
+      name: tool.name,
+      description: (tool.description ?? "").split("\n")[0] ?? "",
+      active: active.has(tool.name),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function subcommandCompletions(prefix: string): AutocompleteItem[] | null {
+  const items: AutocompleteItem[] = PROJECT_SUBCOMMANDS.filter((name) => name.startsWith(prefix.toLowerCase())).map(
+    (name) => ({
+      value: name,
+      label: name,
+      description: SUBCOMMAND_INFO[name].summary,
+    }),
+  );
+  return items.length > 0 ? items : null;
+}
 
 export interface CommandUiOptions {
   setWidgetEnabled: (enabled: boolean) => void;
   isWidgetEnabled: () => boolean;
 }
 
-const HELP = `Project commands
-
-  /project                     open the project dashboard (TUI)
-  /project init [name]         initialize a .project/ in this directory
-  /project status              overview: where we are / going / believe / doing
-  /project direction           vision, intent, values, concepts
-  /project goals               goals and their outcomes
-  /project state               initial state, current state, capabilities...
-  /project intelligence        prioritized questions and answers
-  /project risks               prioritized risk registry
-  /project strategy            current approach, hypotheses, priorities
-  /project plan                active plan DAG and readiness
-  /project history             semantic history
-  /project evolution           how the plan changed and why
-  /project runs                long-running work records
-  /project summary             final project summary (goals, risks, lessons)
-  /project review              strategic review against direction and goals
-  /project replan [apply]      analyze (and optionally apply) a new plan
-  /project resume              inspect unfinished work after interruption
-  /project yolo [on|off]       toggle YOLO auto-accept mode
-  /project complete            mark the project complete and show the summary
-  /project watch [on|off]      toggle the editor widget
-  /project projects            list projects in the local workspace
-  /project help                this help
-
-Keyboard in the dashboard: tab/arrows switch view, 1-9 jump, j/k scroll, r reload, q close.`;
-
 export function registerProjectCommands(pi: ExtensionAPI, ui: CommandUiOptions): void {
   pi.registerCommand("project", {
     description: "Project management: dashboard, direction, goals, state, intelligence, risks, strategy, plan, history, runs",
-    getArgumentCompletions: (prefix: string) => {
-      const items = PROJECT_SUBCOMMANDS.filter((name) => name.startsWith(prefix)).map((name) => ({
-        value: name,
-        label: name,
-      }));
-      return items.length > 0 ? items : null;
-    },
+    getArgumentCompletions: subcommandCompletions,
     handler: async (args, ctx) => handleProjectCommand(pi, ui, args, ctx),
   });
 
   pi.registerCommand("pm", {
     description: "Shorthand for /project",
-    getArgumentCompletions: (prefix: string) => {
-      const items = PROJECT_SUBCOMMANDS.filter((name) => name.startsWith(prefix)).map((name) => ({
-        value: name,
-        label: name,
-      }));
-      return items.length > 0 ? items : null;
-    },
+    getArgumentCompletions: subcommandCompletions,
     handler: async (args, ctx) => handleProjectCommand(pi, ui, args, ctx),
   });
 }
@@ -120,12 +227,28 @@ async function handleProjectCommand(
   const rest = restParts.join(" ").trim();
 
   if (sub === "help" || sub === "-h" || sub === "--help") {
-    await showText(pi, ctx, HELP);
+    await showText(pi, ctx, rest ? renderSubcommandHelp(rest) : renderHelp(pi));
+    return;
+  }
+
+  if (sub === "tools") {
+    const tools = projectTools(pi);
+    const lines =
+      tools.length === 0
+        ? "No project_* tools are registered (is the extension loaded?)."
+        : tools
+            .map((tool) => `- ${tool.active ? "●" : "○"} ${tool.name}: ${tool.description || "(no description)"}`)
+            .join("\n");
+    await showText(
+      pi,
+      ctx,
+      `Project tools (${tools.length}) — ● active, ○ inactive.\n${lines}\n\nThe agent calls these from natural language; you can also name one explicitly, e.g. "use project_question to add …".`,
+    );
     return;
   }
 
   if (sub === "init") {
-    await runInit(ctx, rest);
+    await runInit(pi, ctx, rest);
     return;
   }
 
@@ -145,7 +268,7 @@ async function handleProjectCommand(
     await showText(
       pi,
       ctx,
-      `No project here. Run /project init to create one, or cd into a project directory.\n\n${HELP}`,
+      `No project here. Run /project init to create one, or cd into a project directory.\n\n${renderHelp(pi)}`,
     );
     return;
   }
@@ -208,7 +331,7 @@ async function handleProjectCommand(
       await runWatch(pi, ctx, ui, rest);
       return;
     default:
-      await showText(pi, ctx, `Unknown subcommand "${sub}".\n\n${HELP}`);
+      await showText(pi, ctx, `Unknown subcommand "${sub}".\n\n${renderHelp(pi)}`);
   }
 }
 
@@ -216,10 +339,10 @@ async function handleProjectCommand(
 /* Subcommand implementations                                         */
 /* ------------------------------------------------------------------ */
 
-async function runInit(ctx: ExtensionCommandContext, rest: string): Promise<void> {
+async function runInit(pi: ExtensionAPI, ctx: ExtensionCommandContext, rest: string): Promise<void> {
   const existing = await ProjectManager.discover(ctx.cwd, { by: "human" });
   if (existing) {
-    await showText(undefined, ctx, `A project already exists at ${existing.root}.`);
+    await showText(pi, ctx, `A project already exists at ${existing.root}.`);
     return;
   }
   const name = rest || ctx.cwd.split("/").filter(Boolean).pop() || "project";
@@ -235,7 +358,7 @@ async function runInit(ctx: ExtensionCommandContext, rest: string): Promise<void
     if (typeof intentAnswer === "string") intent = intentAnswer;
   }
   const manager = await ProjectManager.init(ctx.cwd, { name, vision, intent, by: "human" });
-  await showBrowser(undefined, ctx, manager, "dashboard", `Initialized project "${manager.project.meta.name}".`);
+  await showBrowser(pi, ctx, manager, "dashboard", `Initialized project "${manager.project.meta.name}".`);
 }
 
 async function runReview(pi: ExtensionAPI, ctx: ExtensionCommandContext, manager: ProjectManager): Promise<void> {
@@ -395,6 +518,7 @@ async function showBrowser(
       project: manager.project,
       theme,
       initialView: view,
+      helpText: renderHelp(pi),
       onClose: () => done(),
       getTerminalRows: () => tui.terminal.rows,
       onChange: () => tui.requestRender(),

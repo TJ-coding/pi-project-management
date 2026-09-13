@@ -4,7 +4,15 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { ProjectBrowser, VIEWS, statusText, widgetLines } from "../src/dashboard.ts";
 import { ProjectManager } from "../src/project.ts";
-import { viewFallbacks } from "../src/commands.ts";
+import {
+  PROJECT_SUBCOMMANDS,
+  SUBCOMMAND_INFO,
+  projectTools,
+  renderHelp,
+  renderSubcommandHelp,
+  viewFallbacks,
+} from "../src/commands.ts";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { renderReplanAnalysis, renderReviewReport } from "../src/reports.ts";
 import { cleanup, fixedClock, tempDir } from "./helpers.ts";
 
@@ -212,6 +220,88 @@ describe("dashboard", () => {
     const fallbacks = new Set(viewFallbacks());
     for (const view of VIEWS) assert.ok(fallbacks.has(view.id), `no fallback for ${view.id}`);
     assert.ok(fallbacks.has("evolution"));
+  });
+
+  test("help lists every subcommand and explains how to add work", () => {
+    const help = renderHelp();
+    for (const sub of PROJECT_SUBCOMMANDS) {
+      assert.match(help, new RegExp(`\\/project[^\\n]*\\b${sub}\\b`), `help does not document ${sub}`);
+      assert.ok(SUBCOMMAND_INFO[sub].summary.length > 5, `${sub} has no summary`);
+    }
+    assert.match(help, /Adding and changing work is done by talking to the agent/);
+    assert.match(help, /project_goal/);
+    assert.match(help, /project_replan/);
+    assert.match(help, /Dashboard keys/);
+  });
+
+  test("help shows the registered agent tools and per-subcommand details", () => {
+    const fakeApi = {
+      getActiveTools: () => ["read", "project_goal"],
+      getAllTools: () => [
+        { name: "read", description: "Read files" },
+        { name: "project_goal", description: "Create and update goals.\nMore detail here." },
+        { name: "project_replan", description: "Adaptive replanning." },
+      ],
+    } as unknown as ExtensionAPI;
+
+    const tools = projectTools(fakeApi);
+    assert.deepEqual(tools.map((tool) => tool.name), ["project_goal", "project_replan"]);
+    assert.equal(tools[0]!.active, true);
+    assert.equal(tools[1]!.active, false);
+    assert.equal(tools[0]!.description, "Create and update goals.");
+
+    const help = renderHelp(fakeApi);
+    assert.match(help, /Agent tools \(2\)/);
+    assert.match(help, /project_goal, project_replan/);
+
+    const detail = renderSubcommandHelp("replan");
+    assert.match(detail, /Usage: \/project replan \[apply\]/);
+    assert.match(detail, /smallest useful plan/);
+    assert.match(renderSubcommandHelp("/yolo"), /Usage: \/project yolo/);
+    assert.match(renderSubcommandHelp("nope"), /Unknown subcommand/);
+  });
+
+  test("the dashboard has in-place help on ?", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+
+    // Tall terminal: the whole reference fits, including how to add work.
+    const tall = new ProjectBrowser({
+      project,
+      theme,
+      onClose: () => undefined,
+      getTerminalRows: () => 70,
+      helpText: renderHelp(),
+    });
+    const normal = tall.render(100).join("\n");
+    assert.doesNotMatch(normal, /Adding and changing work/);
+    assert.match(normal, /\? help/);
+
+    tall.handleInput("?");
+    const help = tall.render(100).join("\n");
+    assert.match(help, /Project commands/);
+    assert.match(help, /Adding and changing work/);
+    assert.match(help, /project_replan/);
+    assert.match(help, /esc close help/);
+    tall.handleInput("\x1b");
+    assert.doesNotMatch(tall.render(100).join("\n"), /Adding and changing work/);
+
+    // Short terminal: help scrolls, and ? toggles it back off.
+    const short = new ProjectBrowser({
+      project,
+      theme,
+      onClose: () => undefined,
+      getTerminalRows: () => 10,
+      helpText: renderHelp(),
+    });
+    short.handleInput("?");
+    const before = short.render(100).join("\n");
+    assert.match(before, /Project commands/);
+    short.handleInput("j");
+    assert.notEqual(short.render(100).join("\n"), before);
+    short.handleInput("?");
+    assert.doesNotMatch(short.render(100).join("\n"), /Project commands/);
   });
 });
 
