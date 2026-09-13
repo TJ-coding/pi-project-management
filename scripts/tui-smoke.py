@@ -243,7 +243,8 @@ def main() -> int:
         session.send("8")
         session.pump(1.5)
         plan_view = session.text()
-        check("SELECTED N" in plan_view, "plan view has no selected-node detail pane", failures)
+        check("▌ SELECTED" in plan_view, "plan view has no selected-node detail pane", failures)
+        check("NEXT" in plan_view or "READY" in plan_view or "FINISHED" in plan_view, "plan groups missing", failures)
         check("READY" in plan_view or "RUNNING" in plan_view or "FINISHED" in plan_view, "plan groups missing", failures)
         session.send("\r")
         session.pump(1.8)
@@ -251,7 +252,7 @@ def main() -> int:
         check("Depends on" in node_form and "Type" in node_form, "plan node form did not open", failures)
         session.send("\x1b")  # cancel the node form
         session.pump(1.5)
-        check("SELECTED N" in session.text(), "cancelling the node form did not return to the plan", failures)
+        check("▌ SELECTED" in session.text(), "cancelling the node form did not return to the plan", failures)
         session.send("1")
 
         # Every rendered line must fit the terminal.

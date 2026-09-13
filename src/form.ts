@@ -14,6 +14,16 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
+/** Full-width selection bar: the focused row is the focal point of the form. */
+function paintRow(theme: Theme, lines: string[], selected: boolean, width: number): string[] {
+  if (!selected) return lines.map((line) => truncateToWidth(line, width));
+  return lines.map((line) => {
+    const visible = visibleWidth(line);
+    const padded = visible >= width ? line : line + " ".repeat(width - visible);
+    return theme.bg("selectedBg", truncateToWidth(padded, width));
+  });
+}
+
 export interface FormFieldBase {
   key: string;
   label: string;
@@ -542,7 +552,7 @@ export class FormEditor {
     this.ensureVisible(viewport);
 
     const out: string[] = [];
-    out.push(truncateToWidth(theme.bg("customMessageBg", theme.fg("accent", theme.bold(` ${this.title} `))), width));
+    out.push(truncateToWidth(theme.fg("muted", ` ${this.title}`) + theme.fg("dim", `  ${this.fields.length} fields`), width));
 
     const window = lines.slice(this.scroll, this.scroll + viewport);
     out.push(...window);
@@ -618,18 +628,18 @@ export class FormEditor {
       const showLabel = item === 0 || (item === ADD_ROW && count === 0);
       const rowPrefix = showLabel ? prefix : `  ${" ".repeat(labelWidth)}`;
       if (item === ADD_ROW) {
-        return [truncateToWidth(`${rowPrefix}${theme.fg("dim", "+ add")}`, width)];
+        return paintRow(theme, [`${rowPrefix}${theme.fg("dim", "+ add")}`], focused && !this.picker, width);
       }
       const editing = this.edit && this.rows[this.edit.row] === row;
       const raw = field.get()[item] ?? "";
       const value = editing ? renderEditor(this.edit!.buffer, this.edit!.cursor) : raw;
       const bullet = field.kind === "refs" ? "•" : "–";
-      return [
-        truncateToWidth(
-          `${rowPrefix}${theme.fg("dim", `${bullet} `)}${editing ? theme.fg("text", value) : theme.fg("text", raw || theme.fg("dim", "(empty)"))}`,
-          width,
-        ),
-      ];
+      return paintRow(
+        theme,
+        [`${rowPrefix}${theme.fg("dim", `${bullet} `)}${editing ? theme.fg("text", value) : theme.fg("text", raw || theme.fg("dim", "(empty)"))}`],
+        focused && !this.picker,
+        width,
+      );
     }
 
     const editing = this.edit && this.rows[this.edit.row] === row;
@@ -653,9 +663,9 @@ export class FormEditor {
     } else if (field.kind === "prose") {
       const text = field.get();
       const preview = text ? text.split("\n").slice(0, 3).join("\n") : theme.fg("dim", "(empty)");
-      const lines = [truncateToWidth(`${prefix}${theme.fg("text", preview.split("\n")[0] ?? "")}${focused ? theme.fg("dim", "  …enter to edit") : ""}`, width)];
-      for (const extra of preview.split("\n").slice(1)) lines.push(truncateToWidth(`    ${theme.fg("muted", extra)}`, width));
-      return lines;
+      const previewLines = [truncateToWidth(`${prefix}${theme.fg("text", preview.split("\n")[0] ?? "")}${focused ? theme.fg("dim", "  ⏎ edit") : ""}`, width)];
+      for (const extra of preview.split("\n").slice(1)) previewLines.push(truncateToWidth(`${"  " + " ".repeat(20)}${theme.fg("muted", extra)}`, width));
+      return paintRow(theme, previewLines, focused && !this.picker, width);
     } else {
       const text = field.get();
       value = text ? theme.fg("text", text) : theme.fg("dim", field.placeholder ?? "(empty)");
@@ -663,7 +673,7 @@ export class FormEditor {
 
     const hintText = typeof field.hint === "function" ? field.hint() : field.hint;
     const hint = hintText && !focused ? theme.fg("dim", `  ${hintText}`) : "";
-    return [truncateToWidth(`${prefix}${value}${hint}`, width)];
+    return paintRow(theme, [`${prefix}${value}${hint}`], focused && !this.picker, width);
   }
 
   invalidate(): void {

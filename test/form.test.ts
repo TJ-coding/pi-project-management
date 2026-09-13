@@ -230,3 +230,37 @@ describe("form editor", () => {
     assert.equal(formatNumber(0.55), "0.55");
   });
 });
+
+describe("form hierarchy", () => {
+  test("exactly one row is highlighted and it follows focus", () => {
+    const draft = makeDraft();
+    const backgrounded: string[] = [];
+    const recording = {
+      fg: (_c: string, t: string) => t,
+      bg: (color: string, t: string) => {
+        if (color === "selectedBg") backgrounded.push(t);
+        return t;
+      },
+      bold: (t: string) => t,
+      italic: (t: string) => t,
+      strikethrough: (t: string) => t,
+    } as unknown as Theme;
+
+    const fields: FormField[] = [
+      { kind: "text", key: "title", label: "Title", get: () => draft.title, set: (v) => (draft.title = v) },
+      { kind: "int", key: "priority", label: "Priority", min: 1, max: 5, get: () => draft.priority, set: (v) => (draft.priority = v) },
+    ];
+    const editor = new FormEditor({ title: "T", fields, theme: recording, getTerminalRows: () => 30, onExit: () => undefined });
+
+    backgrounded.length = 0;
+    editor.render(80);
+    assert.equal(backgrounded.length, 1, "one highlighted row");
+    assert.match(backgrounded[0]!, /Title/);
+
+    backgrounded.length = 0;
+    editor.handleInput("\x1b[B"); // move down
+    editor.render(80);
+    assert.equal(backgrounded.length, 1);
+    assert.match(backgrounded[0]!, /Priority/);
+  });
+});

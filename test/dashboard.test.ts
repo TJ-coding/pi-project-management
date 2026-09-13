@@ -107,13 +107,13 @@ describe("dashboard", () => {
     dirs.push(root);
     const project = await manager.read((current) => current);
     const text = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 120).join("\n");
-    // Structure: identity, then the four questions, then only the top signals.
-    assert.match(text, /▌ VISION/);
+    // Hierarchy: quiet vision, one focal NEXT block, then aligned numbers/signals.
     assert.match(text, /Build an autonomous research environment\./);
-    assert.match(text, /▌ NOW/);
+    assert.match(text, /NEXT/);
+    assert.match(text, /N\d/);
+    assert.doesNotMatch(text, /▌ VISION/, "vision is quiet context, not a competing header");
     assert.match(text, /▌ PROGRESS/);
     assert.match(text, /▌ SIGNALS/);
-    assert.match(text, /▶ next {2}N\d/);
     assert.match(text, /open questions/);
     assert.match(text, /Demonstrate output/);
     assert.doesNotMatch(text, /Build prototype/, "completed goals stay out of the dashboard");
@@ -129,7 +129,8 @@ describe("dashboard", () => {
     assert.match(text, /RUNNING/);
     assert.match(text, /READY|BLOCKED|FINISHED/);
     assert.match(text, /N1/);
-    assert.match(text, /SELECTED N1/);
+    assert.match(text, /▌ SELECTED/);
+    assert.match(text, /N1 · /);
     assert.match(text, /after |no dependencies/);
     assert.ok(rendered.ids.includes("N1"));
     assert.ok(rendered.lines.length < 40, "plan view should stay scannable");
@@ -156,10 +157,10 @@ describe("dashboard", () => {
 
     const ids = flatPlanNodes(project).map((node) => node.id);
     assert.ok(ids.length > 0);
-    assert.match(browser.render(120).join("\n"), new RegExp(`SELECTED ${ids[0]}`));
+    assert.match(browser.render(120).join("\n"), new RegExp(`▌ SELECTED.*${ids[0]}`));
     if (ids.length > 1) {
       browser.handleInput("j");
-      assert.match(browser.render(120).join("\n"), new RegExp(`SELECTED ${ids[1]}`));
+      assert.match(browser.render(120).join("\n"), new RegExp(`▌ SELECTED.*${ids[1]}`));
       browser.handleInput("k");
     }
     browser.handleInput("\r");
@@ -431,5 +432,75 @@ describe("reports", () => {
     assert.match(text, /Validation/);
     assert.match(text, /Gate outcomes/);
     assert.match(text, /Suggested outcome/);
+  });
+});
+
+describe("visual hierarchy", () => {
+  const dirs: string[] = [];
+  after(async () => {
+    for (const dir of dirs) await cleanup(dir);
+  });
+
+  /** Records which emphasis a renderer actually used. */
+  function recordingTheme() {
+    const used = { bold: [] as string[], bg: [] as Array<{ color: string; text: string }> };
+    const theme = {
+      fg: (_color: string, text: string) => text,
+      bg: (color: string, text: string) => {
+        used.bg.push({ color, text });
+        return text;
+      },
+      bold: (text: string) => {
+        used.bold.push(text);
+        return text;
+      },
+      italic: (text: string) => text,
+      strikethrough: (text: string) => text,
+    } as unknown as Theme;
+    return { theme, used };
+  }
+
+  test("the dashboard has exactly one focal panel and limited bold", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const { theme: recording, used } = recordingTheme();
+    VIEWS.find((view) => view.id === "dashboard")!.render(project, recording, 120);
+
+    const panels = used.bg.filter((entry) => entry.color === "customMessageBg");
+    assert.ok(panels.length > 0, "the NEXT block should be a panel");
+    assert.ok(panels.length <= 3, `only the focal block may use a panel, got ${panels.length} lines`);
+    assert.equal(used.bg.filter((entry) => entry.color === "selectedBg").length, 0, "the dashboard has no selection");
+
+    // Bold is reserved for the section titles and the single focal title.
+    assert.ok(used.bold.length <= 8, `too many bold fragments (${used.bold.length}): ${used.bold.join(" | ")}`);
+    assert.ok(
+      used.bold.some((text) => text.includes("NEXT") === false && /\w/.test(text)),
+      "the focal title should be bold",
+    );
+  });
+
+  test("the plan browser highlights exactly one row and keeps the rest quiet", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const { theme: recording, used } = recordingTheme();
+    const browser = new ProjectBrowser({ project, theme: recording, onClose: () => undefined, initialView: "plan", getTerminalRows: () => 40 });
+    browser.render(120);
+    const selected = used.bg.filter((entry) => entry.color === "selectedBg");
+    assert.equal(selected.length, 1, `exactly one row may be selected, got ${selected.length}`);
+    assert.match(selected[0]!.text, /N\d/);
+  });
+
+  test("group headers are quieter than section titles", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const { theme: recording, used } = recordingTheme();
+    const plan = VIEWS.find((view) => view.id === "plan")!.render(project, recording, 120).join("\n");
+    assert.match(plan, /▌ READY/);
+    // Section title "SELECTED" is accent+bold; group titles are not bold.
+    assert.ok(used.bold.includes("SELECTED"));
+    assert.ok(!used.bold.includes("READY"), "group headers should not compete with section titles");
   });
 });
