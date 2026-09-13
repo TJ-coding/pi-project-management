@@ -32,3 +32,20 @@
   created: 2026-09-13T15:59:01.677Z
   updated: 2026-09-13T15:59:01.677Z
   answered: null
+- id: Q3
+  question: Do budgets need per-project overrides in project.yaml?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.5
+  uncertainty: 0.7
+  decision_impact: 0.4
+  confidence: 0
+  evidence: []
+  goals:
+    - G2
+  risks: []
+  tasks: []
+  decisions: []
+  created: 2026-09-13T15:59:01.820Z
+  updated: 2026-09-13T15:59:01.820Z
+  answered: null

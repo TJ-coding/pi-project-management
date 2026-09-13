@@ -9,3 +9,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:01.443Z **goal.created** — Goal G3 created: Close the two known gaps [G3] (by agent)
 - 2026-09-13T15:59:01.558Z **question.created** — Question Q1 created: What belongs in the digest when long values cannot fit? [Q1] (by agent)
 - 2026-09-13T15:59:01.677Z **question.created** — Question Q2 created: Should rename touch only meta.name, or ids and paths too? [Q2] (by agent)
+- 2026-09-13T15:59:01.820Z **question.created** — Question Q3 created: Do budgets need per-project overrides in project.yaml? [Q3] (by agent)

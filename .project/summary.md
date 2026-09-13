@@ -26,6 +26,7 @@ _No risks recorded._
 
 - Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
 - Q2 Should rename touch only meta.name, or ids and paths too? — UNKNOWN (MEDIUM)
+- Q3 Do budgets need per-project overrides in project.yaml? — UNKNOWN (MEDIUM)
 
 ## Major Decisions
 
