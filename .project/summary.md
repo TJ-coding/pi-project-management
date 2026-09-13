@@ -2,7 +2,11 @@
 
 ## Vision
 
-_Not defined._
+Make pi-project-management the project tool I run every day: readable panels, findable text, honest state.
+
+## Intent
+
+Ship what the reviews found: enforced brevity, readable panels, a rename path, a leaner digest. Each verified by tests and a k3 review.
 
 ## Final State
 
