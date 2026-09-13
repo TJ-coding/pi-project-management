@@ -31,6 +31,7 @@ import {
   type GitResult,
 } from "./storage.ts";
 import { validateProject, validateProjectDetailed } from "./validate.ts";
+import { assertBudgets, collectTextFields } from "./limits.ts";
 import type {
   AnswerStatus,
   AuthorityLevel,
@@ -307,7 +308,11 @@ export class ProjectManager {
     return withProjectLock(this.root, async () => {
       const project = await loadProject(this.root, this.clock);
       this.project = project;
+      // Budgets are checked before anything is written: an over-long edit is
+      // rejected (limits.ts) instead of being saved and only noticed later.
+      const before = collectTextFields(project);
       const value = await fn(project);
+      assertBudgets(before, collectTextFields(project));
       await saveProject(project, { clock: this.clock });
       let git: GitResult | null = null;
       if (message && options.commit !== false && project.meta.autoCommit) {

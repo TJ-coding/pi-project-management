@@ -13,6 +13,7 @@ import { blockedByDependencies, dagStats, nextActionable, readyNodes, topoOrder 
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
+import { overBudget, overBudgetFields, type TextKind } from "./limits.ts";
 import type { Goal, HistoryEvent, PlanNode, Project, Question, Risk } from "./types.ts";
 
 export interface ViewDefinition {
@@ -44,6 +45,8 @@ export interface DetailField {
   label: string;
   text: string;
   tone?: "text" | "muted" | "dim" | "success" | "warning" | "error";
+  /** Budget this text is held to, so a reader sees when it is over. */
+  kind?: TextKind;
 }
 
 /** A labelled bullet list in the reading pane. */
@@ -51,6 +54,8 @@ export interface DetailList {
   label: string;
   items: string[];
   tone?: DetailField["tone"];
+  /** Budget each item is held to. */
+  kind?: TextKind;
 }
 
 /**
@@ -741,6 +746,13 @@ const dashboardView: ViewDefinition = {
     if (project.risks.length > 0) full.push(`${project.risks.length} risks`);
     if (plan) full.push(`${plan.nodes.length} nodes`);
     if (full.length > 0) lines.push(`  ${theme.fg("dim", `full lists: ${full.join(" · ")}`)}`);
+    // One number, not a wall of warnings: the exact list is in /project review.
+    const bloated = overBudgetFields(project).length;
+    if (bloated > 0) {
+      lines.push(
+        `  ${theme.fg("warning", `${bloated} field${bloated === 1 ? "" : "s"} over budget`)}${theme.fg("dim", ` — State (4), Intelligence (5), Risks (6); enter reads a row`)}`,
+      );
+    }
     return lines;
   },
 };
@@ -1074,7 +1086,7 @@ function ageText(at: string): string {
 
 function detailForGoal(goal: Goal): DetailDoc {
   const band = priorityBand(goal.priority);
-  const fields: DetailField[] = [{ label: "Description", text: goal.description }];
+  const fields: DetailField[] = [{ label: "Description", text: goal.description, kind: "prose" }];
   if (goal.parent) fields.push({ label: "Parent", text: goal.parent, tone: "dim" });
   const links = linkText([
     ["questions", goal.questions],
@@ -1088,7 +1100,7 @@ function detailForGoal(goal: Goal): DetailDoc {
     title: `${goal.id} · ${goal.title}`,
     meta: `${goal.status} · priority P${goal.priority} (${band})`,
     fields,
-    lists: goal.successCriteria.length > 0 ? [{ label: `Success criteria (${goal.successCriteria.length})`, items: goal.successCriteria }] : [],
+    lists: goal.successCriteria.length > 0 ? [{ label: `Success criteria (${goal.successCriteria.length})`, items: goal.successCriteria, kind: "line" as const }] : [],
   };
 }
 
@@ -1104,7 +1116,7 @@ function detailForQuestion(question: Question): DetailDoc {
     ["decisions", question.decisions],
   ]);
   const fields: DetailField[] = [
-    { label: "Answer", text: question.answer || "not answered yet", tone: question.answer ? "text" : "dim" },
+    { label: "Answer", text: question.answer || "not answered yet", tone: question.answer ? "text" : "dim", kind: "prose" },
     {
       label: "Scores",
       text: `importance ${question.importance.toFixed(2)} · uncertainty ${question.uncertainty.toFixed(2)} · decision impact ${question.decisionImpact.toFixed(2)}`,
@@ -1117,7 +1129,7 @@ function detailForQuestion(question: Question): DetailDoc {
     title: `${question.id} · ${question.question}`,
     meta: `${question.status} · ${scoreBand(questionScore(question))} · confidence ${question.confidence.toFixed(2)}`,
     fields,
-    lists: [{ label: `Evidence (${evidence.length})`, items: evidence, tone: "muted" }],
+    lists: [{ label: `Evidence (${evidence.length})`, items: evidence, tone: "muted", kind: "line" }],
   };
 }
 
@@ -1128,9 +1140,9 @@ function detailForRisk(risk: Risk): DetailDoc {
     ["questions", risk.questions],
     ["tasks", risk.tasks],
   ]);
-  const fields: DetailField[] = [{ label: "Description", text: risk.description }];
-  if (risk.mitigation) fields.push({ label: "Mitigation", text: risk.mitigation, tone: "success" });
-  if (risk.contingency) fields.push({ label: "Contingency", text: risk.contingency, tone: "warning" });
+  const fields: DetailField[] = [{ label: "Description", text: risk.description, kind: "line" }];
+  if (risk.mitigation) fields.push({ label: "Mitigation", text: risk.mitigation, tone: "success", kind: "line" });
+  if (risk.contingency) fields.push({ label: "Contingency", text: risk.contingency, tone: "warning", kind: "line" });
   if (links) fields.push({ label: "Links", text: links, tone: "muted" });
   fields.push({ label: "Updated", text: ageText(risk.updated), tone: "dim" });
   return {
@@ -1142,7 +1154,7 @@ function detailForRisk(risk: Risk): DetailDoc {
 
 function detailForEvent(event: HistoryEvent): DetailDoc {
   const fields: DetailField[] = [
-    { label: "What happened", text: oneLine(event.summary) },
+    { label: "What happened", text: oneLine(event.summary), kind: "line" },
     { label: "Kind", text: `${event.kind} · by ${event.by}`, tone: "muted" },
     { label: "When", text: ageText(event.at), tone: "dim" },
   ];
@@ -1176,15 +1188,15 @@ function detailForState(project: Project): DetailDoc {
   return {
     title: "State — full text",
     fields: [
-      { label: "Current", text: state.current || "not recorded" },
-      { label: "Initial", text: state.initial || "not recorded", tone: "dim" },
+      { label: "Current", text: state.current || "not recorded", kind: "prose" },
+      { label: "Initial", text: state.initial || "not recorded", tone: "dim", kind: "prose" },
     ],
     lists: [
-      { label: `Problems (${state.problems.length})`, items: state.problems, tone: "warning" },
-      { label: `Capabilities (${state.capabilities.length})`, items: state.capabilities, tone: "success" },
-      { label: `Known facts (${state.facts.length})`, items: state.facts, tone: "muted" },
-      { label: `Constraints (${state.constraints.length})`, items: state.constraints, tone: "muted" },
-      { label: `Discoveries (${state.discoveries.length})`, items: state.discoveries, tone: "success" },
+      { label: `Problems (${state.problems.length})`, items: state.problems, tone: "warning", kind: "line" },
+      { label: `Capabilities (${state.capabilities.length})`, items: state.capabilities, tone: "success", kind: "line" },
+      { label: `Known facts (${state.facts.length})`, items: state.facts, tone: "muted", kind: "line" },
+      { label: `Constraints (${state.constraints.length})`, items: state.constraints, tone: "muted", kind: "line" },
+      { label: `Discoveries (${state.discoveries.length})`, items: state.discoveries, tone: "success", kind: "line" },
     ],
   };
 }
@@ -1193,12 +1205,14 @@ function detailForStrategy(project: Project): DetailDoc {
   const strategy = project.strategy;
   return {
     title: "Strategy — full text",
-    fields: [{ label: "Current approach", text: strategy.approach || "not defined" }],
+    fields: [
+      { label: "Current approach", text: strategy.approach || "not defined", kind: "prose" },
+      ...(strategy.rationale ? [{ label: "Rationale", text: strategy.rationale, tone: "muted" as const, kind: "prose" as const }] : []),
+    ],
     lists: [
-      { label: `Hypotheses (${strategy.hypotheses.length})`, items: strategy.hypotheses.map(stripNumbering) },
-      { label: `Priorities (${strategy.priorities.length})`, items: strategy.priorities.map(stripNumbering), tone: "success" },
-      { label: `Alternatives considered (${strategy.alternatives.length})`, items: strategy.alternatives.map(stripNumbering), tone: "muted" },
-      ...(strategy.rationale ? [{ label: "Rationale", items: [strategy.rationale], tone: "muted" as const }] : []),
+      { label: `Hypotheses (${strategy.hypotheses.length})`, items: strategy.hypotheses.map(stripNumbering), kind: "line" as const },
+      { label: `Priorities (${strategy.priorities.length})`, items: strategy.priorities.map(stripNumbering), tone: "success" as const, kind: "line" as const },
+      { label: `Alternatives considered (${strategy.alternatives.length})`, items: strategy.alternatives.map(stripNumbering), tone: "muted" as const, kind: "line" as const },
     ],
   };
 }
@@ -1213,12 +1227,12 @@ function detailForDirection(project: Project): DetailDoc {
   return {
     title: "Direction — full text",
     fields: [
-      { label: "Vision", text: direction.vision || "not defined" },
-      { label: "Intent", text: direction.intent || "not defined" },
+      { label: "Vision", text: direction.vision || "not defined", kind: "prose" },
+      { label: "Intent", text: direction.intent || "not defined", kind: "prose" },
     ],
     lists: [
-      { label: `Values (${direction.values.length})`, items: direction.values },
-      { label: `Concepts (${direction.concepts.length})`, items: direction.concepts.map((concept) => `[${concept.type}] ${concept.text}`), tone: "muted" },
+      { label: `Values (${direction.values.length})`, items: direction.values, kind: "value" },
+      { label: `Concepts (${direction.concepts.length})`, items: direction.concepts.map((concept) => `[${concept.type}] ${concept.text}`), tone: "muted", kind: "value" },
     ],
   };
 }
@@ -1226,7 +1240,7 @@ function detailForDirection(project: Project): DetailDoc {
 function detailForNode(project: Project, node: PlanNode): DetailDoc {
   const plan = activePlan(project);
   const fields: DetailField[] = [
-    { label: "Description", text: node.description || "not recorded" },
+    { label: "Description", text: node.description || "not recorded", kind: "line" },
     { label: "Kind", text: `${node.type} · ${node.status}${node.assignee ? ` · assignee ${node.assignee}` : ""}`, tone: "muted" },
   ];
   if (node.dependsOn.length > 0) {
@@ -1242,13 +1256,13 @@ function detailForNode(project: Project, node: PlanNode): DetailDoc {
   if (node.goal) links.push(`goal ${node.goal}`);
   if (node.run) links.push(`run ${node.run}`);
   if (links.length > 0) fields.push({ label: "Links", text: links.join(" · "), tone: "muted" });
-  if (node.gate) fields.push({ label: "Gate", text: `${node.gate.type}${node.gate.criteria ? ` — ${node.gate.criteria}` : ""}`, tone: "warning" });
-  if (node.failureReason) fields.push({ label: "Failure", text: node.failureReason, tone: "error" });
+  if (node.gate) fields.push({ label: "Gate", text: `${node.gate.type}${node.gate.criteria ? ` — ${node.gate.criteria}` : ""}`, tone: "warning", kind: "line" });
+  if (node.failureReason) fields.push({ label: "Failure", text: node.failureReason, tone: "error", kind: "line" });
   return {
     title: `${node.id} · ${node.title}`,
     meta: plan ? `${plan.id} v${plan.version}` : undefined,
     fields,
-    lists: node.outputs.length > 0 ? [{ label: `Outputs (${node.outputs.length})`, items: node.outputs, tone: "success" }] : [],
+    lists: node.outputs.length > 0 ? [{ label: `Outputs (${node.outputs.length})`, items: node.outputs, tone: "success" as const, kind: "line" as const }] : [],
   };
 }
 
@@ -1272,13 +1286,16 @@ export function renderDetailDoc(theme: Theme, doc: DetailDoc, width: number): st
   for (const field of doc.fields) {
     const text = field.text.trim();
     if (text === "" || (placeholders.has(text) && field.tone !== "text")) continue;
-    lines.push(...heading(theme, field.label.toUpperCase(), width));
+    // Twitter-style counter, but only when it has something to say.
+    const over = field.kind ? overBudget(field.text, field.kind) : null;
+    lines.push(...heading(theme, over ? `${field.label.toUpperCase()} — ${over.exceeded.join(" and ")}` : field.label.toUpperCase(), width));
     for (const line of wrapTextWithAnsi(theme.fg(field.tone ?? "text", field.text), width)) lines.push(line);
     lines.push("");
   }
   for (const list of doc.lists ?? []) {
     if (list.items.length === 0) continue;
-    lines.push(...heading(theme, list.label.toUpperCase(), width));
+    const overCount = list.kind ? list.items.filter((item) => overBudget(item, list.kind!)).length : 0;
+    lines.push(...heading(theme, overCount > 0 ? `${list.label.toUpperCase()} — ${overCount} over budget` : list.label.toUpperCase(), width));
     for (const item of list.items) {
       const wrapped = wrapTextWithAnsi(theme.fg(list.tone ?? "text", item), Math.max(4, width - 4));
       wrapped.forEach((line, index) => lines.push(index === 0 ? `  ${theme.fg("accent", "• ")}${line}` : `    ${line}`));

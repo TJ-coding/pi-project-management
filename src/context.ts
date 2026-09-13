@@ -8,6 +8,7 @@
  */
 
 import { readyNodes, blockedByDependencies, runningNodes } from "./dag.ts";
+import { budgetSummary } from "./limits.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, scoreBand } from "./scoring.ts";
 import { truncate } from "./format.ts";
 import type { PlanNode, Project } from "./types.ts";
@@ -58,6 +59,8 @@ export function buildDigest(project: Project): string {
     lines.push("PLAN: none");
   }
   lines.push(`YOLO: ${project.meta.yolo ? "on" : "off"}`);
+  // Twitter-length budget: the agent writes short first time instead of being rejected.
+  lines.push(`BUDGETS (over-budget writes are rejected): ${budgetSummary()}`);
   return lines.join("\n");
 }
 

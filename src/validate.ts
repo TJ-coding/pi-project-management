@@ -5,6 +5,7 @@
  */
 
 import { validateDag } from "./dag.ts";
+import { overBudgetFields } from "./limits.ts";
 import type { Project } from "./types.ts";
 
 export interface ValidationReport {
@@ -24,6 +25,11 @@ export function validateProjectDetailed(project: Project): ValidationReport {
   const softMarkers = ["vision is empty", "current state is empty"];
   const errors = issues.filter((issue) => !softMarkers.some((marker) => issue.includes(marker)));
   const warnings = issues.filter((issue) => softMarkers.some((marker) => issue.includes(marker)));
+  // Over-budget text is a warning, never an error: it cannot block edits to a
+  // project that was written before the budget existed.
+  for (const { field, over } of overBudgetFields(project)) {
+    warnings.push(`[budget] ${field.label} is ${over.exceeded.join(" and ")}`);
+  }
   return { errors, warnings };
 }
 
