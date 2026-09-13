@@ -396,9 +396,10 @@ async function showBrowser(
       theme,
       initialView: view,
       onClose: () => done(),
+      getTerminalRows: () => tui.terminal.rows,
+      onChange: () => tui.requestRender(),
       reload: async () => {
         const project = await manager.read((current) => current);
-        tui.requestRender();
         return project;
       },
     });

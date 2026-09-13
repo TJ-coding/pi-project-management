@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """
-Drive the real `pi` TUI in a pseudo-terminal and check that `/project` opens the
-dashboard and that the browser responds to keys.
+Drive the real `pi` TUI in a pseudo-terminal, emulate the terminal with pyte and
+assert on exact screen frames.
 
-    python3 scripts/tui-smoke.py --ext ./src/index.ts --cwd /tmp/demo
+    pip install pyte
+    python3 scripts/tui-smoke.py --ext ./src/index.ts --cwd /tmp/pm-demo
+
+It checks that `/project` opens the dashboard, that the chrome is one line per
+row, that views switch, that the footer reports the scroll state (and that the
+content really moves when it is scrollable), and that `q` closes the view.
+
+Generate a project with content first if you want full scroll coverage:
+
+    node scripts/demo-project.ts /tmp/pm-demo
 """
 
 import argparse
@@ -13,31 +22,43 @@ import os
 import pty
 import re
 import select
+import signal
 import struct
 import sys
 import termios
 import time
 
-ANSI = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b[()][A-Z0-9]|\x1b[=>]|\r")
+try:
+    import pyte
+except ImportError:  # pragma: no cover - developer feedback
+    print("This smoke test needs pyte:  pip install pyte", file=sys.stderr)
+    sys.exit(2)
 
 
-def strip_ansi(text: str) -> str:
-    return ANSI.sub("", text)
+class PiSession:
+    """A real pi process rendering into an emulated terminal."""
 
-
-class PtyPi:
-    def __init__(self, ext: str, cwd: str, cols: int = 120, rows: int = 40):
+    def __init__(self, ext: str, cwd: str, cols: int = 100, rows: int = 30):
+        self.cols, self.rows = cols, rows
+        self.screen = pyte.Screen(cols, rows)
+        self.screen.set_mode(pyte.modes.LNM)
+        self.stream = pyte.Stream(self.screen)
+        self.decoder = codecs.getincrementaldecoder("utf-8")("replace")
         self.pid, self.fd = pty.fork()
         if self.pid == 0:  # child
+            # Size the pty before exec so pi starts with the right dimensions.
+            fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
             os.chdir(cwd)
             os.environ["TERM"] = "xterm-256color"
-            os.environ["PI_HARDWARE_CURSOR"] = "0"
             os.execvp("pi", ["pi", "--no-session", "-e", ext])
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
-        self.buffer = ""
-        self.decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        time.sleep(0.3)
+        try:
+            os.kill(self.pid, signal.SIGWINCH)
+        except ProcessLookupError:
+            pass
 
-    def read(self, seconds: float = 1.0) -> str:
+    def pump(self, seconds: float = 1.0) -> None:
         end = time.time() + seconds
         while time.time() < end:
             ready, _, _ = select.select([self.fd], [], [], 0.1)
@@ -49,11 +70,16 @@ class PtyPi:
                 break
             if not chunk:
                 break
-            self.buffer += self.decoder.decode(chunk)
-        return self.buffer
+            self.stream.feed(self.decoder.decode(chunk))
 
     def send(self, text: str) -> None:
-        os.write(self.fd, text.encode("utf-8"))
+        os.write(self.fd, text.encode())
+
+    def lines(self) -> list[str]:
+        return [line.rstrip() for line in self.screen.display]
+
+    def text(self) -> str:
+        return "\n".join(self.lines())
 
     def close(self) -> None:
         try:
@@ -66,71 +92,104 @@ class PtyPi:
             pass
 
 
+def footer_range(frame: str) -> tuple[int, int, int] | None:
+    match = re.search(r"Lines (\d+)-(\d+)/(\d+)", frame)
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def check(condition: bool, message: str, failures: list[str]) -> None:
+    if not condition:
+        failures.append(message)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ext", default="./src/index.ts")
     parser.add_argument("--cwd", default=os.getcwd())
-    parser.add_argument("--timeout", type=float, default=25.0)
-    parser.add_argument("--dump", action="store_true", help="print the stripped dashboard output and exit")
+    parser.add_argument("--cols", type=int, default=100)
+    parser.add_argument("--rows", type=int, default=30)
+    parser.add_argument("--dump", action="store_true", help="print the first dashboard frame and exit")
     args = parser.parse_args()
 
-    pi = PtyPi(os.path.abspath(args.ext), os.path.abspath(args.cwd))
     failures: list[str] = []
+    session = PiSession(os.path.abspath(args.ext), os.path.abspath(args.cwd), args.cols, args.rows)
     try:
-        pi.read(6)
-        pi.send("/project")
+        session.pump(7)
+        session.send("/project")
         time.sleep(0.4)
-        pi.send("\r")
-        dashboard = strip_ansi(pi.read(4))
+        session.send("\r")
+        session.pump(4)
+        dashboard = session.text()
 
         if args.dump:
             print(dashboard)
             return 0
 
-        for marker in ["Dashboard", "Direction", "Goals", "State", "Intelligence", "Risks", "Strategy", "Plan / DAG"]:
-            if marker not in dashboard:
-                failures.append(f"tab bar marker missing from TUI: {marker}")
-        if "Vision" not in dashboard and "VISION" not in dashboard:
-            failures.append("dashboard did not render the vision section")
-        if "switch" not in dashboard:
-            failures.append("dashboard footer hints missing")
+        check("Dashboard (1/11)" in dashboard, "dashboard title '… — Dashboard (1/11)' missing", failures)
 
-        # Tab switches views.
-        pi.send("\t")
-        time.sleep(0.3)
-        switched = strip_ansi(pi.read(2))
-        if "Direction" not in switched:
-            failures.append("tab did not switch to another view")
+        # Chrome: exactly one tab-strip line, and headings never overflow.
+        tab_lines = [line for line in session.lines() if "[1]" in line and "·" in line]
+        check(len(tab_lines) == 1, f"tab strip should occupy one line, found {len(tab_lines)}", failures)
+        stray_rules = [line for line in session.lines() if re.fullmatch(r"─+", line)]
+        check(not stray_rules, f"stray separator lines (heading overflow): {stray_rules[:2]}", failures)
 
-        # Scroll and continue.
-        pi.send("j")
-        time.sleep(0.2)
-        pi.send("j")
-        time.sleep(0.3)
-        pi.read(1)
+        # Footer must communicate the scroll state, and scrolling must work when
+        # there is something to scroll.
+        check(
+            "nothing more to scroll" in dashboard or "j/k" in dashboard,
+            "footer does not describe the scroll state",
+            failures,
+        )
+        before = footer_range(dashboard)
+        check(before is not None, "footer does not show a line range", failures)
+        if before and before[2] > (before[1] - before[0] + 1):
+            start0 = before[0]
+            session.send("j")
+            session.pump(0.6)
+            after_down = session.text()
+            range_down = footer_range(after_down)
+            check(range_down is not None and range_down[0] == start0 + 1, f"j did not scroll: {range_down}", failures)
+            session.send("G")
+            session.pump(0.6)
+            range_end = footer_range(session.text())
+            check(range_end is not None and range_end[1] == before[2], f"G did not jump to the end: {range_end}", failures)
+            session.send("g")
+            session.pump(0.6)
+            range_home = footer_range(session.text())
+            check(range_home is not None and range_home[0] == 1, f"g did not return to the top: {range_home}", failures)
+        else:
+            check("nothing more to scroll" in dashboard, "a view that fits should say so in the footer", failures)
 
-        # Close the dashboard and open a section view via the command.
-        pi.send("q")
-        time.sleep(0.3)
-        pi.read(1)
-        pi.send("/project plan")
-        time.sleep(0.3)
-        pi.send("\r")
-        plan_view = strip_ansi(pi.read(3))
-        if "Plan / DAG" not in plan_view:
-            failures.append("/project plan did not open the plan view")
-        pi.send("q")
-        time.sleep(0.3)
-        pi.read(1)
+        # Tab switches views, digit jumps to a specific view.
+        session.send("\t")
+        session.pump(1.2)
+        switched = session.text()
+        check("Direction (2/11)" in switched, "tab did not switch to Direction", failures)
+        session.send("6")
+        session.pump(1.2)
+        risks = session.text()
+        check("Risks (6/11)" in risks, "digit 6 did not open Risks", failures)
+
+        # Every rendered line must fit the terminal.
+        for line in session.lines():
+            check(len(line) <= args.cols, f"line wider than terminal: {line[:60]!r}", failures)
+
+        # Close and confirm the dashboard is gone.
+        session.send("q")
+        session.pump(1.2)
+        closed = session.text()
+        check("Dashboard (1/11)" not in closed, "q did not close the dashboard", failures)
     finally:
-        pi.close()
+        session.close()
 
     if failures:
         print("TUI SMOKE FAILURES:")
         for failure in failures:
             print(f"- {failure}")
-        print("---- last output ----")
-        print(strip_ansi(pi.buffer)[-4000:])
+        print("---- last dashboard frame ----")
+        print(dashboard)
         return 1
     print("TUI SMOKE PASS")
     return 0

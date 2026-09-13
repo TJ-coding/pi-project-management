@@ -7,7 +7,7 @@
  */
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 import { dagStats, nextActionable, readyNodes, topoOrder } from "./dag.ts";
 import { planEvolution } from "./history.ts";
@@ -62,11 +62,10 @@ function bandColor(theme: Theme, band: string): (text: string) => string {
 }
 
 function heading(theme: Theme, title: string, width: number): string[] {
-  const label = ` ${title} `;
-  const remaining = Math.max(0, width - label.length - 3);
-  return [
-    theme.fg("borderMuted", "─".repeat(3)) + theme.fg("accent", theme.bold(label)) + theme.fg("borderMuted", "─".repeat(remaining)),
-  ];
+  const label = theme.fg("accent", theme.bold(` ${title} `));
+  // visibleWidth ignores ANSI escapes, unlike String#length, so the rule fits exactly.
+  const remaining = Math.max(0, width - visibleWidth(label) - 3);
+  return [theme.fg("borderMuted", "─".repeat(3)) + label + theme.fg("borderMuted", "─".repeat(remaining))];
 }
 
 function activePlan(project: Project) {
@@ -518,16 +517,25 @@ export interface ProjectBrowserOptions {
   /** Reload the project from disk (used by the r key). */
   reload?: () => Promise<Project>;
   initialView?: string;
+  /** Live terminal height in rows; used to size the scroll viewport. */
+  getTerminalRows?: () => number;
+  /** Called when the component's state changed and needs a repaint. */
+  onChange?: () => void;
 }
+
+/** Minimum number of body rows (chrome is title + tabs + 2 footer lines). */
+const MIN_VIEWPORT = 3;
+const CHROME_LINES = 4;
 
 export class ProjectBrowser {
   private project: Project;
   private theme: Theme;
   private onClose: () => void;
   private reload?: () => Promise<Project>;
+  private getTerminalRows?: () => number;
+  private onChange?: () => void;
   private viewIndex = 0;
   private scroll = 0;
-  private lines: string[] = [];
   private cachedWidth = -1;
   private notice: string | null = null;
 
@@ -536,12 +544,21 @@ export class ProjectBrowser {
     this.theme = options.theme;
     this.onClose = options.onClose;
     this.reload = options.reload;
+    this.getTerminalRows = options.getTerminalRows;
+    this.onChange = options.onChange;
     const index = options.initialView ? VIEWS.findIndex((view) => view.id === options.initialView) : 0;
     this.viewIndex = index >= 0 ? index : 0;
   }
 
   get currentView(): string {
     return VIEWS[this.viewIndex]!.id;
+  }
+
+  /** How many body rows fit, leaving room for our chrome and Pi's own status rows. */
+  private viewportHeight(): number {
+    const rows = this.getTerminalRows?.() ?? 24;
+    // Leave 3 rows for Pi's status/footer area so the dock never has to clip us.
+    return Math.max(MIN_VIEWPORT, Math.min(60, rows - CHROME_LINES - 3));
   }
 
   handleInput(data: string): void {
@@ -596,60 +613,81 @@ export class ProjectBrowser {
       void this.reload()
         .then((project) => {
           this.project = project;
-          this.notice = `reloaded ${new Date().toISOString()}`;
-          this.cachedWidth = -1;
+          this.notice = `reloaded ${new Date().toISOString().slice(11, 19)}`;
         })
         .catch((error: unknown) => {
           this.notice = `reload failed: ${(error as Error).message}`;
-        });
+        })
+        .finally(() => this.onChange?.());
       return;
     }
   }
 
+  /** One-line, always-fitting tab strip so the chrome height never changes. */
+  private tabLine(width: number): string {
+    const theme = this.theme;
+    const full = VIEWS.map((candidate, index) => {
+      const label = `${index + 1}:${candidate.title}`;
+      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${label}]`)) : theme.fg("dim", ` ${label} `);
+    }).join(theme.fg("borderMuted", "|"));
+    if (visibleWidth(full) <= width) return full;
+
+    // Narrow terminal: numbers only, with the active view named at the end.
+    const numbers = VIEWS.map((_, index) => {
+      const label = String(index + 1);
+      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${label}]`)) : theme.fg("dim", ` ${label} `);
+    }).join(theme.fg("borderMuted", "·"));
+    const active = theme.fg("accent", theme.bold(` ${VIEWS[this.viewIndex]!.title} `));
+    const combined = `${numbers}  ${active}`;
+    if (visibleWidth(combined) <= width) return combined;
+    return truncateToWidth(theme.fg("accent", theme.bold(`[${VIEWS[this.viewIndex]!.title}]`)), width);
+  }
+
   render(width: number): string[] {
     const theme = this.theme;
-    const bodyHeight = 22;
-    if (this.cachedWidth !== width) {
-      this.cachedWidth = width;
-      this.lines = [];
-    }
+    if (this.cachedWidth !== width) this.cachedWidth = width;
 
     const out: string[] = [];
     const view = VIEWS[this.viewIndex]!;
+    const viewport = this.viewportHeight();
 
-    // Title bar.
-    const title = `${this.project.meta.name} — ${view.title}`;
+    // Title bar (single line).
+    const title = `${this.project.meta.name} — ${view.title} (${this.viewIndex + 1}/${VIEWS.length})`;
     out.push(truncateToWidth(theme.bg("customMessageBg", theme.fg("accent", theme.bold(` ${title} `))), width));
 
-    // Tab bar.
-    const tabs = VIEWS.map((candidate, index) => {
-      const label = `${index + 1}:${candidate.title}`;
-      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${label}]`)) : theme.fg("dim", ` ${label} `);
-    }).join(theme.fg("dim", "|"));
-    out.push(...wrapTextWithAnsi(tabs, width));
+    // Tab bar (single line, never wraps).
+    out.push(this.tabLine(width));
 
-    // Content.
+    // Content window.
     const content = view.render(this.project, theme, width);
-    const maxScroll = Math.max(0, content.length - bodyHeight);
-    this.scroll = Math.min(this.scroll, maxScroll);
-    const window = content.slice(this.scroll, this.scroll + bodyHeight);
+    const maxScroll = Math.max(0, content.length - viewport);
+    this.scroll = Math.max(0, Math.min(this.scroll, maxScroll));
+    const end = Math.min(content.length, this.scroll + viewport);
+    const window = content.slice(this.scroll, end);
     out.push(...window);
-    for (let i = window.length; i < bodyHeight; i++) out.push("");
+    // Pad only while scrolling, so the panel height is stable mid-scroll but a
+    // short view stays short (padding an empty view just wastes screen rows).
+    if (content.length > viewport) {
+      for (let i = window.length; i < viewport; i++) out.push("");
+    }
 
-    // Status + footer.
-    const scrollInfo = content.length > bodyHeight ? ` ${this.scroll + 1}-${Math.min(content.length, this.scroll + bodyHeight)}/${content.length}` : "";
+    // Footer: position/scroll feedback + keys.
+    const range = content.length === 0 ? "0 lines" : `Lines ${this.scroll + 1}-${end}/${content.length}`;
+    const scrollable = content.length > viewport;
+    const up = scrollable && this.scroll > 0 ? "↑" : " ";
+    const down = scrollable && end < content.length ? "↓" : " ";
+    const notice = this.notice ? `  ${this.notice}` : "";
     out.push(
       truncateToWidth(
-        theme.fg("dim", `${VIEWS[this.viewIndex]!.title}${scrollInfo}${this.notice ? `  ${this.notice}` : ""}`),
+        theme.fg("dim", `${up}${down} `) +
+          theme.fg("muted", view.title) +
+          theme.fg("dim", `  ${range}${scrollable ? " · j/k ↑↓ scroll · space page · g/G top/bottom" : " · nothing more to scroll"}${notice}`),
         width,
       ),
     );
     out.push(
       truncateToWidth(
-        theme.fg(
-          "dim",
-          "tab/←→ switch · 1-9 jump · ↑↓/j/k scroll · space/pgdn page · g/G top/bottom · r reload · q close",
-        ),
+        theme.fg("dim", "tab/←→ switch · 1-9 jump · r reload · q close"),
         width,
       ),
     );
@@ -659,7 +697,6 @@ export class ProjectBrowser {
 
   invalidate(): void {
     this.cachedWidth = -1;
-    this.lines = [];
   }
 }
 

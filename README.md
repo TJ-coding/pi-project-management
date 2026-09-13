@@ -100,7 +100,10 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 | `/pm` | shorthand for `/project` |
 
 While the dashboard is open: `tab`/arrows switch views, `1-9` jump, `j`/`k` or
-arrows scroll, `space`/`pgdn` page, `r` reload from disk, `q` close.
+arrows scroll, `space`/`pgdn` page, `g`/`G` jump to the top/bottom, `r` reload
+from disk, `q` close. The footer always shows the visible line range, e.g.
+`↓ Risks  Lines 7-29/45 · j/k ↑↓ scroll · …`, or `nothing more to scroll` when
+the view already fits.
 
 ## Tools available to the agent
 
@@ -147,8 +150,10 @@ Direction → State → Intelligence + Risks → Strategy → Plan/DAG → Execu
 ```bash
 npm install
 npm run check        # typecheck + unit/integration tests (node --test, native TS)
+npm run demo         # generate a content-rich demo project at /tmp/pi-pm-demo
 npm run smoke:rpc    # real `pi --mode rpc` run exercising tools end to end
-npm run smoke:tui    # real `pi` TUI in a pty, opens the dashboard
+npm run smoke:commands  # run every /project command through real pi in RPC mode
+npm run smoke:tui    # real `pi` TUI in a pty (self-bootstraps a pyte venv)
 ```
 
 Layout:

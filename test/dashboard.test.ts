@@ -156,6 +156,58 @@ describe("dashboard", () => {
     assert.match(status, /ready/);
   });
 
+  test("chrome stays one line per row and never clips the dock", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    for (const [rows, width] of [[30, 100], [30, 80], [12, 60], [50, 140]] as const) {
+      const browser = new ProjectBrowser({ project, theme, onClose: () => undefined, getTerminalRows: () => rows });
+      for (const view of VIEWS) {
+        const rendered = browser.render(width);
+        // title + tabs + at most (rows - 3 - 4) body + 2 footer lines
+        assert.ok(rendered.length <= rows - 3, `${view.id} renders ${rendered.length} lines for ${rows} rows`);
+        for (const line of rendered) {
+          assert.ok(visibleWidth(line) <= width, `${view.id} line exceeds ${width}: ${JSON.stringify(line)}`);
+        }
+        browser.handleInput("\t");
+      }
+    }
+  });
+
+  test("headings fit exactly and never wrap into stray rules", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    for (const width of [60, 80, 100, 132]) {
+      const lines = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, width);
+      for (const line of lines) {
+        assert.ok(visibleWidth(line) <= width);
+        assert.doesNotMatch(line, /^─+$/, `stray separator line at width ${width}: ${JSON.stringify(line)}`);
+      }
+      assert.ok(lines.some((line) => line.includes("VISION")));
+    }
+  });
+
+  test("footer reports scroll position and tells you when nothing more can scroll", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+
+    const long = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "risks", getTerminalRows: () => 10 });
+    const first = long.render(100).join("\n");
+    assert.match(first, /Lines 1-3\/5/);
+    assert.match(first, /j\/k/);
+    long.handleInput("j");
+    long.handleInput("j");
+    const scrolled = long.render(100).join("\n");
+    assert.match(scrolled, /Lines 3-5\/5/);
+
+    // A view that fits reports no scrolling without any stale hint.
+    const empty = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "strategy", getTerminalRows: () => 30 });
+    const emptyText = empty.render(100).join("\n");
+    assert.match(emptyText, /nothing more to scroll/);
+  });
+
   test("commands expose a text fallback for every view", () => {
     const fallbacks = new Set(viewFallbacks());
     for (const view of VIEWS) assert.ok(fallbacks.has(view.id), `no fallback for ${view.id}`);
