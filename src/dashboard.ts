@@ -440,7 +440,8 @@ export function renderPlanInteractive(
   for (const group of groups) {
     lines.push(sectionHeader(theme, group.label, `${group.nodes.length + group.hidden}`, width, group.tone));
     for (const node of group.nodes) {
-      lines.push(containerRow(theme, planNodeContent(theme, node, bloated.has(`plan:${plan.id}/${node.id}`)), width, node.id === activeId));
+      const markable = node.status !== "COMPLETED" && node.status !== "ABANDONED" && node.status !== "SUPERSEDED";
+      lines.push(containerRow(theme, planNodeContent(theme, node, bloated.has(`plan:${plan.id}/${node.id}`) && markable), width, node.id === activeId));
     }
     if (group.hidden > 0) {
       lines.push(containerNote(theme, theme.fg("dim", `… +${group.hidden} more`), width));
@@ -633,6 +634,7 @@ const dashboardView: ViewDefinition = {
     const next = plan ? nextActionable(plan.nodes) : undefined;
     const openQuestions = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
     const openRisks = byRiskPriority(project.risks).filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING");
+    const bloatedIds = overBudgetEntityIds(project);
     const activeGoals = project.goals.filter((goal) => goal.status === "ACTIVE");
     const doneGoals = project.goals.filter((goal) => goal.status === "COMPLETED");
     const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED");
@@ -726,15 +728,17 @@ const dashboardView: ViewDefinition = {
     const signals: string[] = [];
     if (openQuestions[0]) {
       const question = openQuestions[0];
-      signals.push(metricLine(theme, "?", "warning", question.id, question.question, scoreBand(questionScore(question)), width));
+      signals.push(
+        metricLine(theme, "?", "warning", question.id, question.question, scoreBand(questionScore(question)), width, bloatedIds.has(`question:${question.id}`)),
+      );
     }
     if (openRisks[0]) {
       const risk = openRisks[0];
-      signals.push(metricLine(theme, "!", "error", risk.id, risk.title, `exp ${riskExposure(risk).toFixed(2)}`, width));
+      signals.push(metricLine(theme, "!", "error", risk.id, risk.title, `exp ${riskExposure(risk).toFixed(2)}`, width, bloatedIds.has(`risk:${risk.id}`)));
     }
     if (activeGoals[0]) {
       const goal = activeGoals[0];
-      signals.push(metricLine(theme, "→", "accent", goal.id, goal.title, `P${goal.priority}`, width));
+      signals.push(metricLine(theme, "→", "accent", goal.id, goal.title, `P${goal.priority}`, width, bloatedIds.has(`goal:${goal.id}`)));
     }
     if (signals.length === 0) lines.push(containerNote(theme, theme.fg("dim", "nothing recorded yet"), width));
     lines.push(...signals);
@@ -769,18 +773,22 @@ function metricLine(
   title: string,
   metric: string,
   width: number,
+  bloated = false,
 ): string {
-  const head = `${theme.fg(tone, glyph)} ${theme.fg("muted", id.padEnd(4))}`;
+  const head = `${bloated ? theme.fg("warning", "⚠ ") : ""}${theme.fg(tone, glyph)} ${theme.fg("muted", id.padEnd(4))}`;
   const headWidth = visibleWidth(head);
   const tailWidth = visibleWidth(metric);
-  const room = Math.max(10, width - headWidth - 3);
+  // The container row spends 4 columns on its gutter; fill only what is left or the
+  // metric is clipped to "MEDI…" by the outer truncation.
+  const inner = Math.max(10, width - 4);
+  const room = Math.max(10, inner - headWidth - 3);
   // A metric clipped to "M..." is worse than no metric: drop the column instead.
   const showMetric = tailWidth + 12 <= room;
   const available = Math.max(10, showMetric ? room - tailWidth - 1 : room);
   const flat = oneLine(title);
   const text = flat.length > available ? `${flat.slice(0, Math.max(0, available - 1))}…` : flat;
   const tail = showMetric ? theme.fg(tone === "accent" ? "dim" : tone, metric) : "";
-  const gap = Math.max(1, width - headWidth - visibleWidth(text) - tailWidth - 6);
+  const gap = Math.max(1, inner - headWidth - visibleWidth(text) - tailWidth - 6);
   return containerRow(theme, `${head}${theme.fg("text", text)}${" ".repeat(gap)}${tail}`, width);
 }
 
@@ -868,7 +876,7 @@ const goalsView: ViewDefinition = {
       lines.push(sectionHeader(theme, group.label, `${goals.length}`, width, group.tone));
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
-        const head = `${bloatedIds.has(`goal:${goal.id}`) ? theme.fg("warning", "⚠ ") : ""}${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
+        const head = `${bloatedIds.has(`goal:${goal.id}`) && goal.status === "ACTIVE" ? theme.fg("warning", "⚠ ") : ""}${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
@@ -892,6 +900,9 @@ const riskGroups: Array<{ label: string; statuses: string[]; tone: "warning" | "
   { label: "OCCURRED", statuses: ["OCCURRED"], tone: "warning" },
   { label: "CLOSED", statuses: ["RESOLVED", "ACCEPTED", "CLOSED"], tone: "muted" },
 ];
+
+/** Rows nobody can act on any more: no point flagging them as over budget. */
+const TERMINAL_RISK_STATUSES = new Set(["CLOSED", "RESOLVED", "ACCEPTED"]);
 
 /** Risks in visual order — the same order the risks view draws and ↑↓ walks. */
 export function orderedRiskIds(project: Project): string[] {
@@ -979,7 +990,8 @@ const intelligenceView: ViewDefinition = {
       lines.push(sectionHeader(theme, label, `${questions.length}`, width, tone));
       for (const question of questions) {
         const band = scoreBand(questionScore(question));
-        const head = `${bloatedIds.has(`question:${question.id}`) ? theme.fg("warning", "⚠ ") : ""}${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
+        const open = question.status === "UNKNOWN" || question.status === "PARTIAL";
+        const head = `${bloatedIds.has(`question:${question.id}`) && open ? theme.fg("warning", "⚠ ") : ""}${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", question.status)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(question.question);
@@ -1020,7 +1032,7 @@ const risksView: ViewDefinition = {
       lines.push(sectionHeader(theme, group.label, `${risks.length}`, width, group.tone));
       for (const risk of risks) {
         const band = scoreBand(riskScore(risk));
-        const mark = bloatedIds.has(`risk:${risk.id}`) ? theme.fg("warning", "⚠ ") : "";
+        const mark = bloatedIds.has(`risk:${risk.id}`) && !TERMINAL_RISK_STATUSES.has(risk.status) ? theme.fg("warning", "⚠ ") : "";
         const head = `${mark}${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `${risk.status === "MITIGATING" ? "MITIGATING · " : ""}exp ${riskExposure(risk).toFixed(2)}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
