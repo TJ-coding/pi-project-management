@@ -137,7 +137,7 @@ plans:
       - id: N7
         title: Audit the 11 panels and features
         type: INVESTIGATION
-        status: PENDING
+        status: RUNNING
         description: Name the reason each panel and feature exists; propose removals with evidence.
         depends_on:
           - N6
@@ -150,8 +150,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-13T16:15:46.939Z
-        updated: 2026-09-13T16:16:16.360Z
-        started: null
+        updated: 2026-09-13T17:21:20.789Z
+        started: 2026-09-13T17:21:20.789Z
         finished: null
       - id: N8
         title: Reorder the panel rail
