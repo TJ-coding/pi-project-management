@@ -176,5 +176,24 @@ plans:
         updated: 2026-09-13T16:15:53.158Z
         started: null
         finished: null
+      - id: N10
+        title: Publish the repo to GitHub
+        type: TASK
+        status: PENDING
+        description: Create a public GitHub repo, push, and confirm the checks pass from a clean clone.
+        depends_on:
+          - N4
+        goal: G7
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T16:15:56.369Z
+        updated: 2026-09-13T16:15:56.369Z
+        started: null
+        finished: null
     gates: []
 changes: []
