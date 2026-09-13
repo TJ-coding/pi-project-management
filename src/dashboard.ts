@@ -459,7 +459,7 @@ const summaryView: ViewDefinition = {
   },
 };
 
-export const VIEWS: ViewDefinition[] = [
+const RAW_VIEWS: ViewDefinition[] = [
   dashboardView,
   directionView,
   goalsView,
@@ -472,6 +472,19 @@ export const VIEWS: ViewDefinition[] = [
   runsView,
   summaryView,
 ];
+
+export const VIEWS: ViewDefinition[] = RAW_VIEWS.map((view) => ({
+  ...view,
+  render: (project, theme, width) => fitLines(view.render(project, theme, width), width),
+}));
+
+/** Guarantee the Component contract: no rendered line may exceed `width`. */
+function fitLines(lines: string[], width: number): string[] {
+  const safeWidth = Math.max(1, Math.floor(width));
+  return lines
+    .flatMap((line) => wrapTextWithAnsi(line, safeWidth))
+    .map((line) => truncateToWidth(line, safeWidth));
+}
 
 function computeDepths(nodes: { id: string; dependsOn: string[] }[]): Map<string, number> {
   const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -616,7 +629,7 @@ export class ProjectBrowser {
     out.push(...wrapTextWithAnsi(tabs, width));
 
     // Content.
-    const content = view.render(this.project, theme, width).flatMap((line) => wrapTextWithAnsi(line, width));
+    const content = view.render(this.project, theme, width);
     const maxScroll = Math.max(0, content.length - bodyHeight);
     this.scroll = Math.min(this.scroll, maxScroll);
     const window = content.slice(this.scroll, this.scroll + bodyHeight);

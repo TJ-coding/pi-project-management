@@ -10,6 +10,7 @@ import { buildResumeReport } from "./context.ts";
 import { ProjectBrowser, VIEWS } from "./dashboard.ts";
 import {
   renderDirectionText,
+  renderPlanEvolutionText,
   renderGoalsText,
   renderHistoryText,
   renderIntelligenceText,
@@ -368,6 +369,7 @@ const VIEW_FALLBACK: Record<string, (project: Parameters<typeof renderStatusText
   strategy: renderStrategyText,
   plan: (project) => renderPlanText(project),
   history: (project) => renderHistoryText(project, 100),
+  evolution: (project) => renderPlanEvolutionText(project),
   runs: (project) => renderRunsText(project, 30),
   summary: renderCompletionSummary,
 };

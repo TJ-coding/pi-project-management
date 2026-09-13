@@ -80,6 +80,20 @@ export function renderReplanAnalysis(project: Project, proposal: ReplanProposal)
     if (node.dependsOn && node.dependsOn.length > 0) lines.push(`    after: ${node.dependsOn.join(", ")}`);
   }
 
+  if (proposal.recommendations) {
+    const rec = proposal.recommendations;
+    const hasAny =
+      rec.strategy !== undefined || rec.goals.length > 0 || rec.questions.length > 0 || rec.risks.length > 0;
+    if (hasAny) {
+      lines.push("", "## Proposed updates (strategy / goals / questions / risks)", "");
+      if (rec.strategy) lines.push(`- strategy: ${rec.strategy}`);
+      for (const item of rec.goals) lines.push(`- goal: ${item}`);
+      for (const item of rec.questions) lines.push(`- question: ${item}`);
+      for (const item of rec.risks) lines.push(`- risk: ${item}`);
+      lines.push("", "Apply these with project_strategy / project_goal / project_question / project_risk, or pass strategy to project_replan apply.");
+    }
+  }
+
   if (proposal.notes.length > 0) {
     lines.push("", "## What changed", "");
     for (const note of proposal.notes) lines.push(`- ${note}`);

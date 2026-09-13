@@ -11,6 +11,7 @@
 import { readyNodes } from "./dag.ts";
 import { appendHistory } from "./history.ts";
 import { nextId } from "./ids.ts";
+import { cleanProse } from "./markdown.ts";
 import { byQuestionPriority, byRiskPriority, questionScore, riskScore, scoreBand } from "./scoring.ts";
 import type {
   GateSpec,
@@ -53,10 +54,18 @@ export interface ProposedNode {
   run?: string | null;
 }
 
+export interface ReplanRecommendations {
+  strategy?: string;
+  goals: string[];
+  questions: string[];
+  risks: string[];
+}
+
 export interface ReplanProposal {
   trigger: string;
   rationale: string;
   title: string;
+  /** Suggested strategy update; applied when present. */
   strategy?: Partial<Strategy>;
   nodes: ProposedNode[];
   /** Human-readable list of what changed. */
@@ -65,6 +74,8 @@ export interface ReplanProposal {
   carried: string[];
   /** Evidence lines supplied by the caller (spec 25 input 12). */
   evidenceHints?: string[];
+  /** Proposed updates to strategy/goals/questions/risks (spec 25). */
+  recommendations?: ReplanRecommendations;
 }
 
 /**
@@ -200,7 +211,75 @@ export function analyzeReplan(project: Project, inputs: ReplanInputs): ReplanPro
     superseded,
     carried,
     evidenceHints: inputs.evidence ?? [],
+    recommendations: buildRecommendations(project, nodes),
   };
+}
+
+/**
+ * Proposed updates to strategy / goals / questions / risks (spec 25).
+ * These are suggestions for the agent (and human) to apply with the dedicated
+ * tools; the plan itself is applied by `applyReplan`.
+ */
+function buildRecommendations(project: Project, nodes: ProposedNode[]): ReplanRecommendations {
+  const goalStatus = new Map(project.goals.map((goal) => [goal.id, goal.status]));
+  const linkedQuestions = new Set(nodes.filter((node) => node.question).map((node) => node.question as string));
+  const linkedRisks = new Set(nodes.filter((node) => node.risk).map((node) => node.risk as string));
+  const linkedGoals = new Set(nodes.filter((node) => node.goal).map((node) => node.goal as string));
+
+  const topQuestion = byQuestionPriority(
+    project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL"),
+  )[0];
+  const topRisk = byRiskPriority(project.risks).find(
+    (risk) => risk.status === "OPEN" || risk.status === "MITIGATING",
+  );
+
+  let strategy: string | undefined;
+  if (!project.strategy.approach.trim()) {
+    strategy = `No strategy recorded yet. Proposed approach: ${
+      topQuestion ? `answer ${topQuestion.id} ("${topQuestion.question}")` : "verify the current plan"
+    }${topRisk ? ` while reducing ${topRisk.id} ("${topRisk.title}")` : ""}.`;
+  } else if (topQuestion && !project.strategy.priorities.some((priority) => priority.includes(topQuestion.id))) {
+    strategy = `Current approach still stands; consider adding "${topQuestion.id}: ${topQuestion.question}" to strategy priorities.`;
+  }
+
+  const goals: string[] = [];
+  for (const goal of project.goals) {
+    if (goal.status !== "ACTIVE") continue;
+    if (!linkedGoals.has(goal.id) && goal.tasks.length === 0) {
+      goals.push(`Goal ${goal.id} ("${goal.title}") has no work in the current plan.`);
+    }
+    const openLinked = project.questions.filter(
+      (question) =>
+        goal.questions.includes(question.id) && (question.status === "UNKNOWN" || question.status === "PARTIAL"),
+    ).length;
+    if (openLinked === 0 && goal.tasks.length > 0 && goal.tasks.every((taskId) => {
+      const node = project.plans.plans.flatMap((plan) => plan.nodes).find((candidate) => candidate.id === taskId);
+      return node && (node.status === "COMPLETED" || node.status === "SUPERSEDED");
+    })) {
+      goals.push(`Goal ${goal.id} ("${goal.title}") looks satisfiable: verify success criteria and consider completing it.`);
+    }
+  }
+
+  const questions: string[] = [];
+  for (const question of byQuestionPriority(
+    project.questions.filter((item) => item.status === "UNKNOWN" || item.status === "PARTIAL"),
+  ).slice(0, 5)) {
+    if (!linkedQuestions.has(question.id)) {
+      questions.push(`${question.id} ("${question.question}") is open but has no investigation in the plan.`);
+    }
+  }
+
+  const risks: string[] = [];
+  for (const risk of byRiskPriority(project.risks).slice(0, 5)) {
+    if (risk.status !== "OPEN" && risk.status !== "MITIGATING") continue;
+    if (!risk.mitigation.trim()) risks.push(`${risk.id} ("${risk.title}") has no mitigation recorded.`);
+    if (!linkedRisks.has(risk.id) && riskScore(risk) >= 0.25) {
+      risks.push(`${risk.id} ("${risk.title}") has no work in the plan.`);
+    }
+  }
+
+  void goalStatus;
+  return { strategy, goals, questions, risks };
 }
 
 export interface ApplyResult {
@@ -243,6 +322,31 @@ export function applyReplan(
   const idSet = new Set(ids);
   const notes = [...proposal.notes];
   const droppedDeps: string[] = [];
+
+  // Optional strategy update proposed alongside the plan (spec 25).
+  if (proposal.strategy && Object.keys(proposal.strategy).length > 0) {
+    const strategy = project.strategy;
+    if (proposal.strategy.approach !== undefined) strategy.approach = cleanProse(proposal.strategy.approach);
+    if (proposal.strategy.hypotheses !== undefined) strategy.hypotheses = proposal.strategy.hypotheses.map(cleanProse);
+    if (proposal.strategy.priorities !== undefined) strategy.priorities = proposal.strategy.priorities.map(cleanProse);
+    if (proposal.strategy.rationale !== undefined) strategy.rationale = cleanProse(proposal.strategy.rationale);
+    if (proposal.strategy.alternatives !== undefined) {
+      strategy.alternatives = proposal.strategy.alternatives.map(cleanProse);
+    }
+    strategy.updated = options.at;
+    notes.push("Strategy updated as part of this replan.");
+    appendHistory(
+      project,
+      {
+        kind: "strategy.changed",
+        summary: `Strategy updated during replan ${id}: ${cleanProse(proposal.strategy.rationale ?? proposal.rationale)}`,
+        by,
+        refs: [id],
+        at: options.at,
+      },
+      options.at,
+    );
+  }
 
   const nodes: PlanNode[] = proposal.nodes.map((proposed, index) => {
     const nodeId = ids[index]!;

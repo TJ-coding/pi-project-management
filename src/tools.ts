@@ -1086,6 +1086,15 @@ export function registerProjectTools(pi: ExtensionAPI): void {
       evidence: Type.Optional(Type.Array(Type.String())),
       title: Type.Optional(Type.String()),
       rationale: Type.Optional(Type.String({ description: "Override the generated rationale" })),
+      strategy: Type.Optional(
+        Type.Object({
+          approach: Type.Optional(Type.String()),
+          hypotheses: Type.Optional(Type.Array(Type.String())),
+          priorities: Type.Optional(Type.Array(Type.String())),
+          rationale: Type.Optional(Type.String()),
+          alternatives: Type.Optional(Type.Array(Type.String())),
+        }),
+      ),
       pivot: Type.Optional(Type.Boolean({ description: "Mark this as a fundamental pivot (strategic)" })),
       approved: Type.Optional(Type.Boolean()),
       nodes: Type.Optional(
@@ -1119,6 +1128,7 @@ export function registerProjectTools(pi: ExtensionAPI): void {
         title: params.title,
       }));
       if (params.rationale) proposal.rationale = params.rationale;
+      if (params.strategy) proposal.strategy = params.strategy;
       if (params.nodes && params.nodes.length > 0) {
         proposal.nodes = params.nodes.map((node) => ({
           ref: node.ref,

@@ -1,0 +1,27 @@
+Work through the project-management tooling step by step. Call every tool listed below, in order, one call per step, and do not skip any step. Keep replies short.
+
+1. project_init — a project may already exist; if so that is fine, continue.
+2. project_direction action=set, vision="Ship a verified persistent project layer", intent="Prove agents and humans share one project interface", approved=true, reason="smoke workflow".
+3. project_goal action=create, title="End-to-end tools", priority=5, successCriteria=["every tool called and persisted"].
+4. project_state action=set, current="Smoke workflow running", capabilities=["project tools"].
+5. project_question action=add, question="Do all tools persist correctly?", importance=1, uncertainty=1, decisionImpact=1.
+6. project_risk action=add, title="Schema mismatch between agent and extension", probability=0.3, impact=0.9, mitigation="smoke test every tool".
+7. project_strategy action=set, approach="Exercise every project tool once".
+8. project_replan action=analyze, trigger="smoke workflow", evidence=["no evidence yet"].
+9. project_replan action=apply, trigger="smoke workflow".
+10. project_plan action=get.
+11. project_plan action=add_node, title="Verify persistence", type=REVIEW, dependsOn=[].
+12. project_gate action=define, node=<the node id you just added>, gateType=REVIEW, criteria="all tools round-trip".
+13. project_gate action=evaluate, node=<that same node>, outcome=PASS, notes="smoke passed".
+14. project_question action=answer, id=Q1, answer="Yes, all tools persisted", status=CONFIRMED, confidence=0.9.
+15. project_decision action=record, title="Tools validated", decision="All project tools persist", rationale="smoke workflow", authority=SIGNIFICANT.
+16. project_run action=start, title="Smoke run", command="echo hello-from-smoke > smoke-output.txt".
+17. project_run action=list.
+18. project_run action=finish, id=<the run id>, status=COMPLETED, notes="done".
+19. project_context node=<the review node id>.
+20. project_resume.
+21. project_review.
+22. project_history action=list.
+23. project_status section=overview.
+
+When every step is done, reply with the single word DONE.
