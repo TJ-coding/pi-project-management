@@ -96,3 +96,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:35:34.684Z **run.started** — Run RUN2 started: Execute the ready plan nodes (N1, N2, N5, N6, N11, N12) (node N12) [RUN2] (by agent)
 - 2026-09-13T16:38:12.583Z **task.updated** — Node N5 PENDING -> COMPLETED: Forward options in every mutation [N5] (by agent)
 - 2026-09-13T16:38:12.769Z **risk.resolved** — Risk R4 resolved: commit:false is ignored by several mutations [R4] (by agent)
+- 2026-09-13T16:41:40.858Z **task.updated** — Node N1 PENDING -> COMPLETED: Add rename for the project name [N1] (by agent)

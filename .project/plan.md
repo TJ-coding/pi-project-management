@@ -6,8 +6,9 @@ Rationale: Created implicitly when the first node was added.
 
 ## Nodes
 
-- [PENDING] N1 TASK — Add rename for the project name {goal:G3 q:Q2}
+- [COMPLETED] N1 TASK — Add rename for the project name {goal:G3 q:Q2}
     Rename without hand-editing project.yaml; keep the id and slug stable unless asked.
+    outputs: project_rename tool and /project rename subcommand; Rename touches meta.name and slug only; ids and paths unchanged (Q2); Empty name refused; same-name rename is a no-op
 - [PENDING] N2 TASK — Show live word counters in entity forms {goal:G2}
     Count words and characters while typing, so a save is never refused by surprise.
 - [COMPLETED] N3 INVESTIGATION — Decide the digest shape without dropping facts {goal:G3 q:Q1}
