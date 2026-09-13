@@ -58,3 +58,21 @@
   created: 2026-09-13T15:59:01.820Z
   updated: 2026-09-13T16:16:21.205Z
   answered: 2026-09-13T16:16:21.205Z
+- id: Q4
+  question: Which panels can go without losing a spec requirement?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.65
+  uncertainty: 0.7
+  decision_impact: 0.5
+  confidence: 0
+  evidence: []
+  goals:
+    - G4
+  risks: []
+  tasks:
+    - N7
+  decisions: []
+  created: 2026-09-13T16:16:29.676Z
+  updated: 2026-09-13T16:16:29.676Z
+  answered: null

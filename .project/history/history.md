@@ -69,3 +69,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:16:16.360Z **task.updated** — Node N7 updated in P1 [N7] (by agent)
 - 2026-09-13T16:16:21.011Z **question.answered** — Question Q2 ANSWERED: Should rename touch only meta.name, or ids and paths too? [Q2] (by agent)
 - 2026-09-13T16:16:21.205Z **question.answered** — Question Q3 ANSWERED: Do budgets need per-project overrides in project.yaml? [Q3] (by agent)
+- 2026-09-13T16:16:29.676Z **question.created** — Question Q4 created: Which panels can go without losing a spec requirement? [Q4] (by agent)
