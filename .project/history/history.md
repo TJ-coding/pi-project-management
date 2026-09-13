@@ -58,3 +58,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:16:04.383Z **goal.updated** — Goal G5 updated: Visual DAG [G5] (by agent)
 - 2026-09-13T16:16:04.561Z **goal.updated** — Goal G8 updated: Reconsider ordering of panels. [G8] (by agent)
 - 2026-09-13T16:16:08.032Z **goal.updated** — Goal G4 updated: Minimalism [G4] (by agent)
+- 2026-09-13T16:16:08.206Z **risk.updated** — Risk R1 updated: A panel regression ships without review [R1] (by agent)

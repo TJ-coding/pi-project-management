@@ -13,7 +13,7 @@
   tasks: []
   owner: ""
   created: 2026-09-13T15:59:01.967Z
-  updated: 2026-09-13T15:59:01.967Z
+  updated: 2026-09-13T16:16:08.206Z
 - id: R2
   title: This project is shadowed by $HOME/.project
   description: A session started in $HOME attaches to the ACL26 project, so edits land in the wrong project.
