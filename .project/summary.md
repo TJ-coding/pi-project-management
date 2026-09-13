@@ -2,11 +2,11 @@
 
 ## Vision
 
-Make pi-project-management the project tool I run every day: readable panels, findable text, honest state.
+Project management tool to manage Agent's project that lasts from weeks to months. Zero stress for humans, it's almost like playing a strategy game. Human and agent in complete sync on where we are and where we are going.
 
 ## Intent
 
-Ship what the reviews found: enforced brevity, readable panels, a rename path, a leaner digest. Each verified by tests and a k3 review.
+Improve project maangement capability, and better utilize idle time, and allow agent to work on projects more autonomously.
 
 ## Final State
 

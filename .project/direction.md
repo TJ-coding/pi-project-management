@@ -2,19 +2,20 @@
 
 ## Vision
 
-Make pi-project-management the project tool I run every day: readable panels, findable text, honest state.
+Project management tool to manage Agent's project that lasts from weeks to months. Zero stress for humans, it's almost like playing a strategy game. Human and agent in complete sync on where we are and where we are going.
 
 ## Intent
 
-Ship what the reviews found: enforced brevity, readable panels, a rename path, a leaner digest. Each verified by tests and a k3 review.
+Improve project maangement capability, and better utilize idle time, and allow agent to work on projects more autonomously.
 
 ## Values
 
 - Readable first: if a panel needs a second look, it is broken.
-- Enforced, not advised: limits live in code and refuse bad writes.
-- Every UI change gets a k3 review before it ships.
+- Human centered project management, minimize the stress for human.
 - Verified: unit tests, the real-TUI smoke, and measured frames.
 - Short by construction: budgets keep entries tweet-sized.
+- Minimal, avoid bloating code and features.
+- Harmony between Human and AI. Both are constantly in sync.
 
 ## Concepts
 
@@ -26,4 +27,4 @@ Ship what the reviews found: enforced brevity, readable panels, a rename path, a
 
 ## Last Updated
 
-2026-09-13T15:59:01.000Z
+2026-09-13T16:04:33.451Z
