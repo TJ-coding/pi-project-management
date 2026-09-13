@@ -34,3 +34,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:12:08.779Z **goal.created** — Goal G8 created: Reconsider ordering of panels. [G8] (by human)
 - 2026-09-13T16:12:51.088Z **goal.created** — Goal G9 created: Warn when exiting change without saving. [G9] (by human)
 - 2026-09-13T16:15:20.725Z **goal.updated** — Goal G4 updated: Minimalism [G4] (by agent)
+- 2026-09-13T16:15:20.921Z **goal.updated** — Goal G5 updated: Visual DAG [G5] (by agent)

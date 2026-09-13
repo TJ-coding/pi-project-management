@@ -70,15 +70,19 @@
   description: It is difficult to identify how the DAG hierarhy are structred. Within the same pannel
     implement a more visual representation. I will leave the method / UI / UX upto you.s
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - A node's depth and parents are visible in the plan panel.
+    - The plan stays readable at 80 columns.
+    - No separate view is needed to see structure.
   status: ACTIVE
   parent: null
   superseded_by: null
   questions: []
   risks: []
-  tasks: []
+  tasks:
+    - N8
   created: 2026-09-13T16:08:21.000Z
-  updated: 2026-09-13T16:08:21.000Z
+  updated: 2026-09-13T16:15:20.921Z
 - id: G6
   title: Auto complete / Propagate
   description: As a user, I want to be able to edit gaols and make changes without having to fill
