@@ -29,8 +29,9 @@ Rationale: Created implicitly when the first node was added.
     When a goal edit saves, offer to fill empty derived fields and write the accepted ones.
 - [PENDING] N10 TASK — Publish the repo to GitHub (after N4) {goal:G7 risk:R6}
     Create a public GitHub repo, push, and confirm the checks pass from a clean clone.
-- [PENDING] N11 TASK — Confirm before discarding a dirty form {goal:G9}
+- [COMPLETED] N11 TASK — Confirm before discarding a dirty form {goal:G9}
     Esc on a form with unsaved changes asks before discarding; unchanged forms close at once.
+    outputs: Inline discard prompt on a dirty form; clean forms close at once; Only y/enter discard, so a stray key cannot lose work; Reverting a field edit counts as clean again
 - [RUNNING] N12 TASK — Add start and pause for the project {goal:G10 q:Q6}
     Add meta.paused plus a resume note; surface it in the digest, widget and status line.
 

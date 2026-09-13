@@ -206,21 +206,24 @@ plans:
       - id: N11
         title: Confirm before discarding a dirty form
         type: TASK
-        status: PENDING
+        status: COMPLETED
         description: Esc on a form with unsaved changes asks before discarding; unchanged forms close at once.
         depends_on: []
         goal: G9
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - Inline discard prompt on a dirty form; clean forms close at once
+          - Only y/enter discard, so a stray key cannot lose work
+          - Reverting a field edit counts as clean again
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T16:15:59.003Z
-        updated: 2026-09-13T16:16:16.182Z
+        updated: 2026-09-13T16:45:56.142Z
         started: null
-        finished: null
+        finished: 2026-09-13T16:45:56.142Z
       - id: N12
         title: Add start and pause for the project
         type: TASK

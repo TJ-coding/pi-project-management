@@ -97,3 +97,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:38:12.583Z **task.updated** — Node N5 PENDING -> COMPLETED: Forward options in every mutation [N5] (by agent)
 - 2026-09-13T16:38:12.769Z **risk.resolved** — Risk R4 resolved: commit:false is ignored by several mutations [R4] (by agent)
 - 2026-09-13T16:41:40.858Z **task.updated** — Node N1 PENDING -> COMPLETED: Add rename for the project name [N1] (by agent)
+- 2026-09-13T16:45:56.142Z **task.updated** — Node N11 PENDING -> COMPLETED: Confirm before discarding a dirty form [N11] (by agent)
