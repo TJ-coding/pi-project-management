@@ -55,3 +55,4 @@
 {"seq":55,"at":"2026-09-13T16:16:04.561Z","kind":"goal.updated","summary":"Goal G8 updated: Reconsider ordering of panels.","by":"agent","refs":["G8"]}
 {"seq":56,"at":"2026-09-13T16:16:08.032Z","kind":"goal.updated","summary":"Goal G4 updated: Minimalism","by":"agent","refs":["G4"]}
 {"seq":57,"at":"2026-09-13T16:16:08.206Z","kind":"risk.updated","summary":"Risk R1 updated: A panel regression ships without review","by":"agent","refs":["R1"]}
+{"seq":58,"at":"2026-09-13T16:16:11.805Z","kind":"risk.created","summary":"Risk R5 created: Propagation overwrites human text","by":"agent","refs":["R5"],"details":{"probability":0.4,"impact":0.4}}
