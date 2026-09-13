@@ -159,22 +159,25 @@ plans:
       - id: N8
         title: Reorder the panel rail
         type: TASK
-        status: PENDING
+        status: COMPLETED
         description: Order panels by hierarchy and use, then remove what N7 found unused.
         depends_on:
           - N7
         goal: G8
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - Rail ordered by hierarchy with a documented grouping
+          - 0 reaches the tenth view; the eleventh no longer advertises a dead key
+          - TUI smoke finds views by name, so reorders cannot break it
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T16:15:50.142Z
-        updated: 2026-09-13T16:16:16.005Z
+        updated: 2026-09-13T17:38:40.426Z
         started: null
-        finished: null
+        finished: 2026-09-13T17:38:40.426Z
       - id: N9
         title: Offer to fill empty goal fields on save
         type: TASK
