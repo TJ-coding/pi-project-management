@@ -50,3 +50,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:15:50.142Z **task.updated** — Node N8 added to P1: Reorder the panel rail [N8] (by agent)
 - 2026-09-13T16:15:53.159Z **task.updated** — Node N9 added to P1: Offer to fill empty goal fields on save [N9] (by agent)
 - 2026-09-13T16:15:56.369Z **task.updated** — Node N10 added to P1: Publish the repo to GitHub [N10] (by agent)
+- 2026-09-13T16:15:59.004Z **task.updated** — Node N11 added to P1: Confirm before discarding a dirty form [N11] (by agent)

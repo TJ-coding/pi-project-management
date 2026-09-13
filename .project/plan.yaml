@@ -195,5 +195,23 @@ plans:
         updated: 2026-09-13T16:15:56.369Z
         started: null
         finished: null
+      - id: N11
+        title: Confirm before discarding a dirty form
+        type: TASK
+        status: PENDING
+        description: Esc on a form with unsaved changes asks before discarding; unchanged forms close at once.
+        depends_on: []
+        goal: G9
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T16:15:59.003Z
+        updated: 2026-09-13T16:15:59.003Z
+        started: null
+        finished: null
     gates: []
 changes: []

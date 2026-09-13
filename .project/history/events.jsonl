@@ -46,3 +46,4 @@
 {"seq":46,"at":"2026-09-13T16:15:50.142Z","kind":"task.updated","summary":"Node N8 added to P1: Reorder the panel rail","by":"agent","refs":["N8"]}
 {"seq":47,"at":"2026-09-13T16:15:53.159Z","kind":"task.updated","summary":"Node N9 added to P1: Offer to fill empty goal fields on save","by":"agent","refs":["N9"]}
 {"seq":48,"at":"2026-09-13T16:15:56.369Z","kind":"task.updated","summary":"Node N10 added to P1: Publish the repo to GitHub","by":"agent","refs":["N10"]}
+{"seq":49,"at":"2026-09-13T16:15:59.004Z","kind":"task.updated","summary":"Node N11 added to P1: Confirm before discarding a dirty form","by":"agent","refs":["N11"]}
