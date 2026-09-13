@@ -20,6 +20,8 @@ Rationale: Created implicitly when the first node was added.
     Show each node's depth and parents in the plan panel, in the same pane.
 - [PENDING] N7 INVESTIGATION — Audit the 11 panels and features (after N6) {goal:G4}
     Name the reason each panel and feature exists; propose removals with evidence.
+- [PENDING] N8 TASK — Reorder the panel rail (after N7) {goal:G8}
+    Order panels by hierarchy and use, then remove what N7 found unused.
 
 ## Edges
 
@@ -27,3 +29,4 @@ N1 -> N4
 N2 -> N4
 N3 -> N4
 N6 -> N7
+N7 -> N8

@@ -47,3 +47,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:15:39.108Z **task.updated** — Node N6 added to P1: Draw DAG depth and parents [N6] (by agent)
 - 2026-09-13T16:15:44.357Z **task.updated** — Node N6 updated in P1 [N6] (by agent)
 - 2026-09-13T16:15:46.939Z **task.updated** — Node N7 added to P1: Audit the 11 panels and features [N7] (by agent)
+- 2026-09-13T16:15:50.142Z **task.updated** — Node N8 added to P1: Reorder the panel rail [N8] (by agent)

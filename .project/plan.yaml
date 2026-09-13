@@ -138,5 +138,24 @@ plans:
         updated: 2026-09-13T16:15:46.939Z
         started: null
         finished: null
+      - id: N8
+        title: Reorder the panel rail
+        type: TASK
+        status: PENDING
+        description: Order panels by hierarchy and use, then remove what N7 found unused.
+        depends_on:
+          - N7
+        goal: G8
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T16:15:50.142Z
+        updated: 2026-09-13T16:15:50.142Z
+        started: null
+        finished: null
     gates: []
 changes: []
