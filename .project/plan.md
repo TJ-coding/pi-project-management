@@ -10,8 +10,9 @@ Rationale: Created implicitly when the first node was added.
     Rename without hand-editing project.yaml; keep the id and slug stable unless asked.
 - [PENDING] N2 TASK — Show live word counters in entity forms {goal:G2}
     Count words and characters while typing, so a save is never refused by surprise.
-- [PENDING] N3 INVESTIGATION — Decide the digest shape without dropping facts {goal:G3 q:Q1}
+- [COMPLETED] N3 INVESTIGATION — Decide the digest shape without dropping facts {goal:G3 q:Q1}
     Work out what the digest must carry and what moves to /project status.
+    outputs: A capped NEXT list names how many ready nodes it hid and where to read them; Digest answers Q1; test asserts the pointer appears only when something is hidden
 - [PENDING] N4 REVIEW — k3 sign-off on the frames (after N1, N2, N3) {goal:G1 risk:R1}
     Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
 - [PENDING] N5 TASK — Forward options in every mutation {risk:R4}

@@ -46,21 +46,23 @@ plans:
       - id: N3
         title: Decide the digest shape without dropping facts
         type: INVESTIGATION
-        status: PENDING
+        status: COMPLETED
         description: Work out what the digest must carry and what moves to /project status.
         depends_on: []
         goal: G3
         risk: null
         question: Q1
-        outputs: []
+        outputs:
+          - A capped NEXT list names how many ready nodes it hid and where to read them
+          - Digest answers Q1; test asserts the pointer appears only when something is hidden
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T15:59:03.265Z
-        updated: 2026-09-13T16:15:32.285Z
+        updated: 2026-09-13T16:19:51.013Z
         started: null
-        finished: null
+        finished: 2026-09-13T16:19:51.013Z
       - id: N4
         title: k3 sign-off on the frames
         type: REVIEW
