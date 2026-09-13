@@ -73,3 +73,4 @@
 {"seq":73,"at":"2026-09-13T16:16:55.364Z","kind":"strategy.changed","summary":"Strategy changed: Six new goals widened the scope; keep the ordering explicit","by":"agent","refs":[]}
 {"seq":74,"at":"2026-09-13T16:16:58.737Z","kind":"decision.made","summary":"Decision D3 (SIGNIFICANT): Absorb the six new goals into the plan","by":"agent","refs":["D3","G4","G5","G6","G7","G8","G9","Q4","Q5","R5","R6"],"details":{"autoAccepted":false}}
 {"seq":75,"at":"2026-09-13T16:19:51.013Z","kind":"task.updated","summary":"Node N3 PENDING -> COMPLETED: Decide the digest shape without dropping facts","by":"agent","refs":["N3"],"details":{"reason":"Q1 answered from the source and implemented; 96 tests + TUI smoke pass"}}
+{"seq":76,"at":"2026-09-13T16:21:29.241Z","kind":"risk.updated","summary":"Risk R2 updated: This project is shadowed by $HOME/.project","by":"agent","refs":["R2"]}
