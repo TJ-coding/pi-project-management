@@ -91,3 +91,4 @@
 {"seq":91,"at":"2026-09-13T16:35:31.023Z","kind":"goal.updated","summary":"Goal G10 updated: Start / Pause Project","by":"agent","refs":["G10"]}
 {"seq":92,"at":"2026-09-13T16:35:34.684Z","kind":"run.started","summary":"Run RUN2 started: Execute the ready plan nodes (N1, N2, N5, N6, N11, N12) (node N12)","by":"agent","refs":["RUN2"],"details":{"environment":[{"kind":"local","target":"~/Projects/pi-project-management","note":"repo with npm check and TUI smoke"}]}}
 {"seq":93,"at":"2026-09-13T16:38:12.583Z","kind":"task.updated","summary":"Node N5 PENDING -> COMPLETED: Forward options in every mutation","by":"agent","refs":["N5"],"details":{"reason":"R4 fixed and guarded by a test: 97 tests pass"}}
+{"seq":94,"at":"2026-09-13T16:38:12.769Z","kind":"risk.resolved","summary":"Risk R4 resolved: commit:false is ignored by several mutations","by":"agent","refs":["R4"]}

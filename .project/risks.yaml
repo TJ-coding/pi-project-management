@@ -50,15 +50,15 @@
     commit:false; setResources, logRun and peers never forward their options."
   probability: 0.8
   impact: 0.2
-  status: OPEN
-  mitigation: Forward MutateOptions in every this.mutate() call and assert it with a test.
+  status: RESOLVED
+  mitigation: "Fixed: every mutate() call forwards options, and a test asserts commit:false moves no git ref."
   contingency: Squash the seeding commits if the history noise matters.
   questions: []
   goals: []
   tasks: []
   owner: ""
   created: 2026-09-13T15:59:43.363Z
-  updated: 2026-09-13T15:59:43.363Z
+  updated: 2026-09-13T16:38:12.769Z
 - id: R5
   title: Propagation overwrites human text
   description: Auto-filling goal fields could replace wording the human authored on purpose.
