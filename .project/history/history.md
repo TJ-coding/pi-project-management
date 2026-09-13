@@ -55,3 +55,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:16:03.841Z **goal.updated** — Goal G6 updated: Auto complete / Propagate [G6] (by agent)
 - 2026-09-13T16:16:04.013Z **goal.updated** — Goal G9 updated: Warn when exiting change without saving. [G9] (by agent)
 - 2026-09-13T16:16:04.205Z **goal.updated** — Goal G4 updated: Minimalism [G4] (by agent)
+- 2026-09-13T16:16:04.383Z **goal.updated** — Goal G5 updated: Visual DAG [G5] (by agent)
