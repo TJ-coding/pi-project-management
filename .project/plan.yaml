@@ -1,3 +1,29 @@
-active: null
-plans: []
+active: P1
+plans:
+  - id: P1
+    version: 1
+    title: Draft plan
+    rationale: Created implicitly when the first node was added.
+    created_at: 2026-09-13T15:59:02.928Z
+    superseded_by: null
+    nodes:
+      - id: N1
+        title: Add rename for the project name
+        type: TASK
+        status: PENDING
+        description: Rename without hand-editing project.yaml; keep the id and slug stable unless asked.
+        depends_on: []
+        goal: G3
+        risk: null
+        question: Q2
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T15:59:02.928Z
+        updated: 2026-09-13T15:59:02.928Z
+        started: null
+        finished: null
+    gates: []
 changes: []

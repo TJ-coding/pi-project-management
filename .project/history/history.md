@@ -16,3 +16,5 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:02.431Z **strategy.changed** — Strategy changed: seed the improvement strategy (by agent)
 - 2026-09-13T15:59:02.600Z **decision.made** — Decision D1 (SIGNIFICANT): Improve this extension through the k3 review loop [D1, G1] (by agent)
 - 2026-09-13T15:59:02.768Z **decision.made** — Decision D2 (ROUTINE): Keep project state in the repo, committed with the code [D2] (by agent)
+- 2026-09-13T15:59:02.928Z **plan.created** — Draft plan P1 created [P1] (by agent)
+- 2026-09-13T15:59:02.928Z **task.updated** — Node N1 added to P1: Add rename for the project name [N1] (by agent)

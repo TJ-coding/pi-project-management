@@ -37,7 +37,7 @@ _Not recorded._
 
 ## Plan Evolution
 
-_No plans recorded._
+- P1 (v1) Draft plan
 
 ## Lessons / Findings
 
