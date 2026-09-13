@@ -290,7 +290,9 @@ const summaryView: ViewDefinition = {
       lines.push(...bulletLines(theme, "• ", theme.fg("text", `${entry.plan} v${entry.version} — ${entry.title}`), width));
       if (entry.change) {
         const why = `why: ${entry.change.reason}`;
-        wrapTextWithAnsi(theme.fg("muted", why), Math.max(8, width - 4)).forEach((line, index) => lines.push(index === 0 ? `  ${line}` : `      ${line}`));
+        // Wrap inside the indent: 2 spaces for the first line, 6 for the rest, and
+        // the total must still fit `width` or the outer wrapper re-wraps at column 0.
+        wrapTextWithAnsi(theme.fg("muted", why), Math.max(8, width - 6)).forEach((line, index) => lines.push(index === 0 ? `  ${line}` : `      ${line}`));
       }
       if (entry.supersededBy) lines.push(`  ${theme.fg("dim", `superseded by ${entry.supersededBy}`)}`);
     }
@@ -1116,16 +1118,31 @@ function detailForEvent(event: HistoryEvent): DetailDoc {
   const fields: DetailField[] = [
     { label: "What happened", text: event.summary },
     { label: "Kind", text: `${event.kind} · by ${event.by}`, tone: "muted" },
-    { label: "When", text: ageText(event.at), tone: "dim" },
+    { label: "When", text: relativeTime(event.at), tone: "dim" },
   ];
   if (event.refs.length > 0) fields.push({ label: "References", text: event.refs.join(", "), tone: "muted" });
-  if (event.details && Object.keys(event.details).length > 0) {
-    const rendered = Object.entries(event.details)
-      .map(([key, value]) => `${key}: ${typeof value === "object" && value !== null ? JSON.stringify(value) : String(value)}`)
-      .join(" · ");
-    fields.push({ label: "Details", text: rendered, tone: "muted" });
+  const details: string[] = [`at: ${event.at}`];
+  for (const [key, value] of Object.entries(event.details ?? {})) details.push(`${humanizeKey(key)}: ${humanizeValue(value)}`);
+  return { title: `#${event.seq} · ${event.kind}`, fields, lists: [{ label: `Details (${details.length})`, items: details, tone: "muted" }] };
+}
+
+/** `answerStatus` / `answer_status` -> `answer status`, so details read as text. */
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .toLowerCase();
+}
+
+/** Flatten nested values into something readable instead of raw JSON. */
+function humanizeValue(value: unknown): string {
+  if (Array.isArray(value)) return value.map((item) => humanizeValue(item)).join(", ");
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, nested]) => `${humanizeKey(key)} ${humanizeValue(nested)}`)
+      .join(", ");
   }
-  return { title: `#${event.seq} · ${event.kind}`, fields };
+  return String(value);
 }
 
 function detailForState(project: Project): DetailDoc {
