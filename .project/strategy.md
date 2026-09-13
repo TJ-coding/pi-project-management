@@ -2,23 +2,25 @@
 
 ## Current Approach
 
-Ship small verified improvements: tests, the real-TUI smoke, then a k3 review of ANSI-stripped frames. Findings become plan nodes.
+Ship small verified improvements: tests, the real-TUI smoke, then a k3 review of ANSI-stripped frames. Findings and the six new goals become plan nodes.
 
 ## Strategic Hypotheses
 
 - External review finds usability defects that unit tests cannot.
 - Enforcing budgets in mutate() covers every write path at once.
 - One line per row plus a reading pane keeps panels scannable and complete.
+- The panel set is smaller than the spec's list once each panel names its reason.
 
 ## Priorities
 
 - 1. Panel readability, k3-verified.
 - 2. Enforced brevity everywhere text is written.
 - 3. Close the rename and digest gaps.
+- 4. The six new goals: minimalism, DAG visuals, propagation, GitHub, panel order, unsaved-edit guard.
 
 ## Rationale
 
-The tool's value is that a human can read project state at a glance and trust it. Review-driven UI work has already found real bugs, so it stays the loop for any panel change.
+The tool's value is that a human can read project state at a glance and trust it. Review-driven UI work has already found real bugs, so it stays the loop for any panel change. The six new goals are all usability or distribution work on that same loop.
 
 ## Major Alternatives Considered
 
@@ -28,4 +30,4 @@ The tool's value is that a human can read project state at a glance and trust it
 
 ## Last Updated
 
-2026-09-13T15:59:02.431Z
+2026-09-13T16:16:55.364Z

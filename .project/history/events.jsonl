@@ -70,3 +70,4 @@
 {"seq":70,"at":"2026-09-13T16:16:43.694Z","kind":"question.answered","summary":"Question Q5 ANSWERED: Does the tree or git history hold anything unfit to publish?","by":"agent","refs":["Q5","R6"],"details":{}}
 {"seq":71,"at":"2026-09-13T16:16:47.354Z","kind":"state.changed","summary":"State changed: state updated","by":"agent","refs":[]}
 {"seq":72,"at":"2026-09-13T16:16:50.246Z","kind":"state.changed","summary":"State changed: Record the add_node id gap and the publish blocker","by":"agent","refs":[]}
+{"seq":73,"at":"2026-09-13T16:16:55.364Z","kind":"strategy.changed","summary":"Strategy changed: Six new goals widened the scope; keep the ordering explicit","by":"agent","refs":[]}
