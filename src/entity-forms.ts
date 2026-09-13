@@ -9,6 +9,7 @@
 
 import type { FormField } from "./form.ts";
 import type { ProjectManager } from "./project.ts";
+import { applyGoalFill, suggestGoalFill, type GoalFillProposal } from "./propagate.ts";
 import { priorityBand, riskExposure, scoreBand } from "./scoring.ts";
 import type { Concept, ExternalRef, GateType, Goal, PlanNode, Project, Question, Risk } from "./types.ts";
 import {
@@ -34,6 +35,14 @@ export interface EntityForm {
   save: (manager: ProjectManager, options?: SaveOptions) => Promise<string>;
   /** Delete the underlying entity (only for existing entities). */
   remove?: (manager: ProjectManager) => Promise<string>;
+  /**
+   * Derived fields this entity could still be completed with, computed after a
+   * save. The caller shows them and applies only what is accepted, so a human
+   * edit is never silently replaced (G6).
+   */
+  proposeFill?: (manager: ProjectManager) => Promise<import("./propagate.ts").GoalFillProposal[]>;
+  /** Apply the accepted proposals. */
+  applyFill?: (manager: ProjectManager, accepted: import("./propagate.ts").GoalFillProposal[]) => Promise<string>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -252,6 +261,16 @@ export function goalForm(project: Project, id?: string): EntityForm {
           remove: async (manager: ProjectManager) => {
             await manager.deleteGoal(existing.id);
             return `Goal ${existing.id} deleted`;
+          },
+          proposeFill: async (manager: ProjectManager) =>
+            suggestGoalFill(await manager.read((current) => current), draft.id!),
+          applyFill: async (manager: ProjectManager, accepted: GoalFillProposal[]) => {
+            const current = await manager.read((project) => project);
+            const goal = current.goals.find((candidate) => candidate.id === draft.id);
+            if (!goal) return "goal no longer exists";
+            const patch = applyGoalFill(goal, accepted);
+            await manager.updateGoal(draft.id!, patch);
+            return `Goal ${draft.id} completed with ${accepted.length} derived field(s)`;
           },
         }
       : {}),

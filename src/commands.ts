@@ -792,6 +792,7 @@ async function runForm(
       try {
         const summary = await form.save(manager);
         ctx.ui.notify(`${summary}.`, "info");
+        await offerFill(ctx, manager, form);
         void pi;
         return;
       } catch (saveError) {
@@ -803,6 +804,7 @@ async function runForm(
             try {
               const summary = await form.save(manager, { approved: true, approvedBy: "human" });
               ctx.ui.notify(`${summary}.`, "info");
+              await offerFill(ctx, manager, form);
               return;
             } catch (retryError) {
               error = (retryError as Error).message;
@@ -814,6 +816,30 @@ async function runForm(
       }
     }
   }
+}
+
+/**
+ * After a goal saves, offer whatever the project already knows about it (G6).
+ * Each proposal is confirmed on its own, and declining leaves the goal exactly as
+ * the human typed it — a fill-in never overwrites authored text.
+ */
+async function offerFill(
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  form: EntityForm,
+): Promise<void> {
+  if (!ctx.hasUI || !form.proposeFill || !form.applyFill) return;
+  const proposals = await form.proposeFill(manager);
+  if (proposals.length === 0) return;
+  const accepted = [];
+  for (const proposal of proposals) {
+    const detail = `${proposal.label}: ${proposal.add.join(", ")}\n\n${proposal.why}`;
+    const yes = await ctx.ui.confirm("Complete this goal from the project?", detail);
+    if (yes) accepted.push(proposal);
+  }
+  if (accepted.length === 0) return;
+  const summary = await form.applyFill(manager, accepted);
+  ctx.ui.notify(`${summary}.`, "info");
 }
 
 async function openBrowser(
