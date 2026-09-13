@@ -6,6 +6,7 @@ import {
   ProjectBrowser,
   VIEWS,
   flatPlanNodes,
+  orderedGoalIds,
   planGroups,
   renderPlanInteractive,
   statusText,
@@ -265,7 +266,8 @@ describe("dashboard", () => {
     dirs.push(root);
     const project = await manager.read((current) => current);
 
-    const long = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "risks", getTerminalRows: () => 10 });
+    // Prose views scroll with j/k and report the visible window.
+    const long = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "state", getTerminalRows: () => 10 });
     const first = long.render(100).join("\n");
     assert.match(first, /1-\d+\/\d+ lines/);
     assert.match(first, /j\/k/);
@@ -273,10 +275,82 @@ describe("dashboard", () => {
     const scrolled = long.render(100).join("\n");
     assert.match(scrolled, /2-\d+\/\d+ lines/);
 
+    // Row views spend j/k on the selection, so the list window does not move.
+    const rows = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "risks", getTerminalRows: () => 10 });
+    assert.match(rows.render(100).join("\n"), /↑↓ select/);
+    rows.handleInput("j");
+    assert.match(rows.render(100).join("\n"), /1-\d+\/\d+ lines/);
+
     // A view that fits reports no scrolling without any stale hint.
     const empty = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "strategy", getTerminalRows: () => 30 });
     const emptyText = empty.render(100).join("\n");
     assert.match(emptyText, /all \d+ lines/);
+  });
+
+  test("enter opens a reading pane with the selected row's full text", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const longText = "Long explanation that would be truncated in a one-line row. ".repeat(4).trim();
+    await manager.createGoal(
+      { title: "Document the long goal", description: longText, priority: 4, successCriteria: ["criterion one", "criterion two"] },
+      { commit: false },
+    );
+    const project = await manager.read((current) => current);
+    const browser = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "goals", getTerminalRows: () => 40 });
+
+    // The list is scannable: the description is nowhere in it.
+    const list = browser.render(100).join("\n");
+    assert.match(list, /↑↓ select · enter read in full/);
+    assert.doesNotMatch(list, /Long explanation/);
+
+    browser.handleInput("\r");
+    const reading = browser.render(100).join("\n");
+    assert.match(reading, /READING/);
+    assert.match(reading, /esc back to the list/);
+    assert.match(reading, /SUCCESS CRITERIA \(2\)/);
+    assert.match(reading, /criterion one/);
+    assert.ok(reading.replace(/\s+/g, " ").includes(longText), "the reading pane shows the untruncated description");
+
+    // A short terminal scrolls the pane instead of clipping it.
+    const clipped = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "goals", getTerminalRows: () => 12 });
+    clipped.handleInput("\r");
+    const window = clipped.render(100).join("\n");
+    assert.match(window, /1-\d+\/\d+ lines/);
+    assert.doesNotMatch(window, /criterion one/, "criteria start below the fold until you scroll");
+    clipped.handleInput("\x1b");
+    assert.match(clipped.render(100).join("\n"), /↑↓ select · enter read in full/, "escape returns to the list");
+
+    // Narrow terminals wrap instead of clipping, on the list and in the pane.
+    for (const width of [40, 80]) {
+      for (const line of browser.render(width)) {
+        assert.ok(visibleWidth(line) <= width, `reading pane exceeds width ${width}: ${JSON.stringify(line)}`);
+      }
+    }
+
+    // Escape goes back to the list, and ↑↓ picks which row enter opens.
+    browser.handleInput("\x1b");
+    assert.match(browser.render(100).join("\n"), /↑↓ select · enter read in full/);
+    const ids = orderedGoalIds(project);
+    assert.ok(ids.length >= 2);
+    browser.handleInput("j");
+    browser.handleInput("\r");
+    const second = browser.render(100).join("\n");
+    assert.match(second, /Demonstrate output/);
+    assert.match(second, new RegExp(ids[1]!));
+  });
+
+  test("prose views open their uncapped text instead of the abbreviated list", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const browser = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "state", getTerminalRows: () => 40 });
+    assert.match(browser.render(100).join("\n"), /enter read every list in full/);
+    browser.handleInput("\r");
+    const text = browser.render(100).join("\n");
+    assert.match(text, /State — full text/);
+    assert.match(text, /PROBLEMS/);
+    assert.match(text, /CAPABILITIES/);
+    assert.match(text, /evaluator drift/);
   });
 
   test("e asks to edit editable views only, and the footer advertises it", async () => {

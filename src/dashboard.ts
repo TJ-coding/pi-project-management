@@ -13,12 +13,56 @@ import { blockedByDependencies, dagStats, nextActionable, readyNodes, topoOrder 
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
-import type { PlanNode, Project } from "./types.ts";
+import type { Goal, PlanNode, Project, Question, Risk } from "./types.ts";
 
 export interface ViewDefinition {
   id: string;
   title: string;
-  render: (project: Project, theme: Theme, width: number) => string[];
+  /**
+   * Rows the user can select with ↑↓, in the order they appear. Views without
+   * rows are plain documents: `enter` reads the whole section instead.
+   */
+  rows?: (project: Project) => string[];
+  /**
+   * Render the view. With `focus` set, the matching row is highlighted and
+   * `focusLine` reports which line it landed on, so the browser can keep the
+   * selection on screen.
+   */
+  render: (project: Project, theme: Theme, width: number, focus?: string | null) => string[] | ViewRender;
+  /** Everything there is to know about the focused row (or the whole section). */
+  detail?: (project: Project, focus: string | null) => DetailDoc;
+}
+
+/** A rendered view, optionally reporting the line its focused row landed on. */
+export interface ViewRender {
+  lines: string[];
+  focusLine?: number;
+}
+
+/** A labelled block of prose in the reading pane. */
+export interface DetailField {
+  label: string;
+  text: string;
+  tone?: "text" | "muted" | "dim" | "success" | "warning" | "error";
+}
+
+/** A labelled bullet list in the reading pane. */
+export interface DetailList {
+  label: string;
+  items: string[];
+  tone?: DetailField["tone"];
+}
+
+/**
+ * Full, untruncated view of one entity (or one section) for the reading pane.
+ * Views describe their data; the renderer below owns the styling and the
+ * wrapping, so long text is readable instead of clipped.
+ */
+export interface DetailDoc {
+  title: string;
+  meta?: string;
+  fields: DetailField[];
+  lists?: DetailList[];
 }
 
 /**
@@ -647,6 +691,7 @@ function truncateWrapped(text: string, width: number, maxLines: number): string[
 const directionView: ViewDefinition = {
   id: "direction",
   title: "Direction",
+  detail: (project) => detailForDirection(project),
   render(project, theme, width) {
     const lines: string[] = [];
     lines.push(...heading(theme, "VISION", width));
@@ -671,14 +716,30 @@ const GOAL_GROUPS: Array<{ label: string; statuses: string[]; tone: "accent" | "
   { label: "NOT PURSUED", statuses: ["FAILED", "ABANDONED", "SUPERSEDED"], tone: "muted" },
 ];
 
+/** Goals in visual order — the same order the goals view draws and ↑↓ walks. */
+export function orderedGoalIds(project: Project): string[] {
+  return GOAL_GROUPS.flatMap((group) =>
+    project.goals
+      .filter((goal) => group.statuses.includes(goal.status))
+      .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id, undefined, { numeric: true }))
+      .map((goal) => goal.id),
+  );
+}
+
 const goalsView: ViewDefinition = {
   id: "goals",
   title: "Goals",
-  render(project, theme, width) {
+  rows: (project) => orderedGoalIds(project),
+  detail: (project, focus) => {
+    const goal = project.goals.find((candidate) => candidate.id === focus);
+    return goal ? detailForGoal(goal) : emptyDetail("Goals", "no goal selected");
+  },
+  render(project, theme, width, focus) {
     if (project.goals.length === 0) {
       return [`  ${theme.fg("dim", "no goals yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent")}`];
     }
     const lines: string[] = [];
+    let focusLine: number | undefined;
     for (const group of GOAL_GROUPS) {
       const goals = project.goals
         .filter((goal) => group.statuses.includes(goal.status))
@@ -692,14 +753,16 @@ const goalsView: ViewDefinition = {
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `P${goal.priority} · ${extra}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = goal.title.length > available ? `${goal.title.slice(0, available - 1)}…` : goal.title;
-        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width));
+        const selected = goal.id === focus;
+        if (selected) focusLine = lines.length;
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
         if (goal.supersededBy) lines.push(containerNote(theme, theme.fg("dim", `superseded by ${goal.supersededBy}`), width));
       }
       lines.push(containerClose(theme, width));
       lines.push("");
     }
-    lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a goal")}`);
-    return lines;
+    lines.push(`  ${theme.fg("dim", "↑↓ select · enter read in full · e edit the whole list")}`);
+    return { lines, focusLine };
   },
 };
 
@@ -709,9 +772,17 @@ const riskGroups: Array<{ label: string; statuses: string[]; tone: "warning" | "
   { label: "CLOSED", statuses: ["RESOLVED", "ACCEPTED", "CLOSED"], tone: "muted" },
 ];
 
+/** Risks in visual order — the same order the risks view draws and ↑↓ walks. */
+export function orderedRiskIds(project: Project): string[] {
+  return riskGroups.flatMap((group) =>
+    byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status))).map((risk) => risk.id),
+  );
+}
+
 const stateView: ViewDefinition = {
   id: "state",
   title: "State",
+  detail: (project) => detailForState(project),
   render(project, theme, width) {
     const lines: string[] = [];
     const list = (
@@ -740,19 +811,35 @@ const stateView: ViewDefinition = {
     lines.push(sectionHeader(theme, "INITIAL", "", width, "muted"));
     lines.push(...truncateWrapped(project.state.initial || "not recorded", width - 8, 2).map((line) => containerRow(theme, theme.fg("dim", line), width)));
     lines.push(containerClose(theme, width));
-    lines.push(`  ${theme.fg("dim", "press e to edit the state")}`);
+    lines.push(`  ${theme.fg("dim", "enter read every list in full · e edit the state")}`);
     return lines;
   },
 };
 
+/** Questions in visual order — open first, then answered, then settled. */
+export function orderedQuestionIds(project: Project): string[] {
+  const groups = [
+    project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL"),
+    project.questions.filter((question) => question.status === "ANSWERED"),
+    project.questions.filter((question) => question.status === "CONFIRMED" || question.status === "INVALIDATED"),
+  ];
+  return groups.flatMap((questions) => byQuestionPriority(questions).map((question) => question.id));
+}
+
 const intelligenceView: ViewDefinition = {
   id: "intelligence",
   title: "Intelligence",
-  render(project, theme, width) {
+  rows: (project) => orderedQuestionIds(project),
+  detail: (project, focus) => {
+    const question = project.questions.find((candidate) => candidate.id === focus);
+    return question ? detailForQuestion(question) : emptyDetail("Intelligence", "no question selected");
+  },
+  render(project, theme, width, focus) {
     if (project.questions.length === 0) {
       return [`  ${theme.fg("dim", "no questions yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent what we don't know")}`];
     }
     const lines: string[] = [];
+    let focusLine: number | undefined;
     const open = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
     const answered = byQuestionPriority(project.questions.filter((q) => q.status === "ANSWERED"));
     const settled = byQuestionPriority(project.questions.filter((q) => q.status === "CONFIRMED" || q.status === "INVALIDATED"));
@@ -766,7 +853,9 @@ const intelligenceView: ViewDefinition = {
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", question.status)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = question.question.length > available ? `${question.question.slice(0, available - 1)}…` : question.question;
-        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width));
+        const selected = question.id === focus;
+        if (selected) focusLine = lines.length;
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
       }
       lines.push(containerClose(theme, width));
       lines.push("");
@@ -774,19 +863,25 @@ const intelligenceView: ViewDefinition = {
     group("OPEN", open, "warning");
     group("ANSWERED", answered, "success");
     group("SETTLED", settled, "muted");
-    lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a question")}`);
-    return lines;
+    lines.push(`  ${theme.fg("dim", "↑↓ select · enter read in full · e edit the whole list")}`);
+    return { lines, focusLine };
   },
 };
 
 const risksView: ViewDefinition = {
   id: "risks",
   title: "Risks",
-  render(project, theme, width) {
+  rows: (project) => orderedRiskIds(project),
+  detail: (project, focus) => {
+    const risk = project.risks.find((candidate) => candidate.id === focus);
+    return risk ? detailForRisk(risk) : emptyDetail("Risks", "no risk selected");
+  },
+  render(project, theme, width, focus) {
     if (project.risks.length === 0) {
       return [`  ${theme.fg("dim", "no risks yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent how this could fail")}`];
     }
     const lines: string[] = [];
+    let focusLine: number | undefined;
     for (const group of riskGroups) {
       const risks = byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status)));
       if (risks.length === 0) continue;
@@ -797,19 +892,22 @@ const risksView: ViewDefinition = {
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `exp ${riskExposure(risk).toFixed(2)} · ${risk.status}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = risk.title.length > available ? `${risk.title.slice(0, available - 1)}…` : risk.title;
-        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width));
+        const selected = risk.id === focus;
+        if (selected) focusLine = lines.length;
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
       }
       lines.push(containerClose(theme, width));
       lines.push("");
     }
-    lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a risk")}`);
-    return lines;
+    lines.push(`  ${theme.fg("dim", "↑↓ select · enter read in full · e edit the whole list")}`);
+    return { lines, focusLine };
   },
 };
 
 const strategyView: ViewDefinition = {
   id: "strategy",
   title: "Strategy",
+  detail: (project) => detailForStrategy(project),
   render(project, theme, width) {
     const lines: string[] = [];
     lines.push(...heading(theme, "CURRENT APPROACH", width));
@@ -826,9 +924,161 @@ const strategyView: ViewDefinition = {
       lines.push(...heading(theme, "RATIONALE", width));
       lines.push(theme.fg("muted", project.strategy.rationale));
     }
+    lines.push(`  ${theme.fg("dim", "enter read in full · e edit the strategy")}`);
     return lines;
   },
 };
+
+/* ------------------------------------------------------------------ */
+/* Reading pane: full, untruncated entity text                        */
+/* ------------------------------------------------------------------ */
+
+function emptyDetail(title: string, note: string): DetailDoc {
+  return { title, fields: [{ label: "Note", text: note, tone: "dim" }] };
+}
+
+function linkList(ids: string[]): string {
+  return ids.length > 0 ? ids.join(", ") : "none";
+}
+
+function detailForGoal(goal: Goal): DetailDoc {
+  const band = priorityBand(goal.priority);
+  return {
+    title: `${goal.id} · ${goal.title}`,
+    meta: `${goal.status} · priority P${goal.priority} (${band})`,
+    fields: [
+      { label: "Description", text: goal.description || "not recorded" },
+      { label: "Parent", text: goal.parent ?? "none", tone: "dim" },
+      { label: "Links", text: `questions ${linkList(goal.questions)} · risks ${linkList(goal.risks)} · tasks ${linkList(goal.tasks)}`, tone: "muted" },
+      ...(goal.supersededBy ? [{ label: "Superseded by", text: goal.supersededBy, tone: "dim" as const }] : []),
+      { label: "Updated", text: goal.updated, tone: "dim" },
+    ],
+    lists: [{ label: `Success criteria (${goal.successCriteria.length})`, items: goal.successCriteria }],
+  };
+}
+
+function detailForQuestion(question: Question): DetailDoc {
+  const evidence = question.evidence.map((item) => {
+    const where = [item.kind, item.ref].filter(Boolean).join(" — ");
+    return where ? `${where}: ${item.description}` : item.description;
+  });
+  return {
+    title: `${question.id} · ${question.question}`,
+    meta: `${question.status} · ${scoreBand(questionScore(question))} · confidence ${question.confidence.toFixed(2)}`,
+    fields: [
+      { label: "Answer", text: question.answer || "not answered yet", tone: question.answer ? "text" : "dim" },
+      {
+        label: "Scores",
+        text: `importance ${question.importance.toFixed(2)} · uncertainty ${question.uncertainty.toFixed(2)} · decision impact ${question.decisionImpact.toFixed(2)}`,
+        tone: "muted",
+      },
+      {
+        label: "Links",
+        text: `goals ${linkList(question.goals)} · risks ${linkList(question.risks)} · tasks ${linkList(question.tasks)} · decisions ${linkList(question.decisions)}`,
+        tone: "muted",
+      },
+      { label: "Updated", text: question.updated, tone: "dim" },
+    ],
+    lists: [{ label: `Evidence (${evidence.length})`, items: evidence, tone: "muted" }],
+  };
+}
+
+function detailForRisk(risk: Risk): DetailDoc {
+  const owner = risk.owner ? ` · owner ${risk.owner}` : "";
+  return {
+    title: `${risk.id} · ${risk.title}`,
+    meta: `${risk.status} · exposure ${riskExposure(risk).toFixed(2)} (${risk.probability.toFixed(2)} × ${risk.impact.toFixed(2)})${owner}`,
+    fields: [
+      { label: "Description", text: risk.description || "not recorded" },
+      { label: "Mitigation", text: risk.mitigation || "none recorded", tone: "success" },
+      { label: "Contingency", text: risk.contingency || "none recorded", tone: "warning" },
+      { label: "Links", text: `goals ${linkList(risk.goals)} · questions ${linkList(risk.questions)} · tasks ${linkList(risk.tasks)}`, tone: "muted" },
+      { label: "Updated", text: risk.updated, tone: "dim" },
+    ],
+  };
+}
+
+function detailForState(project: Project): DetailDoc {
+  const state = project.state;
+  return {
+    title: "State — full text",
+    meta: "every list in full, nothing capped",
+    fields: [
+      { label: "Current", text: state.current || "not recorded" },
+      { label: "Initial", text: state.initial || "not recorded", tone: "dim" },
+    ],
+    lists: [
+      { label: `Problems (${state.problems.length})`, items: state.problems, tone: "warning" },
+      { label: `Capabilities (${state.capabilities.length})`, items: state.capabilities, tone: "success" },
+      { label: `Known facts (${state.facts.length})`, items: state.facts, tone: "muted" },
+      { label: `Constraints (${state.constraints.length})`, items: state.constraints, tone: "muted" },
+      { label: `Discoveries (${state.discoveries.length})`, items: state.discoveries, tone: "success" },
+    ],
+  };
+}
+
+function detailForStrategy(project: Project): DetailDoc {
+  const strategy = project.strategy;
+  return {
+    title: "Strategy — full text",
+    meta: "approach, hypotheses, priorities and alternatives",
+    fields: [{ label: "Current approach", text: strategy.approach || "not defined" }],
+    lists: [
+      { label: `Hypotheses (${strategy.hypotheses.length})`, items: strategy.hypotheses },
+      { label: `Priorities (${strategy.priorities.length})`, items: strategy.priorities, tone: "success" },
+      { label: `Alternatives considered (${strategy.alternatives.length})`, items: strategy.alternatives, tone: "muted" },
+      ...(strategy.rationale ? [{ label: "Rationale", items: [strategy.rationale], tone: "muted" as const }] : []),
+    ],
+  };
+}
+
+function detailForDirection(project: Project): DetailDoc {
+  const direction = project.direction;
+  return {
+    title: "Direction — full text",
+    meta: "vision, intent, values and concepts",
+    fields: [
+      { label: "Vision", text: direction.vision || "not defined" },
+      { label: "Intent", text: direction.intent || "not defined" },
+    ],
+    lists: [
+      { label: `Values (${direction.values.length})`, items: direction.values },
+      { label: `Concepts (${direction.concepts.length})`, items: direction.concepts.map((concept) => `[${concept.type}] ${concept.text}`), tone: "muted" },
+    ],
+  };
+}
+
+/**
+ * Render a DetailDoc for the reading pane: headings, wrapped prose and bullet
+ * lists, every line inside `width`. Nothing is truncated — the pane scrolls.
+ */
+export function renderDetailDoc(theme: Theme, doc: DetailDoc, width: number): string[] {
+  const lines: string[] = [];
+  lines.push(sectionHeader(theme, "READING", "esc back · j/k scroll", width, "accent"));
+  // The title is the longest thing in the pane, so wrap it rather than clip it.
+  const rowWidth = Math.max(8, width - 4);
+  for (const line of wrapTextWithAnsi(theme.bold(theme.fg("text", doc.title)), rowWidth)) lines.push(containerRow(theme, line, width));
+  if (doc.meta) {
+    for (const line of wrapTextWithAnsi(theme.fg("dim", doc.meta), Math.max(8, width - 6))) lines.push(containerNote(theme, line, width));
+  }
+  lines.push(containerClose(theme, width));
+  lines.push("");
+  for (const field of doc.fields) {
+    lines.push(...heading(theme, field.label.toUpperCase(), width));
+    for (const line of wrapTextWithAnsi(theme.fg(field.tone ?? "text", field.text), width)) lines.push(line);
+    lines.push("");
+  }
+  for (const list of doc.lists ?? []) {
+    if (list.items.length === 0) continue;
+    lines.push(...heading(theme, list.label.toUpperCase(), width));
+    for (const item of list.items) {
+      const wrapped = wrapTextWithAnsi(theme.fg(list.tone ?? "text", item), Math.max(4, width - 4));
+      wrapped.forEach((line, index) => lines.push(index === 0 ? `  ${theme.fg("accent", "• ")}${line}` : `    ${line}`));
+    }
+    lines.push("");
+  }
+  return lines;
+}
 
 const planView: ViewDefinition = {
   id: "plan",
@@ -850,9 +1100,47 @@ const RAW_VIEWS: ViewDefinition[] = [
   summaryView,
 ];
 
-export const VIEWS: ViewDefinition[] = RAW_VIEWS.map((view) => ({
+/**
+ * Render a view to width-safe lines and, when the view reports one, the line its
+ * focused row landed on. Wrapping happens before the index is resolved, so the
+ * browser can scroll the selection into view.
+ */
+export function renderViewLines(
+  view: ViewDefinition,
+  project: Project,
+  theme: Theme,
+  width: number,
+  focus: string | null,
+): ViewRender {
+  const raw = view.render(project, theme, width, focus);
+  const rawLines = Array.isArray(raw) ? raw : raw.lines;
+  const rawFocus = Array.isArray(raw) ? undefined : raw.focusLine;
+  const safeWidth = Math.max(1, Math.floor(width));
+  const lines: string[] = [];
+  let focusLine: number | undefined;
+  rawLines.forEach((line, index) => {
+    if (rawFocus !== undefined && index === rawFocus) focusLine = lines.length;
+    for (const wrapped of wrapTextWithAnsi(line, safeWidth)) lines.push(truncateToWidth(wrapped, safeWidth));
+  });
+  return { lines, focusLine };
+}
+
+/** Focus-aware definitions used by the browser (row cursor + reading pane). */
+export const VIEW_DEFS: ViewDefinition[] = RAW_VIEWS;
+
+/**
+ * Public views keep a plain `string[]` render, so callers that only want text
+ * (tests, exports) are unaffected by the focus-aware contract above.
+ */
+export interface PublicView {
+  id: string;
+  title: string;
+  render: (project: Project, theme: Theme, width: number) => string[];
+}
+
+export const VIEWS: PublicView[] = RAW_VIEWS.map((view) => ({
   ...view,
-  render: (project, theme, width) => fitLines(view.render(project, theme, width), width),
+  render: (project: Project, theme: Theme, width: number) => renderViewLines(view, project, theme, width, null).lines,
 }));
 
 /* ------------------------------------------------------------------ */
@@ -899,6 +1187,12 @@ export class ProjectBrowser {
   private onRequestEdit?: (view: string, raw?: boolean) => void;
   private onPlanAction?: (action: { kind: "edit" | "new" | "delete"; id?: string }) => void;
   private planCursor: string | null;
+  /** Selected row per view (goals, intelligence, risks...). */
+  private cursors = new Map<string, string | null>();
+  /** The reading pane is open for the focused row (or the whole section). */
+  private detailOpen = false;
+  /** List scroll position saved while the reading pane is open. */
+  private listScroll = 0;
   private viewIndex = 0;
   private scroll = 0;
   private cachedWidth = -1;
@@ -921,7 +1215,67 @@ export class ProjectBrowser {
   }
 
   get currentView(): string {
-    return VIEWS[this.viewIndex]!.id;
+    return VIEW_DEFS[this.viewIndex]!.id;
+  }
+
+  private viewDef(): ViewDefinition {
+    return VIEW_DEFS[this.viewIndex]!;
+  }
+
+  /** Selectable rows of the current view, in visual order. */
+  private rowIds(): string[] {
+    return this.viewDef().rows?.(this.project) ?? [];
+  }
+
+  /** The row `enter` opens: the cursor if it still exists, else the first row. */
+  private focusId(): string | null {
+    const rows = this.rowIds();
+    if (rows.length === 0) return null;
+    const cursor = this.cursors.get(this.currentView) ?? null;
+    return cursor && rows.includes(cursor) ? cursor : rows[0]!;
+  }
+
+  /** Open the reading pane for the focused row (or the whole section). */
+  private openDetail(): void {
+    this.listScroll = this.scroll;
+    this.detailOpen = true;
+    this.scroll = 0;
+    this.onChange?.();
+  }
+
+  /** Leaving a view forgets its reading pane and scroll position. */
+  private resetView(): void {
+    this.detailOpen = false;
+    this.scroll = 0;
+  }
+
+  /** Scroll keys, shared by the list and the reading pane. */
+  private scrollBy(data: string, page: number): boolean {
+    if (matchesKey(data, "down") || matchesKey(data, "j")) {
+      this.scroll += 1;
+      return true;
+    }
+    if (matchesKey(data, "up") || matchesKey(data, "k")) {
+      this.scroll = Math.max(0, this.scroll - 1);
+      return true;
+    }
+    if (matchesKey(data, "pageDown") || matchesKey(data, "space")) {
+      this.scroll += page;
+      return true;
+    }
+    if (matchesKey(data, "pageUp") || matchesKey(data, "b")) {
+      this.scroll = Math.max(0, this.scroll - page);
+      return true;
+    }
+    if (matchesKey(data, "g")) {
+      this.scroll = 0;
+      return true;
+    }
+    if (matchesKey(data, "shift+g")) {
+      this.scroll = Number.MAX_SAFE_INTEGER;
+      return true;
+    }
+    return false;
   }
 
   /** How many body rows fit, leaving room for our chrome and Pi's own status rows. */
@@ -932,6 +1286,22 @@ export class ProjectBrowser {
   }
 
   handleInput(data: string): void {
+    // The reading pane is its own mode: escape goes back to the list instead of
+    // closing the browser, so reading a long answer is never a trap.
+    if (this.detailOpen) {
+      if (matchesKey(data, "escape") || matchesKey(data, "q") || matchesKey(data, "enter") || matchesKey(data, "left")) {
+        this.detailOpen = false;
+        this.scroll = this.listScroll;
+        this.onChange?.();
+        return;
+      }
+      if (matchesKey(data, "ctrl+c")) {
+        this.onClose();
+        return;
+      }
+      this.scrollBy(data, 10);
+      return;
+    }
     if (matchesKey(data, "escape") || matchesKey(data, "q") || matchesKey(data, "ctrl+c")) {
       // Escape first leaves the help screen, so `?` is never a trap.
       if (matchesKey(data, "escape") && this.helpVisible) {
@@ -994,11 +1364,11 @@ export class ProjectBrowser {
       }
     } else if (matchesKey(data, "tab") || matchesKey(data, "right") || matchesKey(data, "l")) {
       this.viewIndex = (this.viewIndex + 1) % VIEWS.length;
-      this.scroll = 0;
+      this.resetView();
       return;
     } else if (matchesKey(data, "shift+tab") || matchesKey(data, "left") || matchesKey(data, "h")) {
       this.viewIndex = (this.viewIndex - 1 + VIEWS.length) % VIEWS.length;
-      this.scroll = 0;
+      this.resetView();
       return;
     } else {
       const digit = /^([1-9])$/.exec(data);
@@ -1006,35 +1376,43 @@ export class ProjectBrowser {
         const target = Number.parseInt(digit[1]!, 10) - 1;
         if (target < VIEWS.length) {
           this.viewIndex = target;
-          this.scroll = 0;
+          this.resetView();
         }
         return;
       }
     }
-    if (matchesKey(data, "down") || matchesKey(data, "j")) {
-      this.scroll += 1;
+    // Rows: ↑↓ move the selection, enter opens the full text.
+    const rows = this.rowIds();
+    if (rows.length > 0) {
+      const index = Math.max(0, rows.indexOf(this.focusId() ?? rows[0]!));
+      if (matchesKey(data, "down") || matchesKey(data, "j")) {
+        const next = rows[Math.min(rows.length - 1, index + 1)];
+        if (next) this.cursors.set(this.currentView, next);
+        this.onChange?.();
+        return;
+      }
+      if (matchesKey(data, "up") || matchesKey(data, "k")) {
+        const previous = rows[Math.max(0, index - 1)];
+        if (previous) this.cursors.set(this.currentView, previous);
+        this.onChange?.();
+        return;
+      }
+      if (matchesKey(data, "home")) {
+        this.cursors.set(this.currentView, rows[0]!);
+        this.onChange?.();
+        return;
+      }
+      if (matchesKey(data, "end")) {
+        this.cursors.set(this.currentView, rows[rows.length - 1]!);
+        this.onChange?.();
+        return;
+      }
+    }
+    if (matchesKey(data, "enter") && this.viewDef().detail) {
+      this.openDetail();
       return;
     }
-    if (matchesKey(data, "up") || matchesKey(data, "k")) {
-      this.scroll = Math.max(0, this.scroll - 1);
-      return;
-    }
-    if (matchesKey(data, "pageDown") || matchesKey(data, "space")) {
-      this.scroll += 10;
-      return;
-    }
-    if (matchesKey(data, "pageUp") || matchesKey(data, "b")) {
-      this.scroll = Math.max(0, this.scroll - 10);
-      return;
-    }
-    if (matchesKey(data, "g")) {
-      this.scroll = 0;
-      return;
-    }
-    if (matchesKey(data, "shift+g")) {
-      this.scroll = Number.MAX_SAFE_INTEGER;
-      return;
-    }
+    if (this.scrollBy(data, 10)) return;
     if (matchesKey(data, "r") && !this.helpVisible && this.reload) {
       void this.reload()
         .then((project) => {
@@ -1088,13 +1466,14 @@ export class ProjectBrowser {
     if (this.cachedWidth !== width) this.cachedWidth = width;
 
     const out: string[] = [];
-    const view = VIEWS[this.viewIndex]!;
+    const view = VIEW_DEFS[this.viewIndex]!;
     const viewport = this.viewportHeight();
     const showingHelp = this.helpVisible && Boolean(this.helpText);
 
     // Title bar (single line): breadcrumb on the left, status on the right.
-    const titleLabel = showingHelp ? "Help" : view.title;
-    const breadcrumb = showingHelp ? `${this.project.meta.name} › Help` : `${this.project.meta.name} › ${view.title}`;
+    const breadcrumb = showingHelp
+      ? `${this.project.meta.name} › Help`
+      : `${this.project.meta.name} › ${view.title}${this.detailOpen ? " › reading" : ""}`;
     const plan = activePlan(this.project);
     const status = this.project.meta.completed
       ? "COMPLETED"
@@ -1107,14 +1486,28 @@ export class ProjectBrowser {
     // Tab bar (single line, never wraps).
     out.push(showingHelp ? theme.fg("muted", " project commands and agent tools") : this.tabLine(width));
 
-    // Content window.
-    const content = showingHelp
-      ? fitLines((this.helpText ?? "").split("\n"), width)
-      : view.id === "plan"
-        ? renderPlanInteractive(this.project, theme, width, this.planCursor).lines
-        : view.render(this.project, theme, width);
+    // Content window: the list, or the full-text reading pane when open.
+    let content: string[];
+    let focusLine: number | undefined;
+    if (showingHelp) {
+      content = fitLines((this.helpText ?? "").split("\n"), width);
+    } else if (this.detailOpen) {
+      const doc = view.detail?.(this.project, this.focusId()) ?? { title: view.title, fields: [] };
+      content = renderDetailDoc(theme, doc, width);
+    } else if (view.id === "plan") {
+      content = renderPlanInteractive(this.project, theme, width, this.planCursor).lines;
+    } else {
+      const rendered = renderViewLines(view, this.project, theme, width, this.focusId());
+      content = rendered.lines;
+      focusLine = rendered.focusLine;
+    }
     const maxScroll = Math.max(0, content.length - viewport);
     this.scroll = Math.max(0, Math.min(this.scroll, maxScroll));
+    // Keep the selected row on screen when ↑↓ walks past the viewport.
+    if (focusLine !== undefined) {
+      if (focusLine < this.scroll) this.scroll = focusLine;
+      else if (focusLine >= this.scroll + viewport) this.scroll = Math.min(maxScroll, focusLine - viewport + 1);
+    }
     const end = Math.min(content.length, this.scroll + viewport);
     const window = content.slice(this.scroll, end);
     out.push(...window);
@@ -1128,11 +1521,16 @@ export class ProjectBrowser {
     const scrollable = content.length > viewport;
     const range = content.length === 0 ? "0 lines" : scrollable ? `${this.scroll + 1}-${end}/${content.length} lines` : `all ${content.length} lines`;
     const scrollHint = scrollable && !showingHelp && this.currentView !== "plan" ? " · j/k scroll" : "";
+    const rows = this.rowIds();
     const keys = showingHelp
       ? "? or esc close help · j/k scroll · q close"
-      : this.currentView === "plan"
-        ? `↑↓ select · enter edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
-        : `tab views · 1-9 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
+      : this.detailOpen
+        ? "esc back to the list · j/k scroll · g/G ends · q close"
+        : this.currentView === "plan"
+          ? `↑↓ select · enter edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
+          : rows.length > 0
+            ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9 jump${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
+            : `tab views · 1-9 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
     const left = theme.fg("dim", ` ${keys}`);
     const right = theme.fg("dim", `${scrollable ? "↕ " : ""}${range} `);
     const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));

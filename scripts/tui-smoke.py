@@ -184,6 +184,18 @@ def main() -> int:
         session.send("3")  # Goals
         session.pump(1.0)
         check("Goals" in session.text(), "digit 3 did not open Goals", failures)
+
+        # Reading pane: enter shows the full text of the selected row instead of
+        # the truncated one-liner, and escape goes back to the list.
+        session.send("\r")
+        session.pump(1.0)
+        pane = session.text()
+        check("READING" in pane, "enter did not open the reading pane", failures)
+        check("esc back to the list" in pane, "reading pane footer missing", failures)
+        session.send("\x1b")
+        session.pump(1.0)
+        check("READING" not in session.text(), "escape did not return to the list", failures)
+
         session.send("e")
         session.pump(1.5)
         picker = session.text()

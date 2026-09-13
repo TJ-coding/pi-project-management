@@ -105,6 +105,23 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 Discovery, without leaving the TUI: press `?` inside the dashboard for the same
 reference, and type `/project ` then Tab for subcommands with descriptions.
 
+## Reading long content in the dashboard
+
+Lists stay scannable, so a row is one truncated line. Nothing is lost: press
+**`Enter`** on a row to open the **reading pane**, which shows that entity (or
+that whole section) as wrapped, untruncated text — description, success
+criteria, answer, evidence, mitigation, contingency and links.
+
+- On **Goals / Intelligence / Risks / Plan**: `↑↓` selects a row, `Enter` reads it.
+- On **Direction / State / Strategy**: `Enter` reads the section with every list
+  in full (the list view caps long sections on purpose).
+- In the pane: `j/k` or `↑↓` scroll, `space`/`b` page, `g`/`G` jump to the ends,
+  `Esc` (or `q`) goes back to the list. `e` still opens the form: reading and
+  editing are separate so you never edit something just to see it.
+
+The pane wraps to the terminal width, so the same text is readable at 40 columns
+and at 200 — it scrolls instead of clipping.
+
 ## Editing directly (human operations)
 
 Humans and agents share the same operations (spec 2.4). Besides asking the agent,
