@@ -26,6 +26,20 @@
   goals:
     - G1
   tasks: []
-  owner: null
+  owner: ""
   created: 2026-09-13T15:59:02.121Z
   updated: 2026-09-13T15:59:02.121Z
+- id: R3
+  title: Budgets block legitimate long content
+  description: A hard limit can refuse text that is genuinely needed, e.g. an offset pair or a quoted error.
+  probability: 0.3
+  impact: 0.4
+  status: OPEN
+  mitigation: Ratchet, grandfathering, and a 400-character prose limit.
+  contingency: ""
+  questions: []
+  goals: []
+  tasks: []
+  owner: null
+  created: 2026-09-13T15:59:02.269Z
+  updated: 2026-09-13T15:59:02.269Z

@@ -8,3 +8,4 @@
 {"seq":8,"at":"2026-09-13T15:59:01.820Z","kind":"question.created","summary":"Question Q3 created: Do budgets need per-project overrides in project.yaml?","by":"agent","refs":["Q3"]}
 {"seq":9,"at":"2026-09-13T15:59:01.967Z","kind":"risk.created","summary":"Risk R1 created: A panel regression ships without review","by":"agent","refs":["R1"],"details":{"probability":0.3,"impact":0.5}}
 {"seq":10,"at":"2026-09-13T15:59:02.121Z","kind":"risk.created","summary":"Risk R2 created: This project is shadowed by $HOME/.project","by":"agent","refs":["R2"],"details":{"probability":0.9,"impact":0.3}}
+{"seq":11,"at":"2026-09-13T15:59:02.269Z","kind":"risk.created","summary":"Risk R3 created: Budgets block legitimate long content","by":"agent","refs":["R3"],"details":{"probability":0.3,"impact":0.4}}

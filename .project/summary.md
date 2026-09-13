@@ -22,6 +22,7 @@ _Not recorded._
 
 - R2 This project is shadowed by $HOME/.project — exposure 0.90 x 0.30, status OPEN
 - R1 A panel regression ships without review — exposure 0.30 x 0.50, status OPEN
+- R3 Budgets block legitimate long content — exposure 0.30 x 0.40, status OPEN
 
 ## Major Questions
 
