@@ -18,7 +18,7 @@ _None yet._
 
 ## Active Problems
 
-_None yet._
+- Publishing G7 would make the ACL26 project names and a local absolute path public.
 
 ## Constraints
 
@@ -26,8 +26,9 @@ _None yet._
 
 ## Discoveries
 
-_None yet._
+- project_plan add_node ignores an explicit id, so node ids are assigned in insertion order.
+- No credentials anywhere in the tracked tree or git history, so G7 is safe to publish.
 
 ## Last Updated
 
-2026-09-13T16:16:47.354Z
+2026-09-13T16:16:50.246Z

@@ -73,3 +73,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:16:29.862Z **question.created** — Question Q5 created: Does the tree or git history hold anything unfit to publish? [Q5] (by agent)
 - 2026-09-13T16:16:43.694Z **question.answered** — Question Q5 ANSWERED: Does the tree or git history hold anything unfit to publish? [Q5, R6] (by agent)
 - 2026-09-13T16:16:47.354Z **state.changed** — State changed: state updated (by agent)
+- 2026-09-13T16:16:50.246Z **state.changed** — State changed: Record the add_node id gap and the publish blocker (by agent)

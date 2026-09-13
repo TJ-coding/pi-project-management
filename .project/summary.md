@@ -52,4 +52,5 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Lessons / Findings
 
-_None recorded._
+- project_plan add_node ignores an explicit id, so node ids are assigned in insertion order.
+- No credentials anywhere in the tracked tree or git history, so G7 is safe to publish.
