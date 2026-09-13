@@ -45,3 +45,18 @@
   tasks: []
   created: 2026-09-13T15:59:01.443Z
   updated: 2026-09-13T15:59:01.443Z
+- id: G4
+  title: Minimalism
+  description: Do we really need to show 11 panels to users? Remove ones you think are unnecesary,
+    don't remove any if you think they are all necessary. Same goes with features. We want to
+    prevent bloating software.
+  priority: 3
+  success_criteria: []
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-13T16:07:06.066Z
+  updated: 2026-09-13T16:07:06.066Z

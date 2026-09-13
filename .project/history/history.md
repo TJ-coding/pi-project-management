@@ -27,3 +27,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:43.363Z **risk.created** — Risk R4 created: commit:false is ignored by several mutations [R4] (by agent)
 - 2026-09-13T15:59:43.537Z **task.updated** — Node N5 added to P1: Forward options in every mutation [N5] (by agent)
 - 2026-09-13T16:04:33.451Z **direction.changed** — Direction changed: edited in the dashboard (by human)
+- 2026-09-13T16:07:06.066Z **goal.created** — Goal G4 created: Minimalism [G4] (by human)
