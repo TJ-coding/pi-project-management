@@ -10,7 +10,7 @@ Ship what the reviews found: enforced brevity, readable panels, a rename path, a
 
 ## Final State
 
-_Not recorded._
+Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. Open: this project is shadowed by $HOME/.project, so sessions must start inside the repo.
 
 ## Goals
 

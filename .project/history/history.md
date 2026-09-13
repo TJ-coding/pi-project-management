@@ -23,3 +23,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:03.439Z **task.updated** — Node N4 added to P1: k3 sign-off on the frames [N4] (by agent)
 - 2026-09-13T15:59:03.626Z **run.started** — Run RUN1 started: k3 usability review loop [RUN1] (by agent)
 - 2026-09-13T15:59:03.953Z **state.changed** — Project resources updated (undefined) (by agent)
+- 2026-09-13T15:59:43.187Z **state.changed** — State changed: seed the project state (by agent)

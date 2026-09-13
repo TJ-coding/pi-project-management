@@ -2,11 +2,11 @@
 
 ## Initial State
 
-Project initialized.
+Seeded 2026-09-14: direction, three goals, three questions, three risks, a four-node plan and the review run.
 
 ## Current State
 
-_Not recorded yet._
+Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. Open: this project is shadowed by $HOME/.project, so sessions must start inside the repo.
 
 ## Capabilities
 
@@ -30,4 +30,4 @@ _None yet._
 
 ## Last Updated
 
-2026-09-13T15:59:00.846Z
+2026-09-13T15:59:43.187Z
