@@ -45,6 +45,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 - D1 Improve this extension through the k3 review loop (SIGNIFICANT)
 - D2 Keep project state in the repo, committed with the code (ROUTINE)
+- D3 Absorb the six new goals into the plan (SIGNIFICANT)
 
 ## Plan Evolution
 

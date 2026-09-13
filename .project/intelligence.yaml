@@ -72,7 +72,8 @@
   risks: []
   tasks:
     - N7
-  decisions: []
+  decisions:
+    - D3
   created: 2026-09-13T16:16:29.676Z
   updated: 2026-09-13T16:16:29.676Z
   answered: null
@@ -100,7 +101,8 @@
     - R6
   tasks:
     - N10
-  decisions: []
+  decisions:
+    - D3
   created: 2026-09-13T16:16:29.862Z
   updated: 2026-09-13T16:16:43.694Z
   answered: 2026-09-13T16:16:43.694Z

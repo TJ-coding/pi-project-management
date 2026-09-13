@@ -75,3 +75,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:16:47.354Z **state.changed** — State changed: state updated (by agent)
 - 2026-09-13T16:16:50.246Z **state.changed** — State changed: Record the add_node id gap and the publish blocker (by agent)
 - 2026-09-13T16:16:55.364Z **strategy.changed** — Strategy changed: Six new goals widened the scope; keep the ordering explicit (by agent)
+- 2026-09-13T16:16:58.737Z **decision.made** — Decision D3 (SIGNIFICANT): Absorb the six new goals into the plan [D3, G4, G5, G6, G7, G8, G9, Q4, Q5, R5, R6] (by agent)
