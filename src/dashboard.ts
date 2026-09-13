@@ -183,6 +183,20 @@ function eventClock(at: string): string {
   return at.slice(11, 16);
 }
 
+/**
+ * Anything rendered as one row must be one line. Agents and hand edits can store
+ * newlines or double-escaped quotes ("...\n..." / \"quoted\") in a summary or a
+ * title, which would otherwise break the row out of its container at column 0.
+ */
+export function oneLine(text: string): string {
+  return text
+    .replace(/\\[nrt]/g, " ")
+    .replace(/\\"/g, '"')
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 const historyView: ViewDefinition = {
   id: "history",
   title: "History",
@@ -221,7 +235,7 @@ const historyView: ViewDefinition = {
       lines.push(
         containerRow(
           theme,
-          `${theme.fg("dim", eventClock(event.at))} ${theme.fg(color, event.kind.padEnd(18))} ${theme.fg("text", event.summary)}${refs}`,
+          `${theme.fg("dim", eventClock(event.at))} ${theme.fg(color, event.kind.padEnd(18))} ${theme.fg("text", oneLine(event.summary))}${refs}`,
           width,
           selected,
         ),
@@ -449,7 +463,8 @@ function planNodeContent(theme: Theme, node: PlanNode): string {
   const head = `${glyph} ${id}${type} `;
   const badgeText = badges.length > 0 ? ` ${badges.join(" ")}` : "";
   const available = Math.max(8, 68 - visibleWidth(head) - visibleWidth(badgeText));
-  const title = node.title.length > available ? `${node.title.slice(0, available - 1)}…` : node.title;
+  const flat = oneLine(node.title);
+  const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
   const fill = " ".repeat(Math.max(1, available - visibleWidth(title) + 1));
   const badgesStyled = badges.length > 0 ? theme.fg("dim", `${fill}${badges.join(" ")}`) : "";
   return `${head}${theme.fg("text", title)}${badgesStyled}`;
@@ -739,10 +754,16 @@ function metricLine(
   width: number,
 ): string {
   const head = `${theme.fg(tone, glyph)} ${theme.fg("muted", id.padEnd(4))}`;
-  const tail = theme.fg(tone === "accent" ? "dim" : tone, metric);
-  const available = Math.max(10, width - visibleWidth(head) - visibleWidth(tail) - 3);
-  const text = title.length > available ? `${title.slice(0, available - 1)}…` : title;
-  const gap = Math.max(1, width - visibleWidth(head) - visibleWidth(text) - visibleWidth(tail) - 6);
+  const headWidth = visibleWidth(head);
+  const tailWidth = visibleWidth(metric);
+  const room = Math.max(10, width - headWidth - 3);
+  // A metric clipped to "M..." is worse than no metric: drop the column instead.
+  const showMetric = tailWidth + 12 <= room;
+  const available = Math.max(10, showMetric ? room - tailWidth - 1 : room);
+  const flat = oneLine(title);
+  const text = flat.length > available ? `${flat.slice(0, Math.max(0, available - 1))}…` : flat;
+  const tail = showMetric ? theme.fg(tone === "accent" ? "dim" : tone, metric) : "";
+  const gap = Math.max(1, width - headWidth - visibleWidth(text) - tailWidth - 6);
   return containerRow(theme, `${head}${theme.fg("text", text)}${" ".repeat(gap)}${tail}`, width);
 }
 
@@ -833,7 +854,8 @@ const goalsView: ViewDefinition = {
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
-        const title = goal.title.length > available ? `${goal.title.slice(0, available - 1)}…` : goal.title;
+        const flat = oneLine(goal.title);
+        const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
         const selected = goal.id === focus;
         if (selected) focusLine = lines.length;
         lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
@@ -941,7 +963,8 @@ const intelligenceView: ViewDefinition = {
         const head = `${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", question.status)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
-        const title = question.question.length > available ? `${question.question.slice(0, available - 1)}…` : question.question;
+        const flat = oneLine(question.question);
+        const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
         const selected = question.id === focus;
         if (selected) focusLine = lines.length;
         lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
@@ -980,7 +1003,8 @@ const risksView: ViewDefinition = {
         const head = `${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `${risk.status === "MITIGATING" ? "MITIGATING · " : ""}exp ${riskExposure(risk).toFixed(2)}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
-        const title = risk.title.length > available ? `${risk.title.slice(0, available - 1)}…` : risk.title;
+        const flat = oneLine(risk.title);
+        const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
         const selected = risk.id === focus;
         if (selected) focusLine = lines.length;
         lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
@@ -1116,14 +1140,14 @@ function detailForRisk(risk: Risk): DetailDoc {
 
 function detailForEvent(event: HistoryEvent): DetailDoc {
   const fields: DetailField[] = [
-    { label: "What happened", text: event.summary },
+    { label: "What happened", text: oneLine(event.summary) },
     { label: "Kind", text: `${event.kind} · by ${event.by}`, tone: "muted" },
-    { label: "When", text: relativeTime(event.at), tone: "dim" },
+    { label: "When", text: ageText(event.at), tone: "dim" },
   ];
   if (event.refs.length > 0) fields.push({ label: "References", text: event.refs.join(", "), tone: "muted" });
-  const details: string[] = [`at: ${event.at}`];
+  const details: string[] = [];
   for (const [key, value] of Object.entries(event.details ?? {})) details.push(`${humanizeKey(key)}: ${humanizeValue(value)}`);
-  return { title: `#${event.seq} · ${event.kind}`, fields, lists: [{ label: `Details (${details.length})`, items: details, tone: "muted" }] };
+  return { title: `#${event.seq} · ${event.kind}`, fields, lists: details.length > 0 ? [{ label: `Details (${details.length})`, items: details, tone: "muted" }] : [] };
 }
 
 /** `answerStatus` / `answer_status` -> `answer status`, so details read as text. */

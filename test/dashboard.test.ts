@@ -6,6 +6,7 @@ import {
   ProjectBrowser,
   VIEWS,
   flatPlanNodes,
+  oneLine,
   orderedGoalIds,
   planGroups,
   renderPlanInteractive,
@@ -361,6 +362,28 @@ describe("dashboard", () => {
     assert.match(text, /PROBLEMS/);
     assert.match(text, /CAPABILITIES/);
     assert.match(text, /evaluator drift/);
+  });
+
+  test("escaped or multi-line stored text cannot break a one-line row", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    // A tool call can store literal \n and \\" sequences in a summary; the row must
+    // still be one line, or it escapes the container and wraps at column 0.
+    const dirty = {
+      ...project,
+      history: [
+        ...project.history,
+        { seq: 9999, at: "2026-01-01T00:00:00.000Z", kind: "state.changed" as const, summary: 'Line one\\nsecond "quoted" \\"again\\"', by: "agent", refs: [] },
+      ],
+    };
+    const lines = VIEWS.find((view) => view.id === "history")!.render(dirty, theme, 80);
+    assert.equal(oneLine('a\\nb "c" \\"d\\"'), 'a b "c" "d"');
+    for (const line of lines) {
+      assert.ok(visibleWidth(line) <= 80, `history row exceeds width: ${JSON.stringify(line)}`);
+      assert.doesNotMatch(line, /^\s*second/, "escaped newline wrapped the row to column 0");
+    }
+    assert.match(lines.join("\n"), /Line one second/);
   });
 
   test("e asks to edit editable views only, and the footer advertises it", async () => {
