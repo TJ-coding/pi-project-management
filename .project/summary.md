@@ -21,7 +21,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - → G5 Visual DAG (ACTIVE)
 - → G6 Auto complete / Propagate (ACTIVE)
 - → G7 Upload the project to github repository (ACTIVE)
-- → G8 Reconsider ordering of panels. (ACTIVE)
+- ✓ G8 Reconsider ordering of panels. (COMPLETED)
 - → G9 Warn when exiting change without saving. (ACTIVE)
 - ✓ G10 Start / Pause Project (COMPLETED)
 

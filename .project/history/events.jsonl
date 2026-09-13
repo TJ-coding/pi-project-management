@@ -113,3 +113,4 @@
 {"seq":113,"at":"2026-09-13T17:30:20.514Z","kind":"question.created","summary":"Question Q8 created: Should the rail drop to ten views so every key works?","by":"agent","refs":["Q8"]}
 {"seq":114,"at":"2026-09-13T17:30:24.907Z","kind":"question.answered","summary":"Question Q8 ANSWERED: Should the rail drop to ten views so every key works?","by":"agent","refs":["Q8"],"details":{}}
 {"seq":115,"at":"2026-09-13T17:38:40.426Z","kind":"task.updated","summary":"Node N8 PENDING -> COMPLETED: Reorder the panel rail","by":"agent","refs":["N8"],"details":{"reason":"G8 delivered; 110 tests and TUI smoke pass"}}
+{"seq":116,"at":"2026-09-13T17:38:40.628Z","kind":"goal.completed","summary":"Goal G8 COMPLETED: Reconsider ordering of panels.","by":"agent","refs":["G8"],"details":{"reason":"All three success criteria met"}}

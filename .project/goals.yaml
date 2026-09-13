@@ -127,7 +127,7 @@
     - Panels are ordered by hierarchy or by use.
     - The rail reflects the new order.
     - Number keys 1-9 still jump to a panel.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
@@ -135,7 +135,7 @@
   tasks:
     - N8
   created: 2026-09-13T16:12:08.779Z
-  updated: 2026-09-13T16:16:04.561Z
+  updated: 2026-09-13T17:38:40.628Z
 - id: G9
   title: Warn when exiting change without saving.
   description: I keep on existing edit screens without saving, and it's really annoying. I wish there
