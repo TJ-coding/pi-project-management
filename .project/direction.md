@@ -21,10 +21,10 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 - [principle] Checks live in mutate(), so every write path obeys them.
 - [principle] One line per row; full text behind Enter in the reading pane.
-- [constraint] A session started in $HOME attaches to ACL26, not this project.
+- [constraint] A $HOME/.project belonging to another project shadows this one, so sessions must start inside the repo.
 - [metric] Over-budget fields, tests passing, k3 rounds, width overflow.
 - [artifact] ~/Projects/pi-project-management (TypeScript pi extension, docs/SPEC-MAPPING.md).
 
 ## Last Updated
 
-2026-09-13T16:04:33.451Z
+2026-09-13T16:21:29.428Z
