@@ -181,7 +181,7 @@ plans:
       - id: N9
         title: Offer to fill empty goal fields on save
         type: TASK
-        status: PENDING
+        status: RUNNING
         description: When a goal edit saves, offer to fill empty derived fields and write the accepted ones.
         depends_on:
           - N2
@@ -194,8 +194,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-13T16:15:53.158Z
-        updated: 2026-09-13T16:16:15.449Z
-        started: null
+        updated: 2026-09-13T17:39:00.158Z
+        started: 2026-09-13T17:39:00.158Z
         finished: null
       - id: N10
         title: Publish the repo to GitHub
