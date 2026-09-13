@@ -17,7 +17,7 @@ Rationale: Created implicitly when the first node was added.
 - [PENDING] N5 TASK — Forward options in every mutation {risk:R4}
     Pass MutateOptions through so commit:false really skips the commit; cover it with a test that runs two mutations and checks git log stays clean.
 - [PENDING] N6 TASK — Draw DAG depth and parents {goal:G5}
-    Show each node's depth and parents in the plan panel, in the same panel.
+    Show each node's depth and parents in the plan panel, in the same pane.
 
 ## Edges
 

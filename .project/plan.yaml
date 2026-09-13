@@ -105,7 +105,7 @@ plans:
         title: Draw DAG depth and parents
         type: TASK
         status: PENDING
-        description: Show each node's depth and parents in the plan panel, in the same panel.
+        description: Show each node's depth and parents in the plan panel, in the same pane.
         depends_on: []
         goal: G5
         risk: null
@@ -116,7 +116,7 @@ plans:
         gate: null
         run: null
         created: 2026-09-13T16:15:39.108Z
-        updated: 2026-09-13T16:15:39.108Z
+        updated: 2026-09-13T16:15:44.357Z
         started: null
         finished: null
     gates: []
