@@ -19,8 +19,9 @@ Rationale: Created implicitly when the first node was added.
 - [COMPLETED] N5 TASK — Forward options in every mutation {risk:R4}
     Pass MutateOptions through so commit:false really skips the commit; cover it with a test that runs two mutations and checks git log stays clean.
     outputs: All 37 mutate call sites forward options; Regression test: every mutation with commit:false leaves HEAD unmoved; updateDirection, recordDecision and setNodeStatus were the last three leaks
-- [PENDING] N6 TASK — Draw DAG depth and parents {goal:G5}
+- [COMPLETED] N6 TASK — Draw DAG depth and parents {goal:G5}
     Show each node's depth and parents in the plan panel, in the same pane.
+    outputs: Node rows carry parent ids (←N1✓) in a fixed column; links are never displaced; Selection pane names the ancestry chain at depth > 1; Dashboard says RUNNING or NEXT UP, not an ambiguous NOW; Two k3 review rounds; the second found a real badge-loss bug that is now tested
 - [PENDING] N7 INVESTIGATION — Audit the 11 panels and features (after N6) {goal:G4}
     Name the reason each panel and feature exists; propose removals with evidence.
 - [PENDING] N8 TASK — Reorder the panel rail (after N7) {goal:G8}

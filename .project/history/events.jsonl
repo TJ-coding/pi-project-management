@@ -99,3 +99,4 @@
 {"seq":99,"at":"2026-09-13T17:10:08.996Z","kind":"risk.resolved","summary":"Risk R2 resolved: This project is shadowed by $HOME/.project","by":"agent","refs":["R2"]}
 {"seq":100,"at":"2026-09-13T17:10:09.035Z","kind":"state.changed","summary":"State changed: the $HOME shadowing is gone","by":"agent","refs":[]}
 {"seq":101,"at":"2026-09-13T17:14:06.203Z","kind":"risk.updated","summary":"Risk R1 updated: A panel regression ships without review","by":"agent","refs":["R1"]}
+{"seq":102,"at":"2026-09-13T17:14:06.378Z","kind":"task.updated","summary":"Node N6 PENDING -> COMPLETED: Draw DAG depth and parents","by":"agent","refs":["N6"],"details":{"reason":"G5 delivered and k3-reviewed; 104 tests and TUI smoke pass"}}

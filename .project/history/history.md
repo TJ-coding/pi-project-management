@@ -103,3 +103,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T17:10:08.996Z **risk.resolved** — Risk R2 resolved: This project is shadowed by $HOME/.project [R2] (by agent)
 - 2026-09-13T17:10:09.035Z **state.changed** — State changed: the $HOME shadowing is gone (by agent)
 - 2026-09-13T17:14:06.203Z **risk.updated** — Risk R1 updated: A panel regression ships without review [R1] (by agent)
+- 2026-09-13T17:14:06.378Z **task.updated** — Node N6 PENDING -> COMPLETED: Draw DAG depth and parents [N6] (by agent)
