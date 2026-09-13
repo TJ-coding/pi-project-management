@@ -95,3 +95,4 @@
 {"seq":95,"at":"2026-09-13T16:41:40.858Z","kind":"task.updated","summary":"Node N1 PENDING -> COMPLETED: Add rename for the project name","by":"agent","refs":["N1"],"details":{"reason":"G3's rename gap closed; 98 tests and TUI smoke pass"}}
 {"seq":96,"at":"2026-09-13T16:45:56.142Z","kind":"task.updated","summary":"Node N11 PENDING -> COMPLETED: Confirm before discarding a dirty form","by":"agent","refs":["N11"],"details":{"reason":"G9 closed; 100 tests and TUI smoke pass"}}
 {"seq":97,"at":"2026-09-13T16:52:50.005Z","kind":"task.updated","summary":"Node N12 RUNNING -> COMPLETED: Add start and pause for the project","by":"agent","refs":["N12"],"details":{"reason":"G10 delivered; 102 tests, TUI smoke and an e2e round-trip pass"}}
+{"seq":98,"at":"2026-09-13T16:52:50.183Z","kind":"goal.completed","summary":"Goal G10 COMPLETED: Start / Pause Project","by":"agent","refs":["G10"],"details":{"reason":"All three success criteria met"}}

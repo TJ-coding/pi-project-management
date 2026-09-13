@@ -162,7 +162,7 @@
     - A project has an explicit ACTIVE or PAUSED state.
     - Pausing states the next action to resume.
     - A paused project says so in the digest and the widget.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions:
@@ -171,4 +171,4 @@
   tasks:
     - N12
   created: 2026-09-13T16:24:48.622Z
-  updated: 2026-09-13T16:35:31.023Z
+  updated: 2026-09-13T16:52:50.183Z
