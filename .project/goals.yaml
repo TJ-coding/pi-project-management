@@ -102,3 +102,17 @@
   tasks: []
   created: 2026-09-13T16:10:16.426Z
   updated: 2026-09-13T16:10:16.426Z
+- id: G8
+  title: Reconsider ordering of panels.
+  description: The panel order is a bit weird. I want it to either be ordered hierarchicaly or sorted
+    with most frequently used panel on left.
+  priority: 3
+  success_criteria: []
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-13T16:12:08.779Z
+  updated: 2026-09-13T16:12:08.779Z

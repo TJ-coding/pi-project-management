@@ -21,6 +21,7 @@ Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. 
 - → G5 Visual DAG (ACTIVE)
 - → G6 Auto complete / Propagate (ACTIVE)
 - → G7 Upload the project to github repository (ACTIVE)
+- → G8 Reconsider ordering of panels. (ACTIVE)
 
 ## Major Risks
 
