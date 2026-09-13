@@ -19,6 +19,7 @@ Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. 
 - → G3 Close the two known gaps (ACTIVE)
 - → G4 Minimalism (ACTIVE)
 - → G5 Visual DAG (ACTIVE)
+- → G6 Auto complete / Propagate (ACTIVE)
 
 ## Major Risks
 
