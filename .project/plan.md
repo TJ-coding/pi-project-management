@@ -9,8 +9,9 @@ Rationale: Created implicitly when the first node was added.
 - [COMPLETED] N1 TASK — Add rename for the project name {goal:G3 q:Q2}
     Rename without hand-editing project.yaml; keep the id and slug stable unless asked.
     outputs: project_rename tool and /project rename subcommand; Rename touches meta.name and slug only; ids and paths unchanged (Q2); Empty name refused; same-name rename is a no-op
-- [PENDING] N2 TASK — Show live word counters in entity forms {goal:G2}
+- [COMPLETED] N2 TASK — Show live word counters in entity forms {goal:G2}
     Count words and characters while typing, so a save is never refused by surprise.
+    outputs: Focused form row shows words/chars against its budget and flips to ⚠ when over; Counter reads the edit buffer, so the warning precedes the rejected save; 25 entity-form fields declare a budget
 - [COMPLETED] N3 INVESTIGATION — Decide the digest shape without dropping facts {goal:G3 q:Q1}
     Work out what the digest must carry and what moves to /project status.
     outputs: A capped NEXT list names how many ready nodes it hid and where to read them; Digest answers Q1; test asserts the pointer appears only when something is hidden
