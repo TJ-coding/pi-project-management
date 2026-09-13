@@ -24,7 +24,7 @@ Rationale: Created implicitly when the first node was added.
     Order panels by hierarchy and use, then remove what N7 found unused.
 - [PENDING] N9 TASK — Offer to fill empty goal fields on save (after N2) {goal:G6 risk:R5}
     When a goal edit saves, offer to fill empty derived fields and write the accepted ones.
-- [PENDING] N10 TASK — Publish the repo to GitHub (after N4) {goal:G7}
+- [PENDING] N10 TASK — Publish the repo to GitHub (after N4) {goal:G7 risk:R6}
     Create a public GitHub repo, push, and confirm the checks pass from a clean clone.
 - [PENDING] N11 TASK — Confirm before discarding a dirty form {goal:G9}
     Esc on a form with unsaved changes asks before discarding; unchanged forms close at once.
