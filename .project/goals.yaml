@@ -55,7 +55,7 @@
     - Every view has a stated reason to exist.
     - Duplicated content is removed, not the panel.
     - No new view is added without a reason.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
@@ -63,7 +63,7 @@
   tasks:
     - N7
   created: 2026-09-13T16:07:06.066Z
-  updated: 2026-09-13T17:24:48.602Z
+  updated: 2026-09-13T17:25:21.765Z
 - id: G5
   title: Visual DAG
   description: It is difficult to identify how the DAG hierarhy are structred. Within the same pannel
