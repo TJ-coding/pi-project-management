@@ -43,5 +43,23 @@ plans:
         updated: 2026-09-13T15:59:03.093Z
         started: null
         finished: null
+      - id: N3
+        title: Decide the digest shape without dropping facts
+        type: INVESTIGATION
+        status: PENDING
+        description: Work out what the digest must carry and what moves to /project status.
+        depends_on: []
+        goal: G3
+        risk: null
+        question: Q1
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T15:59:03.265Z
+        updated: 2026-09-13T15:59:03.265Z
+        started: null
+        finished: null
     gates: []
 changes: []
