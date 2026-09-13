@@ -100,7 +100,7 @@ export function sectionHeader(
   const right = meta ? theme.fg("dim", ` ${meta} `) : "";
   const used = visibleWidth(left) + visibleWidth(right);
   const rule = Math.max(0, width - used - 2);
-  return truncateToWidth(`${left}${theme.fg("borderMuted", "━".repeat(rule))}${right}${theme.fg(tone, "━┓")}`, width);
+  return truncateToWidth(`${left}${theme.fg("borderMuted", "━".repeat(rule))}${right}${theme.fg(tone, "━┓")}`, width, "…");
 }
 
 /** A row inside a container: two-space gutter, a `┃` spine, then content. */
@@ -110,13 +110,13 @@ export function containerRow(theme: Theme, content: string, width: number, selec
 
 /** A continuation row inside a container (no spine, aligned with the content). */
 export function containerNote(theme: Theme, content: string, width: number): string {
-  return truncateToWidth(`      ${content}`, width);
+  return truncateToWidth(`      ${content}`, width, "…");
 }
 
 /** `  ┗━━━┛` — closes a container. */
 export function containerClose(theme: Theme, width: number): string {
   const rule = Math.max(2, width - 6);
-  return truncateToWidth(`  ${theme.fg("borderMuted", "┗")}${theme.fg("borderMuted", "━".repeat(rule))}${theme.fg("borderMuted", "┛")}`, width);
+  return truncateToWidth(`  ${theme.fg("borderMuted", "┗")}${theme.fg("borderMuted", "━".repeat(rule))}${theme.fg("borderMuted", "┛")}`, width, "…");
 }
 
 function padStyled(text: string, width: number): string {
@@ -135,12 +135,12 @@ export function selectionRow(theme: Theme, text: string, width: number, selected
 
 /** A quiet panel used for the single primary block on a screen. */
 export function panel(theme: Theme, lines: string[], width: number): string[] {
-  return lines.map((line) => theme.bg("customMessageBg", truncateToWidth(padStyled(line, width), width)));
+  return lines.map((line) => theme.bg("customMessageBg", truncateToWidth(padStyled(line, width), width, "…")));
 }
 
 /** `label   value` with an aligned, quiet label column. */
 export function keyValue(theme: Theme, label: string, value: string, width: number, labelWidth = 8): string {
-  return truncateToWidth(`${theme.fg("muted", label.padEnd(labelWidth))}${value}`, width);
+  return truncateToWidth(`${theme.fg("muted", label.padEnd(labelWidth))}${value}`, width, "…");
 }
 
 /**
@@ -475,9 +475,9 @@ function planNodeContent(theme: Theme, node: PlanNode): string {
 function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width: number): string[] {
   const lines: string[] = [];
   lines.push(sectionHeader(theme, "SELECTED", `${node.id} · ${node.type} · ${node.status}`, width, "accent"));
-  lines.push(containerRow(theme, theme.bold(theme.fg("text", truncateToWidth(node.title, width - 8))), width));
+  lines.push(containerRow(theme, theme.bold(theme.fg("text", truncateToWidth(node.title, width - 8, "…"))), width));
   if (node.description) {
-    lines.push(containerNote(theme, theme.fg("muted", truncateToWidth(node.description.replace(/\s+/g, " "), width - 8)), width));
+    lines.push(containerNote(theme, theme.fg("muted", truncateToWidth(node.description.replace(/\s+/g, " "), width - 8, "…")), width));
   }
   const meta: string[] = [];
   if (node.assignee) meta.push(`assignee ${node.assignee}`);
@@ -499,9 +499,9 @@ function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width:
   if (node.run) links.push(`run ${node.run}`);
   if (node.gate) links.push(`gate ${node.gate.type}`);
   if (links.length > 0) lines.push(containerNote(theme, theme.fg("muted", links.join("  ·  ")), width));
-  if (node.gate?.criteria) lines.push(containerNote(theme, theme.fg("muted", `criteria: ${truncateToWidth(node.gate.criteria, width - 18)}`), width));
-  if (node.failureReason) lines.push(containerNote(theme, theme.fg("error", `failure: ${truncateToWidth(node.failureReason, width - 16)}`), width));
-  if (node.outputs.length > 0) lines.push(containerNote(theme, theme.fg("success", `outputs: ${truncateToWidth(node.outputs.join("; "), width - 16)}`), width));
+  if (node.gate?.criteria) lines.push(containerNote(theme, theme.fg("muted", `criteria: ${truncateToWidth(node.gate.criteria, width - 18, "…")}`), width));
+  if (node.failureReason) lines.push(containerNote(theme, theme.fg("error", `failure: ${truncateToWidth(node.failureReason, width - 16, "…")}`), width));
+  if (node.outputs.length > 0) lines.push(containerNote(theme, theme.fg("success", `outputs: ${truncateToWidth(node.outputs.join("; "), width - 16, "…")}`), width));
   lines.push(containerNote(theme, theme.fg("dim", "↑↓ select · enter read · e edit · a new · D delete · E raw"), width));
   lines.push(containerClose(theme, width));
   return lines;
@@ -513,7 +513,7 @@ function fitLines(lines: string[], width: number): string[] {
   const safeWidth = Math.max(1, Math.floor(width));
   return lines
     .flatMap((line) => wrapTextWithAnsi(line, safeWidth))
-    .map((line) => truncateToWidth(line, safeWidth));
+    .map((line) => truncateToWidth(line, safeWidth, "…"));
 }
 
 function computeDepths(nodes: { id: string; dependsOn: string[] }[]): Map<string, number> {
@@ -1333,7 +1333,7 @@ export function renderViewLines(
   let focusLine: number | undefined;
   rawLines.forEach((line, index) => {
     if (rawFocus !== undefined && index === rawFocus) focusLine = lines.length;
-    for (const wrapped of wrapTextWithAnsi(line, safeWidth)) lines.push(truncateToWidth(wrapped, safeWidth));
+    for (const wrapped of wrapTextWithAnsi(line, safeWidth)) lines.push(truncateToWidth(wrapped, safeWidth, "…"));
   });
   return { lines, focusLine };
 }
@@ -1682,7 +1682,7 @@ export class ProjectBrowser {
 
     // Narrow: at least the active name survives.
     if (visibleWidth(numbers) + visibleWidth(active) + 1 <= width) return `${numbers} ${active}`;
-    return truncateToWidth(active, width);
+    return truncateToWidth(active, width, "…");
   }
 
   render(width: number): string[] {
@@ -1705,7 +1705,7 @@ export class ProjectBrowser {
     const headerLeft = theme.fg("muted", ` ${breadcrumb}`);
     const headerRight = theme.fg("dim", `${status} `);
     const headerGap = Math.max(1, width - visibleWidth(headerLeft) - visibleWidth(headerRight));
-    out.push(truncateToWidth(`${headerLeft}${" ".repeat(headerGap)}${headerRight}`, width));
+    out.push(truncateToWidth(`${headerLeft}${" ".repeat(headerGap)}${headerRight}`, width, "…"));
 
     // Tab bar (single line, never wraps).
     out.push(showingHelp ? theme.fg("muted", " project commands and agent tools") : this.tabLine(width));
@@ -1758,10 +1758,10 @@ export class ProjectBrowser {
     const left = theme.fg("dim", ` ${keys}`);
     const right = theme.fg("dim", `${scrollable ? "↕ " : ""}${range} `);
     const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
-    out.push(truncateToWidth(`${left}${" ".repeat(gap)}${right}`, width));
+    out.push(truncateToWidth(`${left}${" ".repeat(gap)}${right}`, width, "…"));
 
-    if (this.notice) out.push(truncateToWidth(theme.fg("dim", ` ${this.notice}`), width));
-    return out.map((line) => truncateToWidth(line, width));
+    if (this.notice) out.push(truncateToWidth(theme.fg("dim", ` ${this.notice}`), width, "…"));
+    return out.map((line) => truncateToWidth(line, width, "…"));
   }
 
   invalidate(): void {
