@@ -81,3 +81,4 @@
 {"seq":81,"at":"2026-09-13T16:21:36.893Z","kind":"question.answered","summary":"Question Q5 ANSWERED: Does the tree or git history hold anything unfit to publish?","by":"agent","refs":["Q5","R6"],"details":{}}
 {"seq":82,"at":"2026-09-13T16:22:02.092Z","kind":"risk.updated","summary":"Risk R6 updated: Publishing leaks secrets or private project data","by":"agent","refs":["R6"]}
 {"seq":83,"at":"2026-09-13T16:22:14.332Z","kind":"question.updated","summary":"Question Q5 updated","by":"agent","refs":["Q5"]}
+{"seq":84,"at":"2026-09-13T16:22:20.877Z","kind":"risk.updated","summary":"Risk R6 updated: Publishing leaks secrets or private project data","by":"agent","refs":["R6"]}
