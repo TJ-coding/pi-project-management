@@ -206,11 +206,12 @@ describe("dashboard", () => {
     browser.handleInput("q");
     assert.equal(closed, 1);
 
+    // History is a row-cursor view now, so scrolling is checked on a prose view.
     const scrolling = new ProjectBrowser({
       project,
       theme,
       onClose: () => undefined,
-      initialView: "history",
+      initialView: "state",
       getTerminalRows: () => 12,
     });
     const before = scrolling.render(80);
@@ -218,7 +219,7 @@ describe("dashboard", () => {
     scrolling.handleInput("j");
     const after = scrolling.render(80);
     assert.equal(before.length, after.length);
-    assert.notDeepEqual(before, after, "history view should scroll");
+    assert.notDeepEqual(before, after, "a prose view scrolls with j/k");
 
     for (const width of [30, 60, 100]) {
       for (const line of scrolling.render(width)) {
@@ -384,6 +385,27 @@ describe("dashboard", () => {
       assert.doesNotMatch(line, /^\s*second/, "escaped newline wrapped the row to column 0");
     }
     assert.match(lines.join("\n"), /Line one second/);
+  });
+
+  test("a selected row is clipped, never wrapped out of its container", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const longSummary = `history.marker ${"padding words that would overflow a narrow terminal ".repeat(6)}`.trim();
+    const dirty = {
+      ...project,
+      history: [
+        ...project.history,
+        { seq: 9998, at: "2026-01-01T00:00:00.000Z", kind: "state.changed" as const, summary: longSummary, by: "agent", refs: [] },
+      ],
+    };
+    // The newest event is the selected row by default, and it is the longest.
+    const lines = VIEWS.find((view) => view.id === "history")!.render(dirty, theme, 60);
+    for (const line of lines) assert.ok(visibleWidth(line) <= 60, `row exceeds width: ${JSON.stringify(line)}`);
+    const row = lines.findIndex((line) => line.includes("history.marker"));
+    assert.ok(row >= 0, "the long event should still be listed");
+    assert.match(lines[row]!, /…/, "the long row must be clipped, not wrapped");
+    assert.ok(!lines.some((line) => line.startsWith("padding words")), "a wrapped continuation lost its container gutter");
   });
 
   test("e asks to edit editable views only, and the footer advertises it", async () => {

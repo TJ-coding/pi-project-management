@@ -127,8 +127,10 @@ function padStyled(text: string, width: number): string {
 
 /** Full-width selection bar — the strongest affordance available in a terminal. */
 export function selectionRow(theme: Theme, text: string, width: number, selected: boolean): string {
-  const padded = padStyled(text, width);
-  return selected ? theme.bg("selectedBg", padded) : truncateToWidth(padded, width);
+  // Clip first, then paint: an over-long selected row would otherwise escape its
+  // container and wrap at column 0 (background highlight included).
+  const clipped = truncateToWidth(text, width, "…");
+  return selected ? theme.bg("selectedBg", padStyled(clipped, width)) : clipped;
 }
 
 /** A quiet panel used for the single primary block on a screen. */
