@@ -367,7 +367,7 @@ export class ProjectManager {
       }
       void before;
       return project.direction;
-    });
+    }, options);
 
     return {
       status: "applied",
@@ -406,7 +406,7 @@ export class ProjectManager {
         project.goals.push(goal);
         this.record("goal.created", `Goal ${id} created: ${goal.title}`, [id], { status, priority: goal.priority });
         return goal;
-      })
+      }, options)
     ).value;
   }
 
@@ -435,7 +435,7 @@ export class ProjectManager {
         goal.updated = this.clock.now();
         this.record("goal.updated", `Goal ${id} updated: ${goal.title}`, [id]);
         return goal;
-      })
+      }, options)
     ).value;
   }
 
@@ -476,7 +476,7 @@ export class ProjectManager {
         });
       }
       return goal;
-    });
+    }, options);
 
     return { status: "applied", value, autoAccepted, note: autoAccepted ? `Pi automatically accepted: goal ${id} ${status}` : "" };
   }
@@ -499,7 +499,7 @@ export class ProjectManager {
         project.state.updated = this.clock.now();
         this.record("state.changed", `State changed: ${summary}`, []);
         return project.state;
-      })
+      }, options)
     ).value;
   }
 
@@ -531,7 +531,7 @@ export class ProjectManager {
         project.questions.push(question);
         this.record("question.created", `Question ${id} created: ${question.question}`, [id]);
         return question;
-      })
+      }, options)
     ).value;
   }
 
@@ -555,7 +555,7 @@ export class ProjectManager {
         question.updated = this.clock.now();
         this.record("question.updated", `Question ${id} updated`, [id]);
         return question;
-      })
+      }, options)
     ).value;
   }
 
@@ -584,7 +584,7 @@ export class ProjectManager {
           notes: answer.notes,
         });
         return question;
-      })
+      }, options)
     ).value;
   }
 
@@ -611,7 +611,7 @@ export class ProjectManager {
           );
         }
         return updated;
-      })
+      }, options)
     ).value;
   }
 
@@ -644,7 +644,7 @@ export class ProjectManager {
           impact: risk.impact,
         });
         return risk;
-      })
+      }, options)
     ).value;
   }
 
@@ -667,7 +667,7 @@ export class ProjectManager {
         const resolved = risk.status === "RESOLVED" || risk.status === "CLOSED";
         this.record(resolved ? "risk.resolved" : "risk.updated", `Risk ${id} ${resolved ? "resolved" : "updated"}: ${risk.title}`, [id]);
         return risk;
-      })
+      }, options)
     ).value;
   }
 
@@ -688,7 +688,7 @@ export class ProjectManager {
         project.strategy.updated = this.clock.now();
         this.record("strategy.changed", `Strategy changed: ${reason}`, []);
         return project.strategy;
-      })
+      }, options)
     ).value;
   }
 
@@ -741,7 +741,7 @@ export class ProjectManager {
         project.meta.activePlan = id;
         this.record("plan.changed", `Active plan set to ${id}`, [id]);
         return plan;
-      })
+      }, options)
     ).value;
   }
 
@@ -774,7 +774,7 @@ export class ProjectManager {
         assertNoNewErrors(project, preexisting, "plan node");
         this.record("task.updated", `Node ${node.id} added to ${plan.id}: ${node.title}`, [node.id]);
         return node;
-      })
+      }, options)
     ).value;
   }
 
@@ -818,7 +818,7 @@ export class ProjectManager {
         assertNoNewErrors(project, preexisting, "plan node");
         this.record("task.updated", `Node ${node.id} updated in ${plan.id}`, [node.id]);
         return node;
-      })
+      }, options)
     ).value;
   }
 
@@ -831,7 +831,7 @@ export class ProjectManager {
         for (const node of plan.nodes) node.dependsOn = node.dependsOn.filter((dep) => dep !== id);
         this.record("task.updated", `Node ${id} removed from ${plan.id}`, [id]);
         return { removed: `removed ${before - plan.nodes.length} node ${id}` };
-      })
+      }, options)
     ).value;
   }
 
@@ -862,7 +862,7 @@ export class ProjectManager {
         }
         void plan;
         return node;
-      })
+      }, options)
     ).value;
   }
 
@@ -893,7 +893,7 @@ export class ProjectManager {
           [nodeId],
         );
         return { node, outcome };
-      })
+      }, options)
     ).value;
   }
 
@@ -944,7 +944,7 @@ export class ProjectManager {
         { autoAccepted },
       );
       return decision;
-    });
+    }, options);
 
     return { status: "applied", value, autoAccepted, note: autoAccepted ? `Pi automatically accepted decision ${value.id}` : "" };
   }
@@ -989,7 +989,7 @@ export class ProjectManager {
           environment: run.environment,
         });
         return run;
-      })
+      }, options)
     ).value;
   }
 
@@ -1007,7 +1007,7 @@ export class ProjectManager {
         run.updated = this.clock.now();
         if (run.status === "STARTED") run.status = "RUNNING";
         return run;
-      })
+      }, options)
     ).value;
   }
 
@@ -1059,7 +1059,7 @@ export class ProjectManager {
           exitCode: run.exitCode,
         });
         return { run, node };
-      })
+      }, options)
     ).value;
   }
 
@@ -1082,7 +1082,7 @@ export class ProjectManager {
         if (patch.outputs) run.outputs.push(...patch.outputs);
         run.updated = this.clock.now();
         return run;
-      })
+      }, options)
     ).value;
   }
 
@@ -1270,7 +1270,7 @@ export class ProjectManager {
       project.meta.completedAt = this.clock.now();
       this.record("project.completed", `Project completed: ${project.meta.name}`, []);
       return project;
-    });
+    }, options);
     return { status: "applied", value, autoAccepted, note: autoAccepted ? "Pi automatically accepted completion." : "" };
   }
 
@@ -1285,7 +1285,7 @@ export class ProjectManager {
           { autoAccepted: false },
         );
         return project;
-      })
+      }, options)
     ).value;
   }
 
@@ -1294,7 +1294,7 @@ export class ProjectManager {
       await this.mutate("project: set workspace", (project) => {
         project.meta.workspace = workspace;
         return project;
-      })
+      }, options)
     ).value;
   }
 
@@ -1304,7 +1304,7 @@ export class ProjectManager {
         project.meta.resources = resources;
         this.record("state.changed", `Project resources updated (${resources.length})`, []);
         return project;
-      })
+      }, options)
     ).value;
   }
 
@@ -1314,7 +1314,7 @@ export class ProjectManager {
         project.meta.repositories = repositories.map((repository) => repository.trim()).filter(Boolean);
         this.record("state.changed", `Project repositories updated (${project.meta.repositories.length})`, []);
         return project;
-      })
+      }, options)
     ).value;
   }
 

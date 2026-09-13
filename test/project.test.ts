@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -8,6 +10,8 @@ import { ProjectManager } from "../src/project.ts";
 import { renderStatusText } from "../src/format.ts";
 import { PROJECT_DIR } from "../src/storage.ts";
 import { cleanup, fixedClock, tempDir } from "./helpers.ts";
+
+const execFileAsync = promisify(execFile);
 
 async function newProject(name: string) {
   const root = await tempDir();
@@ -361,5 +365,61 @@ describe("history and formatting", () => {
     const resume = buildResumeReport(manager.project);
     assert.match(resume, /# Resume: Context/);
     assert.match(resume, /Next actions/);
+  });
+
+  test("commit: false is honoured by every mutation, not just the early ones", async () => {
+    // Seeding used to leave ~20 'project: ...' commits although every call passed
+    // commit:false, because most this.mutate() call sites never forwarded their
+    // options. This asserts the whole surface, in the order the bug appeared.
+    const root = await tempDir();
+    dirs.push(root);
+    await execFileAsync("git", ["init", "-q"], { cwd: root });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: root });
+    await execFileAsync("git", ["config", "user.name", "test"], { cwd: root });
+    const clock = fixedClock();
+    const manager = await ProjectManager.init(root, { name: "Quiet", clock, by: "test" });
+    // Seed one commit so later commits are distinguishable from the initial state.
+    await execFileAsync("git", ["add", "-A"], { cwd: root });
+    await execFileAsync("git", ["commit", "-q", "-m", "seed", "--allow-empty"], { cwd: root });
+    const quiet = { commit: false } as const;
+
+    const head = async (): Promise<number> => {
+      const result = await execFileAsync("git", ["rev-list", "--count", "HEAD"], { cwd: root });
+      return Number(result.stdout.trim() || "0");
+    };
+    const before = await head();
+
+    await manager.updateDirection({ vision: "Vision", intent: "Intent" }, { ...quiet, approved: true });
+    const goal = await manager.createGoal({ title: "Goal", priority: 3, successCriteria: ["done"] }, quiet);
+    await manager.updateGoal(goal.id, { description: "more" }, quiet);
+    await manager.setGoalStatus(goal.id, "COMPLETED", quiet);
+    await manager.updateState({ current: "current" }, quiet);
+    const question = await manager.createQuestion({ question: "What next?" }, quiet);
+    await manager.answerQuestion(question.id, { answer: "this", status: "ANSWERED" }, quiet);
+    const risk = await manager.createRisk({ title: "Risk", probability: 0.5, impact: 0.5 }, quiet);
+    await manager.updateRisk(risk.id, { mitigation: "mitigate" }, quiet);
+    await manager.setStrategy({ approach: "approach" }, quiet);
+    const node = await manager.addNode({ title: "Node" }, quiet);
+    await manager.updateNode(node.id, { description: "detail" }, quiet);
+    await manager.setNodeStatus(node.id, "RUNNING", quiet);
+    await manager.evaluateGate(node.id, "PASS", "ok", "test", quiet);
+    await manager.recordDecision({ title: "Decision", decision: "do it" }, quiet);
+    const run = await manager.startRun({ title: "Run" }, quiet);
+    await manager.logRun(run.id, [{ kind: "note", text: "a line" }], quiet);
+    await manager.finishRun(run.id, { status: "COMPLETED" }, quiet);
+    await manager.setYolo(true, quiet);
+    await manager.setWorkspace("~", quiet);
+    await manager.setResources([], quiet);
+    await manager.setRepositories([], quiet);
+    await manager.replaceGoals(manager.project.goals, quiet);
+    await manager.replaceQuestions(manager.project.questions, quiet);
+    await manager.replaceRisks(manager.project.risks, quiet);
+    await manager.reconcileRuns(quiet);
+
+    assert.equal(await head(), before, "no commit should be created when every mutation passes commit:false");
+
+    // And the opposite: a mutation with commit left on does commit.
+    await manager.updateState({ current: "changed" });
+    assert.ok((await head()) > before, "auto_commit still commits by default");
   });
 });
