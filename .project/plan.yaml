@@ -72,7 +72,7 @@ plans:
       - id: N4
         title: k3 sign-off on the frames
         type: REVIEW
-        status: PENDING
+        status: COMPLETED
         description: Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
         depends_on:
           - N1
@@ -81,15 +81,17 @@ plans:
         goal: G1
         risk: R1
         question: null
-        outputs: []
+        outputs:
+          - "gate PASS: k3 reviewed the frames in five rounds and signed off, having found four
+            defects tests could not see."
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T15:59:03.439Z
-        updated: 2026-09-13T16:15:32.102Z
+        updated: 2026-09-13T18:25:12.040Z
         started: null
-        finished: null
+        finished: 2026-09-13T18:25:12.040Z
       - id: N5
         title: Forward options in every mutation
         type: TASK
@@ -262,5 +264,11 @@ plans:
         updated: 2026-09-13T16:52:50.005Z
         started: 2026-09-13T16:35:34.684Z
         finished: 2026-09-13T16:52:50.005Z
-    gates: []
+    gates:
+      - node: N4
+        outcome: PASS
+        notes: k3 reviewed the frames in five rounds and signed off, having found four defects tests could
+          not see.
+        evaluator: agent
+        at: 2026-09-13T18:25:12.040Z
 changes: []
