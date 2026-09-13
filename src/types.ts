@@ -318,6 +318,7 @@ export interface Run {
 
 export const HISTORY_KINDS = [
   "project.init",
+  "project.renamed",
   "project.completed",
   "direction.changed",
   "state.changed",

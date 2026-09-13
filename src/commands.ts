@@ -61,6 +61,7 @@ export const PROJECT_SUBCOMMANDS = [
   "replan",
   "resume",
   "yolo",
+  "rename",
   "complete",
   "watch",
   "projects",
@@ -119,6 +120,7 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
     details: "Optionally reconciles runs whose process is gone to INTERRUPTED.",
   },
   yolo: { usage: "/project yolo [on|off]", summary: "toggle YOLO auto-accept (still recorded)" },
+  rename: { usage: "/project rename <name>", summary: "rename the project (label and slug only)" },
   complete: { usage: "/project complete", summary: "mark the project complete and show the summary" },
   watch: { usage: "/project watch [on|off]", summary: "toggle the editor widget" },
   projects: { usage: "/project projects", summary: "list projects in the local workspace" },
@@ -138,7 +140,7 @@ export function renderHelp(pi?: ExtensionAPI): string {
   const lines: string[] = ["Project commands", ""];
   const groups: Array<[string, Subcommand[]]> = [
     ["View", ["dashboard", "status", "direction", "goals", "state", "intelligence", "risks", "strategy", "plan", "history", "evolution", "runs", "summary"]],
-    ["Act", ["init", "edit", "review", "replan", "resume", "yolo", "complete", "watch"]],
+    ["Act", ["init", "edit", "review", "replan", "resume", "rename", "yolo", "complete", "watch"]],
     ["Discover", ["tools", "projects", "help"]],
   ];
   for (const [title, names] of groups) {
@@ -373,6 +375,9 @@ async function handleProjectCommand(
     case "yolo":
       await runYolo(pi, ctx, manager, rest);
       return;
+    case "rename":
+      await runRename(pi, ctx, manager, rest);
+      return;
     case "complete":
       await runComplete(pi, ctx, manager);
       return;
@@ -499,6 +504,22 @@ async function runYolo(
         : "Strategic decisions will ask for human approval."
     }`,
   );
+}
+
+async function runRename(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  rest: string,
+): Promise<void> {
+  const name = rest.trim();
+  if (name === "") {
+    await showText(pi, ctx, `Current name: ${manager.project.meta.name}\n\nUsage: /project rename <name>`);
+    return;
+  }
+  const previous = manager.project.meta.name;
+  const project = await manager.renameProject(name);
+  await showText(pi, ctx, `Renamed "${previous}" to "${project.meta.name}" (id ${project.meta.id}).`);
 }
 
 async function runComplete(pi: ExtensionAPI, ctx: ExtensionCommandContext, manager: ProjectManager): Promise<void> {

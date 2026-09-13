@@ -367,6 +367,35 @@ describe("history and formatting", () => {
     assert.match(resume, /Next actions/);
   });
 
+  test("rename changes the label and slug but leaves ids and paths alone", async () => {
+    const { root, manager } = await newProject("Old Name");
+    dirs.push(root);
+    const goal = await manager.createGoal({ title: "Goal", priority: 3 }, { commit: false });
+    const node = await manager.addNode({ title: "Node" }, { commit: false });
+    const beforeRoot = manager.project.root;
+
+    const renamed = await manager.renameProject("  New Name  ", { commit: false });
+
+    assert.equal(renamed.meta.name, "New Name", "the label is trimmed and stored");
+    assert.equal(renamed.meta.id, "new-name", "the slug follows the name");
+    assert.equal(manager.project.root, beforeRoot, "the project directory stays put");
+    assert.equal(goal.id, "G1", "goal ids are counters, not derived from the name");
+    assert.equal(node.id, "N1", "node ids are counters too");
+    assert.ok(
+      manager.project.history.some((event) => event.kind === "project.renamed"),
+      "the rename is recorded in history",
+    );
+
+    // An empty name is refused rather than blanking the project.
+    await assert.rejects(() => manager.renameProject("   ", { commit: false }), /cannot be empty/i);
+    assert.equal(manager.project.meta.name, "New Name");
+
+    // Renaming to the same name is a no-op, not a second history entry.
+    const countBefore = manager.project.history.filter((event) => event.kind === "project.renamed").length;
+    await manager.renameProject("New Name", { commit: false });
+    assert.equal(manager.project.history.filter((event) => event.kind === "project.renamed").length, countBefore);
+  });
+
   test("commit: false is honoured by every mutation, not just the early ones", async () => {
     // Seeding used to leave ~20 'project: ...' commits although every call passed
     // commit:false, because most this.mutate() call sites never forwarded their

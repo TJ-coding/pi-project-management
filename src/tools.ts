@@ -1286,6 +1286,25 @@ export function registerProjectTools(pi: ExtensionAPI): void {
     },
   });
 
+  /* ---------------- rename ---------------- */
+
+  pi.registerTool({
+    name: "project_rename",
+    label: "Project: rename",
+    description:
+      "Rename the project's human-facing label. Only meta.name and its slug change: entity ids (G1, N3) and " +
+      "filesystem paths stay put, so nothing that references the project breaks.",
+    promptSnippet: "Rename the project",
+    parameters: Type.Object({
+      name: Type.String({ description: "New project name" }),
+    }),
+    async execute(_id, params, _signal, _update, ctx) {
+      const manager = await requireManager(ctx);
+      const project = await manager.renameProject(params.name);
+      return ok(`Project renamed to "${project.meta.name}" (id ${project.meta.id}).`);
+    },
+  });
+
   /* ---------------- resume ---------------- */
 
   pi.registerTool({

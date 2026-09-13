@@ -1289,6 +1289,26 @@ export class ProjectManager {
     ).value;
   }
 
+  /**
+   * Rename the project. Only `meta.name` (the human label) and the derived slug
+   * change: entity ids (G1, N3) are separate counters and filesystem paths stay
+   * put, so nothing that references the project breaks (Q2).
+   */
+  async renameProject(name: string, options: MutateOptions = {}): Promise<Project> {
+    const trimmed = name.trim();
+    if (trimmed === "") throw new Error("A project name cannot be empty.");
+    return (
+      await this.mutate(`project: rename to "${trimmed}"`, (project) => {
+        const previous = project.meta.name;
+        if (previous === trimmed) return project;
+        project.meta.name = cleanProse(trimmed);
+        project.meta.id = slugify(trimmed) || project.meta.id;
+        this.record("project.renamed", `Renamed "${previous}" to "${project.meta.name}"`, []);
+        return project;
+      }, options)
+    ).value;
+  }
+
   async setWorkspace(workspace: string | null, options: MutateOptions = {}): Promise<Project> {
     return (
       await this.mutate("project: set workspace", (project) => {
