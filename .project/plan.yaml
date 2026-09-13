@@ -137,22 +137,25 @@ plans:
       - id: N7
         title: Audit the 11 panels and features
         type: INVESTIGATION
-        status: RUNNING
+        status: COMPLETED
         description: Name the reason each panel and feature exists; propose removals with evidence.
         depends_on:
           - N6
         goal: G4
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - "Q4 answered: no panel is removable; each owns records nothing else shows"
+          - Summary no longer repeats History's plan reasons (22 -> 15 lines)
+          - Test asserts the reason appears in History and not in Summary
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T16:15:46.939Z
-        updated: 2026-09-13T17:21:20.789Z
+        updated: 2026-09-13T17:24:48.419Z
         started: 2026-09-13T17:21:20.789Z
-        finished: null
+        finished: 2026-09-13T17:24:48.419Z
       - id: N8
         title: Reorder the panel rail
         type: TASK

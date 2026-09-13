@@ -23,8 +23,9 @@ Rationale: Created implicitly when the first node was added.
 - [COMPLETED] N6 TASK — Draw DAG depth and parents {goal:G5}
     Show each node's depth and parents in the plan panel, in the same pane.
     outputs: Node rows carry parent ids (←N1✓) in a fixed column; links are never displaced; Selection pane names the ancestry chain at depth > 1; Dashboard says RUNNING or NEXT UP, not an ambiguous NOW; Two k3 review rounds; the second found a real badge-loss bug that is now tested
-- [RUNNING] N7 INVESTIGATION — Audit the 11 panels and features (after N6) {goal:G4}
+- [COMPLETED] N7 INVESTIGATION — Audit the 11 panels and features (after N6) {goal:G4}
     Name the reason each panel and feature exists; propose removals with evidence.
+    outputs: Q4 answered: no panel is removable; each owns records nothing else shows; Summary no longer repeats History's plan reasons (22 -> 15 lines); Test asserts the reason appears in History and not in Summary
 - [PENDING] N8 TASK — Reorder the panel rail (after N7) {goal:G8}
     Order panels by hierarchy and use, then remove what N7 found unused.
 - [PENDING] N9 TASK — Offer to fill empty goal fields on save (after N2) {goal:G6 risk:R5}
