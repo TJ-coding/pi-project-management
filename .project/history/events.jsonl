@@ -108,3 +108,4 @@
 {"seq":108,"at":"2026-09-13T17:24:48.419Z","kind":"task.updated","summary":"Node N7 RUNNING -> COMPLETED: Audit the 11 panels and features","by":"agent","refs":["N7"],"details":{"reason":"G4's audit done; duplication removed rather than a panel"}}
 {"seq":109,"at":"2026-09-13T17:24:48.602Z","kind":"goal.updated","summary":"Goal G4 updated: Minimalism","by":"agent","refs":["G4"]}
 {"seq":110,"at":"2026-09-13T17:25:21.765Z","kind":"goal.completed","summary":"Goal G4 COMPLETED: Minimalism","by":"agent","refs":["G4"],"details":{"reason":"Audit found every panel justified; the criterion is met by the recorded audit plus removing the one duplication"}}
+{"seq":111,"at":"2026-09-13T17:25:21.961Z","kind":"question.created","summary":"Question Q7 created: Hierarchy or frequency for the panel rail order?","by":"agent","refs":["Q7"]}

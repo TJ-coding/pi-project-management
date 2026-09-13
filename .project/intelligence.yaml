@@ -141,3 +141,21 @@
   created: 2026-09-13T16:35:16.676Z
   updated: 2026-09-13T16:35:27.288Z
   answered: 2026-09-13T16:35:27.288Z
+- id: Q7
+  question: Hierarchy or frequency for the panel rail order?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.5
+  uncertainty: 0.6
+  decision_impact: 0.6
+  confidence: 0
+  evidence: []
+  goals:
+    - G8
+  risks: []
+  tasks:
+    - N8
+  decisions: []
+  created: 2026-09-13T17:25:21.961Z
+  updated: 2026-09-13T17:25:21.961Z
+  answered: null
