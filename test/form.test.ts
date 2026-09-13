@@ -264,3 +264,55 @@ describe("form hierarchy", () => {
     assert.match(backgrounded[0]!, /Priority/);
   });
 });
+
+describe("unsaved-changes guard", () => {
+  test("esc on a clean form closes at once; esc after an edit asks first", () => {
+    const draft = makeDraft();
+    const actions: FormAction[] = [];
+    const editor = makeEditor(draft, actions);
+
+    assert.equal(editor.isDirty(), false, "a freshly opened form is clean");
+    editor.handleInput("\x1b"); // esc
+    assert.deepEqual(actions, [{ kind: "cancel" }], "a clean form closes immediately");
+
+    // Now change a value and try to leave.
+    const dirty = makeDraft();
+    const dirtyActions: FormAction[] = [];
+    const dirtyEditor = makeEditor(dirty, dirtyActions);
+    dirtyEditor.handleInput("\r"); // edit the title
+    type(dirtyEditor, "!");
+    dirtyEditor.handleInput("\r"); // confirm the field edit
+    assert.equal(dirtyEditor.isDirty(), true, "an edited field marks the form dirty");
+
+    dirtyEditor.handleInput("\x1b");
+    assert.deepEqual(dirtyActions, [], "esc must not leave yet — it only asks");
+    assert.match(dirtyEditor.render(80).join("\n"), /unsaved changes — y discard/);
+
+    // n keeps editing and clears the prompt; the draft is untouched.
+    dirtyEditor.handleInput("n");
+    assert.deepEqual(dirtyActions, [], "declining keeps the form open");
+    assert.doesNotMatch(dirtyEditor.render(80).join("\n"), /unsaved changes/);
+    assert.equal(dirty.title, "Original!", "the edit is still there after declining");
+
+    // A stray key while the prompt is up must not discard anything.
+    dirtyEditor.handleInput("\x1b");
+    dirtyEditor.handleInput("x");
+    assert.deepEqual(dirtyActions, [], "only y or enter can discard");
+
+    // y discards: the caller sees a cancel, so nothing is saved.
+    dirtyEditor.handleInput("y");
+    assert.deepEqual(dirtyActions, [{ kind: "cancel" }]);
+  });
+
+  test("edits made and reverted are clean again", () => {
+    const draft = makeDraft();
+    const actions: FormAction[] = [];
+    const editor = makeEditor(draft, actions);
+    editor.handleInput("\r");
+    type(editor, "!");
+    editor.handleInput("\x1b"); // esc reverts the in-progress field edit
+    assert.equal(editor.isDirty(), false, "reverting the field edit restores clean");
+    editor.handleInput("\x1b");
+    assert.deepEqual(actions, [{ kind: "cancel" }], "no prompt for a form that matches its start");
+  });
+});

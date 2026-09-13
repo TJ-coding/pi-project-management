@@ -158,6 +158,10 @@ export class FormEditor {
   private getTerminalRows?: () => number;
   private onChange?: () => void;
   private onExit: (action: FormAction) => void;
+  /** Pending "discard your changes?" prompt; esc is the only way in or out. */
+  private confirmDiscard = false;
+  /** Serialised field values at open time, so esc can tell a dirty form. */
+  private baseline: string;
   private rows: Row[] = [];
   private active = 0;
   private edit: EditState | null = null;
@@ -173,7 +177,31 @@ export class FormEditor {
     this.getTerminalRows = options.getTerminalRows;
     this.onChange = options.onChange;
     this.onExit = options.onExit;
+    this.baseline = JSON.stringify(this.snapshot());
     this.buildRows();
+  }
+
+  /** Every field's current value, in a stable order, for dirty comparison. */
+  private snapshot(): unknown[] {
+    return this.fields.map((field) => {
+      switch (field.kind) {
+        case "list":
+        case "refs":
+          return field.get();
+        case "int":
+        case "float":
+          return field.get();
+        case "ref":
+          return field.get() ?? null;
+        default:
+          return field.get();
+      }
+    });
+  }
+
+  /** True when any field differs from the value it had when the form opened. */
+  isDirty(): boolean {
+    return JSON.stringify(this.snapshot()) !== this.baseline;
   }
 
   /* ---------------- rows ---------------- */
@@ -218,6 +246,19 @@ export class FormEditor {
   /* ---------------- input ---------------- */
 
   handleInput(data: string): void {
+    // The discard prompt owns the keyboard: only y/n/esc mean anything here, so a
+    // stray key can never throw work away.
+    if (this.confirmDiscard) {
+      if (data === "y" || data === "Y" || matchesKey(data, "enter")) {
+        this.onExit({ kind: "cancel" });
+        return;
+      }
+      if (data === "n" || data === "N" || matchesKey(data, "escape") || matchesKey(data, "ctrl+c")) {
+        this.confirmDiscard = false;
+        this.onChange?.();
+      }
+      return;
+    }
     if (this.picker) {
       this.handlePickerInput(data);
       return;
@@ -228,6 +269,13 @@ export class FormEditor {
     }
 
     if (matchesKey(data, "escape") || matchesKey(data, "q")) {
+      // Leaving with unsaved changes is destructive and silent, so ask first.
+      // An unchanged form still closes immediately (no confirmation fatigue).
+      if (this.isDirty() && !this.confirmDiscard) {
+        this.confirmDiscard = true;
+        this.onChange?.();
+        return;
+      }
       this.onExit({ kind: "cancel" });
       return;
     }
@@ -559,10 +607,13 @@ export class FormEditor {
     for (let index = window.length; index < viewport; index += 1) out.push("");
 
     if (this.error) out.push(truncateToWidth(theme.fg("error", ` ✗ ${this.error}`), width));
+    else if (this.confirmDiscard) out.push(truncateToWidth(theme.fg("warning", " ⚠ unsaved changes — y discard · n keep editing"), width));
     else if (this.notice) out.push(truncateToWidth(theme.fg("success", ` ✓ ${this.notice}`), width));
     else out.push("");
 
-    const hint = this.picker
+    const hint = this.confirmDiscard
+      ? "y discard · n or esc keep editing"
+      : this.picker
       ? "↑↓ choose · enter toggle link · esc close picker"
       : this.edit
         ? "type to edit · enter confirm · esc revert"
