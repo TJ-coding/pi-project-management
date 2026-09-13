@@ -181,22 +181,26 @@ plans:
       - id: N9
         title: Offer to fill empty goal fields on save
         type: TASK
-        status: RUNNING
+        status: COMPLETED
         description: When a goal edit saves, offer to fill empty derived fields and write the accepted ones.
         depends_on:
           - N2
         goal: G6
         risk: R5
         question: null
-        outputs: []
+        outputs:
+          - Saving a goal proposes derived questions/risks/tasks/criteria/description, each with a
+            reason
+          - Proposals are confirmed individually; a hand-written value is never replaced
+          - "propagate.ts is unit-tested: 5 proposals on a sparse goal, 0 on a complete one"
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T16:15:53.158Z
-        updated: 2026-09-13T17:39:00.158Z
+        updated: 2026-09-13T17:44:46.601Z
         started: 2026-09-13T17:39:00.158Z
-        finished: null
+        finished: 2026-09-13T17:44:46.601Z
       - id: N10
         title: Publish the repo to GitHub
         type: TASK

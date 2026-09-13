@@ -29,8 +29,9 @@ Rationale: Created implicitly when the first node was added.
 - [COMPLETED] N8 TASK — Reorder the panel rail (after N7) {goal:G8}
     Order panels by hierarchy and use, then remove what N7 found unused.
     outputs: Rail ordered by hierarchy with a documented grouping; 0 reaches the tenth view; the eleventh no longer advertises a dead key; TUI smoke finds views by name, so reorders cannot break it
-- [RUNNING] N9 TASK — Offer to fill empty goal fields on save (after N2) {goal:G6 risk:R5}
+- [COMPLETED] N9 TASK — Offer to fill empty goal fields on save (after N2) {goal:G6 risk:R5}
     When a goal edit saves, offer to fill empty derived fields and write the accepted ones.
+    outputs: Saving a goal proposes derived questions/risks/tasks/criteria/description, each with a reason; Proposals are confirmed individually; a hand-written value is never replaced; propagate.ts is unit-tested: 5 proposals on a sparse goal, 0 on a complete one
 - [PENDING] N10 TASK — Publish the repo to GitHub (after N4) {goal:G7 risk:R6}
     Create a public GitHub repo, push, and confirm the checks pass from a clean clone.
 - [COMPLETED] N11 TASK — Confirm before discarding a dirty form {goal:G9}
