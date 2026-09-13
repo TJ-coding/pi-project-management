@@ -77,11 +77,11 @@
 - id: R6
   title: Publishing leaks secrets or private project data
   description: A public repo push could carry credentials or local paths in .project history.
-  probability: 0.3
+  probability: 0.1
   impact: 0.7
   status: OPEN
-  mitigation: Check the tree and git history for secrets before making the repo public; add a licence
-    and .gitignore.
+  mitigation: "Checked: 64 tracked files and the full git history hold no credentials. Add a licence
+    and .gitignore before going public."
   contingency: Make the repo private again and rotate anything exposed.
   questions: []
   goals:
@@ -89,4 +89,4 @@
   tasks: []
   owner: ""
   created: 2026-09-13T16:16:11.993Z
-  updated: 2026-09-13T16:21:29.612Z
+  updated: 2026-09-13T16:22:02.092Z
