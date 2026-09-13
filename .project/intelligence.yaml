@@ -170,18 +170,27 @@
   answered: 2026-09-13T17:25:46.053Z
 - id: Q8
   question: Should the rail drop to ten views so every key works?
-  answer: ""
-  status: UNKNOWN
+  answer: Not by removing a view. Fold Summary into the dashboard's completion section, or accept tab
+    for the 11th; deleting a spec-22 view to save a key is the wrong trade.
+  status: ANSWERED
   importance: 0.5
-  uncertainty: 0.6
+  uncertainty: 0.3
   decision_impact: 0.5
-  confidence: 0
-  evidence: []
+  confidence: 0.6
+  evidence:
+    - description: Spec 22 requires the dashboard plus
+        Direction/Goals/State/Intelligence/Risks/Strategy/Plan/History/Runs views; Summary is extra
+        and the least-used rollup
+      kind: doc
+      ref: spec/project-management-spec.md 22
+    - description: Eleven views with ten single keys means one view is always tab-only, regardless of order
+      kind: measurement
+      ref: src/dashboard.ts tabLine
   goals:
     - G8
   risks: []
   tasks: []
   decisions: []
   created: 2026-09-13T17:30:20.514Z
-  updated: 2026-09-13T17:30:20.514Z
-  answered: null
+  updated: 2026-09-13T17:30:24.907Z
+  answered: 2026-09-13T17:30:24.907Z
