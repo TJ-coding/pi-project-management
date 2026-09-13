@@ -13,7 +13,7 @@ import { blockedByDependencies, dagStats, nextActionable, readyNodes, topoOrder 
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
-import type { Goal, PlanNode, Project, Question, Risk } from "./types.ts";
+import type { Goal, HistoryEvent, PlanNode, Project, Question, Risk } from "./types.ts";
 
 export interface ViewDefinition {
   id: string;
@@ -141,14 +141,65 @@ export function keyValue(theme: Theme, label: string, value: string, width: numb
   return truncateToWidth(`${theme.fg("muted", label.padEnd(labelWidth))}${value}`, width);
 }
 
+/**
+ * A bullet whose continuation lines stay indented under its own text, so one
+ * long value never reads as several separate items.
+ */
+export function bulletLines(theme: Theme, marker: string, styled: string, width: number): string[] {
+  const prefix = theme.fg("accent", marker);
+  const indent = " ".repeat(visibleWidth(marker));
+  const safe = Math.max(8, width - visibleWidth(prefix));
+  return wrapTextWithAnsi(styled, safe).map((line, index) => (index === 0 ? `${prefix}${line}` : `${indent}${line}`));
+}
+
+/** "3h ago" — ageing reads better than an ISO timestamp for entity metadata. */
+export function relativeTime(at: string, now = Date.now()): string {
+  const then = Date.parse(at);
+  if (Number.isNaN(then)) return at;
+  const seconds = Math.max(0, Math.round((now - then) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 31) return `${days}d ago`;
+  return `${Math.round(days / 30)}mo ago`;
+}
+
+/** `N1 COMPLETED -> COMPLETED` says nothing; such events are dropped. */
+function isNoopTransition(summary: string): boolean {
+  const match = /\b([A-Z][A-Z_]{2,})\s*->\s*([A-Z][A-Z_]{2,})\b/.exec(summary);
+  return Boolean(match && match[1] === match[2]);
+}
+
+/** History rows: newest first, no-op status transitions dropped. */
+export function historyEvents(project: Project): HistoryEvent[] {
+  return [...project.history].reverse().filter((event) => !isNoopTransition(event.summary)).slice(0, 200);
+}
+
+/** `23:14` for rows; a day change gets its own divider line instead. */
+function eventClock(at: string): string {
+  return at.slice(11, 16);
+}
+
 const historyView: ViewDefinition = {
   id: "history",
   title: "History",
-  render(project, theme, width) {
+  rows: (project) => historyEvents(project).map((event) => String(event.seq)),
+  detail: (project, focus) => {
+    const event = project.history.find((candidate) => String(candidate.seq) === focus);
+    return event ? detailForEvent(event) : emptyDetail("History", "no event selected");
+  },
+  render(project, theme, width, focus) {
+    const events = historyEvents(project);
+    if (events.length === 0) return [`  ${theme.fg("dim", "nothing recorded yet")}`];
     const lines: string[] = [];
-    if (project.history.length === 0) return [`  ${theme.fg("dim", "nothing recorded yet")}`];
-    lines.push(sectionHeader(theme, "EVENTS", `${Math.min(project.history.length, 200)}`, width, "accent"));
-    for (const event of [...project.history].reverse().slice(0, 200)) {
+    let focusLine: number | undefined;
+    const dropped = project.history.length - events.length;
+    lines.push(sectionHeader(theme, "EVENTS", dropped > 0 ? `${events.length} · ${dropped} no-op hidden` : `${events.length}`, width, "accent"));
+    let previousDay: string | null = null;
+    for (const event of events) {
       const color =
         event.kind.includes("fail") || event.kind.includes("abandon")
           ? "error"
@@ -158,10 +209,27 @@ const historyView: ViewDefinition = {
               ? "accent"
               : "muted";
       const refs = event.refs.length > 0 ? ` ${theme.fg("dim", `[${event.refs.join(", ")}]`)}` : "";
-      lines.push(containerRow(theme, `${theme.fg("dim", event.at.slice(0, 19))} ${theme.fg(color as "muted", event.kind.padEnd(18))} ${theme.fg("text", event.summary)}${refs}`, width));
+      // One HH:MM column, with a divider when the day changes: seconds are noise
+      // (row order already encodes sequence) and a per-row date breaks the grid.
+      const day = event.at.slice(0, 10);
+      if (day !== previousDay) {
+        lines.push(containerNote(theme, theme.fg("dim", `── ${day} ──`), width));
+        previousDay = day;
+      }
+      const selected = String(event.seq) === focus;
+      if (selected) focusLine = lines.length;
+      lines.push(
+        containerRow(
+          theme,
+          `${theme.fg("dim", eventClock(event.at))} ${theme.fg(color, event.kind.padEnd(18))} ${theme.fg("text", event.summary)}${refs}`,
+          width,
+          selected,
+        ),
+      );
     }
     lines.push(containerClose(theme, width));
-    return lines;
+    lines.push(`  ${theme.fg("dim", "↑↓ select · enter read the whole event")}`);
+    return { lines, focusLine };
   },
 };
 
@@ -182,10 +250,15 @@ const runsView: ViewDefinition = {
       lines.push(containerNote(theme, theme.fg("dim", meta.join(" · ")), width));
       if (run.command) lines.push(containerNote(theme, theme.fg("muted", `$ ${run.command}`), width));
       for (const environment of run.environment) {
+        // The host is already above; repeating it as an env line wastes a row.
+        if (environment.kind === "ssh" && environment.target === run.host) continue;
         lines.push(containerNote(theme, theme.fg("dim", `env ${environment.kind}: ${environment.target}${environment.note ? ` (${environment.note})` : ""}`), width));
       }
       for (const entry of run.entries.slice(-3)) {
         lines.push(containerNote(theme, `${theme.fg("dim", `${entry.at.slice(11, 19)} [${entry.kind}]`)} ${theme.fg("muted", entry.text)}`, width));
+      }
+      if (run.entries.length === 0 && run.status === "RUNNING") {
+        lines.push(containerNote(theme, theme.fg("dim", "no progress logged yet — ask the agent to log the latest line"), width));
       }
       for (const output of run.outputs.slice(-3)) {
         lines.push(containerNote(theme, `${theme.fg("success", "→")} ${theme.fg("muted", output.description)}`, width));
@@ -207,30 +280,38 @@ const summaryView: ViewDefinition = {
     for (const goal of project.goals) {
       const glyph = statusGlyph(goal.status);
       const color = goal.status === "COMPLETED" ? "success" : goal.status === "FAILED" ? "error" : "muted";
-      lines.push(`${theme.fg(color as "muted", glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", goal.status)}`);
+      lines.push(...bulletLines(theme, "• ", `${theme.fg(color, glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", goal.status)}`, width));
     }
 
     lines.push(...heading(theme, "PLAN EVOLUTION", width));
     const evolution = planEvolution(project);
     if (evolution.length === 0) lines.push(theme.fg("dim", "no plans"));
     for (const entry of evolution) {
-      lines.push(`${theme.fg("accent", "•")} ${theme.fg("text", `${entry.plan} v${entry.version} — ${entry.title}`)}`);
-      if (entry.change) lines.push(`    ${theme.fg("muted", `why: ${entry.change.reason}`)}`);
-      if (entry.supersededBy) lines.push(`    ${theme.fg("dim", `superseded by ${entry.supersededBy}`)}`);
+      lines.push(...bulletLines(theme, "• ", theme.fg("text", `${entry.plan} v${entry.version} — ${entry.title}`), width));
+      if (entry.change) {
+        const why = `why: ${entry.change.reason}`;
+        wrapTextWithAnsi(theme.fg("muted", why), Math.max(8, width - 4)).forEach((line, index) => lines.push(index === 0 ? `  ${line}` : `      ${line}`));
+      }
+      if (entry.supersededBy) lines.push(`  ${theme.fg("dim", `superseded by ${entry.supersededBy}`)}`);
     }
 
     lines.push(...heading(theme, "MAJOR DECISIONS", width));
     if (project.decisions.length === 0) lines.push(theme.fg("dim", "no decisions"));
     for (const decision of project.decisions) {
       lines.push(
-        `${theme.fg("accent", "•")} ${theme.fg("text", `${decision.id} ${decision.title}`)} ${theme.fg("dim", `[${decision.authority}${decision.autoAccepted ? ", auto" : ""}]`)}`,
+        ...bulletLines(
+          theme,
+          "• ",
+          `${theme.fg("text", `${decision.id} ${decision.title}`)} ${theme.fg("dim", `[${decision.authority}${decision.autoAccepted ? ", auto" : ""}]`)}`,
+          width,
+        ),
       );
     }
 
     lines.push(...heading(theme, "LESSONS / FINDINGS", width));
     const findings = [...project.state.discoveries, ...project.questions.filter((question) => question.status === "CONFIRMED").map((question) => question.answer)];
     if (findings.length === 0) lines.push(theme.fg("dim", "none recorded"));
-    for (const finding of findings) lines.push(`${theme.fg("accent", "•")} ${theme.fg("muted", finding)}`);
+    for (const finding of findings) lines.push(...bulletLines(theme, "• ", theme.fg("muted", finding), width));
     return lines;
   },
 };
@@ -241,10 +322,10 @@ const summaryView: ViewDefinition = {
 
 const NODE_TYPE_ABBREVIATIONS: Record<string, string> = {
   TASK: "TASK",
-  INVESTIGATION: "INVE",
-  EXPERIMENT: "EXPE",
-  DECISION: "DECI",
-  REVIEW: "REVI",
+  INVESTIGATION: "INV",
+  EXPERIMENT: "EXP",
+  DECISION: "DEC",
+  REVIEW: "REV",
   GATE: "GATE",
   WAIT: "WAIT",
 };
@@ -339,7 +420,7 @@ export function renderPlanInteractive(
       lines.push(containerRow(theme, planNodeContent(theme, node), width, node.id === activeId));
     }
     if (group.hidden > 0) {
-      lines.push(containerNote(theme, theme.fg("dim", `… +${group.hidden} more (folded; open one with the agent or the node form)`), width));
+      lines.push(containerNote(theme, theme.fg("dim", `… +${group.hidden} more`), width));
     }
     lines.push(containerClose(theme, width));
   }
@@ -402,7 +483,7 @@ function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width:
   if (node.gate?.criteria) lines.push(containerNote(theme, theme.fg("muted", `criteria: ${truncateToWidth(node.gate.criteria, width - 18)}`), width));
   if (node.failureReason) lines.push(containerNote(theme, theme.fg("error", `failure: ${truncateToWidth(node.failureReason, width - 16)}`), width));
   if (node.outputs.length > 0) lines.push(containerNote(theme, theme.fg("success", `outputs: ${truncateToWidth(node.outputs.join("; "), width - 16)}`), width));
-  lines.push(containerNote(theme, theme.fg("dim", "↑↓ select · enter edit · a new node · D delete · E raw yaml"), width));
+  lines.push(containerNote(theme, theme.fg("dim", "↑↓ select · enter read · e edit · a new · D delete · E raw"), width));
   lines.push(containerClose(theme, width));
   return lines;
 }
@@ -552,19 +633,17 @@ const dashboardView: ViewDefinition = {
     lines.push(containerClose(theme, width));
     lines.push("");
 
-    // Support: state and running work, de-emphasised.
-    lines.push(
-      sectionHeader(theme, "STATE", "", width, "muted"),
-      containerRow(
-        theme,
-        theme.fg("text", truncateToWidth(project.state.current || "not recorded", width - 14)) +
-          (project.state.problems.length > 0
-            ? `  ${theme.fg("warning", `(${project.state.problems.length} problem${project.state.problems.length === 1 ? "" : "s"})`)}`
-            : ""),
-        width,
-      ),
-      containerClose(theme, width),
-    );
+    // Support: state and running work, de-emphasised. The headline sentence is
+    // wrapped, never ellipsised — truncating it is what makes the view useless.
+    const problems = project.state.problems.length;
+    lines.push(sectionHeader(theme, "STATE", problems > 0 ? `${problems} problem${problems === 1 ? "" : "s"}` : "", width, "muted"));
+    const stateLines = wrapTextWithAnsi(theme.fg("text", project.state.current || "not recorded"), Math.max(12, width - 8));
+    const stateShown = stateLines.slice(0, 3);
+    stateShown.forEach((line, index) => lines.push(index === 0 ? containerRow(theme, line, width) : containerNote(theme, line, width)));
+    if (stateLines.length > stateShown.length) {
+      lines.push(containerNote(theme, theme.fg("dim", `… ${stateLines.length - stateShown.length} more line(s) — enter on State to read it all`), width));
+    }
+    lines.push(containerClose(theme, width));
     if (runningRuns.length > 0) {
       lines.push(
         sectionHeader(theme, "RUNS", `${runningRuns.length} in progress`, width, "warning"),
@@ -638,10 +717,10 @@ const dashboardView: ViewDefinition = {
     lines.push(containerClose(theme, width));
 
     const full: string[] = [];
-    if (project.goals.length > 0) full.push("3 goals");
-    if (project.questions.length > 0) full.push("5 intelligence");
-    if (project.risks.length > 0) full.push("6 risks");
-    if (plan) full.push("8 plan");
+    if (project.goals.length > 0) full.push(`${project.goals.length} goals`);
+    if (project.questions.length > 0) full.push(`${project.questions.length} questions`);
+    if (project.risks.length > 0) full.push(`${project.risks.length} risks`);
+    if (plan) full.push(`${plan.nodes.length} nodes`);
     if (full.length > 0) lines.push(`  ${theme.fg("dim", `full lists: ${full.join(" · ")}`)}`);
     return lines;
   },
@@ -700,11 +779,11 @@ const directionView: ViewDefinition = {
     lines.push(theme.fg("text", project.direction.intent || "not defined"));
     lines.push(...heading(theme, "VALUES", width));
     if (project.direction.values.length === 0) lines.push(theme.fg("dim", "none"));
-    for (const value of project.direction.values) lines.push(`${theme.fg("accent", "•")} ${theme.fg("text", value)}`);
+    for (const value of project.direction.values) lines.push(...bulletLines(theme, "• ", theme.fg("text", value), width));
     lines.push(...heading(theme, "CONCEPTS", width));
     if (project.direction.concepts.length === 0) lines.push(theme.fg("dim", "none"));
     for (const concept of project.direction.concepts) {
-      lines.push(`${theme.fg("accent", "•")} ${theme.fg("muted", `[${concept.type}]`)} ${theme.fg("text", concept.text)}`);
+      lines.push(...bulletLines(theme, "• ", `${theme.fg("muted", `[${concept.type}]`)} ${theme.fg("text", concept.text)}`, width));
     }
     return lines;
   },
@@ -745,12 +824,12 @@ const goalsView: ViewDefinition = {
         .filter((goal) => group.statuses.includes(goal.status))
         .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id, undefined, { numeric: true }));
       if (goals.length === 0) continue;
-      lines.push(sectionHeader(theme, group.label, `${goals.length}/${project.goals.length}`, width, group.tone));
+      lines.push(sectionHeader(theme, group.label, `${goals.length}`, width, group.tone));
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
         const head = `${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
-        const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} criteria` : "no criteria";
-        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `P${goal.priority} · ${extra}`)}`;
+        const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
+        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = goal.title.length > available ? `${goal.title.slice(0, available - 1)}…` : goal.title;
         const selected = goal.id === focus;
@@ -794,14 +873,21 @@ const stateView: ViewDefinition = {
       if (items.length === 0) return;
       lines.push(sectionHeader(theme, title, `${items.length}`, width, tone));
       for (const item of items.slice(0, cap)) {
-        lines.push(containerRow(theme, theme.fg("muted", truncateToWidth(item, width - 8)), width));
+        // Long items wrap under themselves instead of being cut mid-word.
+        const wrapped = wrapTextWithAnsi(theme.fg("muted", item), Math.max(8, width - 8));
+        wrapped.forEach((line, index) => lines.push(index === 0 ? containerRow(theme, line, width) : containerNote(theme, line, width)));
       }
       if (items.length > cap) lines.push(containerNote(theme, theme.fg("dim", `… +${items.length - cap} more`), width));
       lines.push(containerClose(theme, width));
     };
 
-    lines.push(sectionHeader(theme, "CURRENT", "", width, "accent"));
-    lines.push(...truncateWrapped(project.state.current || "not recorded", width - 8, 4).map((line) => containerRow(theme, theme.fg("text", line), width)));
+    // The headline sentence is never ellipsised: it is why the view is opened.
+    const problems = project.state.problems.length;
+    lines.push(sectionHeader(theme, "CURRENT", problems > 0 ? `${problems} problem${problems === 1 ? "" : "s"}` : "", width, "accent"));
+    const current = wrapTextWithAnsi(theme.fg("text", project.state.current || "not recorded"), Math.max(8, width - 8));
+    const currentShown = current.slice(0, 10);
+    currentShown.forEach((line, index) => lines.push(index === 0 ? containerRow(theme, line, width) : containerNote(theme, line, width)));
+    if (current.length > currentShown.length) lines.push(containerNote(theme, theme.fg("dim", `… ${current.length - currentShown.length} more line(s) — enter to read the rest`), width));
     lines.push(containerClose(theme, width));
     list("PROBLEMS", project.state.problems, "warning");
     list("CAPABILITIES", project.state.capabilities, "success");
@@ -809,7 +895,8 @@ const stateView: ViewDefinition = {
     list("CONSTRAINTS", project.state.constraints, "muted");
     list("DISCOVERIES", project.state.discoveries, "success");
     lines.push(sectionHeader(theme, "INITIAL", "", width, "muted"));
-    lines.push(...truncateWrapped(project.state.initial || "not recorded", width - 8, 2).map((line) => containerRow(theme, theme.fg("dim", line), width)));
+    const initial = wrapTextWithAnsi(theme.fg("dim", project.state.initial || "not recorded"), Math.max(8, width - 8));
+    initial.slice(0, 4).forEach((line, index) => lines.push(index === 0 ? containerRow(theme, line, width) : containerNote(theme, line, width)));
     lines.push(containerClose(theme, width));
     lines.push(`  ${theme.fg("dim", "enter read every list in full · e edit the state")}`);
     return lines;
@@ -889,7 +976,7 @@ const risksView: ViewDefinition = {
       for (const risk of risks) {
         const band = scoreBand(riskScore(risk));
         const head = `${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
-        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `exp ${riskExposure(risk).toFixed(2)} · ${risk.status}`)}`;
+        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `${risk.status === "MITIGATING" ? "MITIGATING · " : ""}exp ${riskExposure(risk).toFixed(2)}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const title = risk.title.length > available ? `${risk.title.slice(0, available - 1)}…` : risk.title;
         const selected = risk.id === focus;
@@ -915,7 +1002,10 @@ const strategyView: ViewDefinition = {
     const list = (title: string, items: string[]): void => {
       if (items.length === 0) return;
       lines.push(...heading(theme, title.toUpperCase(), width));
-      for (const item of items) lines.push(`${theme.fg("accent", "•")} ${theme.fg("muted", item)}`);
+      for (const item of items) {
+        // Stored priorities are already numbered ("1. …"); one marker is enough.
+        lines.push(...bulletLines(theme, "• ", theme.fg("muted", item.replace(/^\s*\d+[.)]\s*/, "")), width));
+      }
     };
     list("Strategic hypotheses", project.strategy.hypotheses);
     list("Priorities", project.strategy.priorities);
@@ -941,19 +1031,36 @@ function linkList(ids: string[]): string {
   return ids.length > 0 ? ids.join(", ") : "none";
 }
 
+/** `goals G1, G2 · risks R1` with empty groups dropped. */
+function linkText(groups: Array<[string, string[]]>): string {
+  return groups
+    .filter(([, ids]) => ids.length > 0)
+    .map(([label, ids]) => `${label} ${ids.join(", ")}`)
+    .join(" · ");
+}
+
+/** `3h ago · 2026-09-13 14:32Z` — relative first, absolute for the record. */
+function ageText(at: string): string {
+  return `${relativeTime(at)} · ${at.slice(0, 16).replace("T", " ")}Z`;
+}
+
 function detailForGoal(goal: Goal): DetailDoc {
   const band = priorityBand(goal.priority);
+  const fields: DetailField[] = [{ label: "Description", text: goal.description }];
+  if (goal.parent) fields.push({ label: "Parent", text: goal.parent, tone: "dim" });
+  const links = linkText([
+    ["questions", goal.questions],
+    ["risks", goal.risks],
+    ["tasks", goal.tasks],
+  ]);
+  if (links) fields.push({ label: "Links", text: links, tone: "muted" });
+  if (goal.supersededBy) fields.push({ label: "Superseded by", text: goal.supersededBy, tone: "dim" });
+  fields.push({ label: "Updated", text: ageText(goal.updated), tone: "dim" });
   return {
     title: `${goal.id} · ${goal.title}`,
     meta: `${goal.status} · priority P${goal.priority} (${band})`,
-    fields: [
-      { label: "Description", text: goal.description || "not recorded" },
-      { label: "Parent", text: goal.parent ?? "none", tone: "dim" },
-      { label: "Links", text: `questions ${linkList(goal.questions)} · risks ${linkList(goal.risks)} · tasks ${linkList(goal.tasks)}`, tone: "muted" },
-      ...(goal.supersededBy ? [{ label: "Superseded by", text: goal.supersededBy, tone: "dim" as const }] : []),
-      { label: "Updated", text: goal.updated, tone: "dim" },
-    ],
-    lists: [{ label: `Success criteria (${goal.successCriteria.length})`, items: goal.successCriteria }],
+    fields,
+    lists: goal.successCriteria.length > 0 ? [{ label: `Success criteria (${goal.successCriteria.length})`, items: goal.successCriteria }] : [],
   };
 }
 
@@ -962,47 +1069,69 @@ function detailForQuestion(question: Question): DetailDoc {
     const where = [item.kind, item.ref].filter(Boolean).join(" — ");
     return where ? `${where}: ${item.description}` : item.description;
   });
+  const links = linkText([
+    ["goals", question.goals],
+    ["risks", question.risks],
+    ["tasks", question.tasks],
+    ["decisions", question.decisions],
+  ]);
+  const fields: DetailField[] = [
+    { label: "Answer", text: question.answer || "not answered yet", tone: question.answer ? "text" : "dim" },
+    {
+      label: "Scores",
+      text: `importance ${question.importance.toFixed(2)} · uncertainty ${question.uncertainty.toFixed(2)} · decision impact ${question.decisionImpact.toFixed(2)}`,
+      tone: "muted",
+    },
+  ];
+  if (links) fields.push({ label: "Links", text: links, tone: "muted" });
+  fields.push({ label: "Updated", text: ageText(question.updated), tone: "dim" });
   return {
     title: `${question.id} · ${question.question}`,
     meta: `${question.status} · ${scoreBand(questionScore(question))} · confidence ${question.confidence.toFixed(2)}`,
-    fields: [
-      { label: "Answer", text: question.answer || "not answered yet", tone: question.answer ? "text" : "dim" },
-      {
-        label: "Scores",
-        text: `importance ${question.importance.toFixed(2)} · uncertainty ${question.uncertainty.toFixed(2)} · decision impact ${question.decisionImpact.toFixed(2)}`,
-        tone: "muted",
-      },
-      {
-        label: "Links",
-        text: `goals ${linkList(question.goals)} · risks ${linkList(question.risks)} · tasks ${linkList(question.tasks)} · decisions ${linkList(question.decisions)}`,
-        tone: "muted",
-      },
-      { label: "Updated", text: question.updated, tone: "dim" },
-    ],
+    fields,
     lists: [{ label: `Evidence (${evidence.length})`, items: evidence, tone: "muted" }],
   };
 }
 
 function detailForRisk(risk: Risk): DetailDoc {
   const owner = risk.owner ? ` · owner ${risk.owner}` : "";
+  const links = linkText([
+    ["goals", risk.goals],
+    ["questions", risk.questions],
+    ["tasks", risk.tasks],
+  ]);
+  const fields: DetailField[] = [{ label: "Description", text: risk.description }];
+  if (risk.mitigation) fields.push({ label: "Mitigation", text: risk.mitigation, tone: "success" });
+  if (risk.contingency) fields.push({ label: "Contingency", text: risk.contingency, tone: "warning" });
+  if (links) fields.push({ label: "Links", text: links, tone: "muted" });
+  fields.push({ label: "Updated", text: ageText(risk.updated), tone: "dim" });
   return {
     title: `${risk.id} · ${risk.title}`,
     meta: `${risk.status} · exposure ${riskExposure(risk).toFixed(2)} (${risk.probability.toFixed(2)} × ${risk.impact.toFixed(2)})${owner}`,
-    fields: [
-      { label: "Description", text: risk.description || "not recorded" },
-      { label: "Mitigation", text: risk.mitigation || "none recorded", tone: "success" },
-      { label: "Contingency", text: risk.contingency || "none recorded", tone: "warning" },
-      { label: "Links", text: `goals ${linkList(risk.goals)} · questions ${linkList(risk.questions)} · tasks ${linkList(risk.tasks)}`, tone: "muted" },
-      { label: "Updated", text: risk.updated, tone: "dim" },
-    ],
+    fields,
   };
+}
+
+function detailForEvent(event: HistoryEvent): DetailDoc {
+  const fields: DetailField[] = [
+    { label: "What happened", text: event.summary },
+    { label: "Kind", text: `${event.kind} · by ${event.by}`, tone: "muted" },
+    { label: "When", text: ageText(event.at), tone: "dim" },
+  ];
+  if (event.refs.length > 0) fields.push({ label: "References", text: event.refs.join(", "), tone: "muted" });
+  if (event.details && Object.keys(event.details).length > 0) {
+    const rendered = Object.entries(event.details)
+      .map(([key, value]) => `${key}: ${typeof value === "object" && value !== null ? JSON.stringify(value) : String(value)}`)
+      .join(" · ");
+    fields.push({ label: "Details", text: rendered, tone: "muted" });
+  }
+  return { title: `#${event.seq} · ${event.kind}`, fields };
 }
 
 function detailForState(project: Project): DetailDoc {
   const state = project.state;
   return {
     title: "State — full text",
-    meta: "every list in full, nothing capped",
     fields: [
       { label: "Current", text: state.current || "not recorded" },
       { label: "Initial", text: state.initial || "not recorded", tone: "dim" },
@@ -1021,22 +1150,25 @@ function detailForStrategy(project: Project): DetailDoc {
   const strategy = project.strategy;
   return {
     title: "Strategy — full text",
-    meta: "approach, hypotheses, priorities and alternatives",
     fields: [{ label: "Current approach", text: strategy.approach || "not defined" }],
     lists: [
-      { label: `Hypotheses (${strategy.hypotheses.length})`, items: strategy.hypotheses },
-      { label: `Priorities (${strategy.priorities.length})`, items: strategy.priorities, tone: "success" },
-      { label: `Alternatives considered (${strategy.alternatives.length})`, items: strategy.alternatives, tone: "muted" },
+      { label: `Hypotheses (${strategy.hypotheses.length})`, items: strategy.hypotheses.map(stripNumbering) },
+      { label: `Priorities (${strategy.priorities.length})`, items: strategy.priorities.map(stripNumbering), tone: "success" },
+      { label: `Alternatives considered (${strategy.alternatives.length})`, items: strategy.alternatives.map(stripNumbering), tone: "muted" },
       ...(strategy.rationale ? [{ label: "Rationale", items: [strategy.rationale], tone: "muted" as const }] : []),
     ],
   };
+}
+
+/** Stored list items are often already numbered ("1. …"); the pane adds its own marker. */
+function stripNumbering(item: string): string {
+  return item.replace(/^\s*\d+[.)]\s*/, "");
 }
 
 function detailForDirection(project: Project): DetailDoc {
   const direction = project.direction;
   return {
     title: "Direction — full text",
-    meta: "vision, intent, values and concepts",
     fields: [
       { label: "Vision", text: direction.vision || "not defined" },
       { label: "Intent", text: direction.intent || "not defined" },
@@ -1092,7 +1224,11 @@ export function renderDetailDoc(theme: Theme, doc: DetailDoc, width: number): st
   }
   lines.push(containerClose(theme, width));
   lines.push("");
+  // Empty fields say nothing; a reader should not scroll past "none".
+  const placeholders = new Set(["not recorded", "none", "none recorded", "not defined", "not answered yet", "no dependencies"]);
   for (const field of doc.fields) {
+    const text = field.text.trim();
+    if (text === "" || (placeholders.has(text) && field.tone !== "text")) continue;
     lines.push(...heading(theme, field.label.toUpperCase(), width));
     for (const line of wrapTextWithAnsi(theme.fg(field.tone ?? "text", field.text), width)) lines.push(line);
     lines.push("");
@@ -1375,12 +1511,12 @@ export class ProjectBrowser {
         this.onChange?.();
         return;
       }
-      if (matchesKey(data, "enter") || matchesKey(data, "e")) {
-        if (this.planCursor) this.onPlanAction({ kind: "edit", id: this.planCursor });
+      if (matchesKey(data, "enter") || data === "d") {
+        this.openDetail();
         return;
       }
-      if (data === "d" && this.viewDef().detail) {
-        this.openDetail();
+      if (matchesKey(data, "e")) {
+        if (this.planCursor) this.onPlanAction({ kind: "edit", id: this.planCursor });
         return;
       }
       if (data === "a") {
@@ -1572,7 +1708,7 @@ export class ProjectBrowser {
       : this.detailOpen
         ? "esc back to the list · j/k scroll · g/G ends · q close"
         : this.currentView === "plan"
-          ? `↑↓ select · enter edit · d read in full · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
+          ? `↑↓ select · enter read in full · e edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
           : rows.length > 0
             ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9 jump${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
             : `tab views · 1-9 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;

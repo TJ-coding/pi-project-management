@@ -164,22 +164,22 @@ describe("dashboard", () => {
       assert.match(browser.render(120).join("\n"), new RegExp(`┏━ SELECTED.*${ids[1]}`));
       browser.handleInput("k");
     }
-    browser.handleInput("\r");
+    browser.handleInput("e");
     assert.deepEqual(actions.at(-1), { kind: "edit", id: ids[0] });
     browser.handleInput("a");
     assert.deepEqual(actions.at(-1), { kind: "new" });
     browser.handleInput("D");
     assert.deepEqual(actions.at(-1), { kind: "delete", id: ids[0] });
 
-    // `d` reads the selected node in full (criteria and outputs are clipped in
-    // the one-line list, and the form is for editing).
-    browser.handleInput("d");
+    // Enter reads the selected node in full (criteria and outputs are clipped in
+    // the one-line list); `e` is the editor.
+    browser.handleInput("\r");
     const pane = browser.render(120).join("\n");
     assert.match(pane, /READING/);
     assert.match(pane, /esc back to the list/);
     assert.match(pane, /KIND/);
     browser.handleInput("\x1b");
-    assert.match(browser.render(120).join("\n"), /enter edit · d read in full/);
+    assert.match(browser.render(120).join("\n"), /enter read in full · e edit/);
 
     for (const width of [60, 100, 140]) {
       for (const line of browser.render(width)) {
