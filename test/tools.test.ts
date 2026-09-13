@@ -97,6 +97,7 @@ describe("agent tools", () => {
       "project_resume",
       "project_resource",
       "project_rename",
+      "project_pause",
     ]) {
       const tool = tools.get(name) as unknown as { description?: string; parameters?: unknown };
       assert.ok(tool, `${name} missing`);

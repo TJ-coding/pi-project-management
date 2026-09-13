@@ -1822,6 +1822,10 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
       theme.fg("dim", project.meta.yolo ? " [YOLO]" : "") +
       theme.fg("muted", `  ${goals} active goals · ${openQuestions} open questions · ${project.risks.length} risks`),
   );
+  if (project.meta.paused) {
+    lines.push(theme.fg("warning", "  ⏸ PAUSED") + theme.fg("dim", project.meta.resumeNote ? ` · resume: ${project.meta.resumeNote}` : ""));
+    return lines.slice(0, maxLines);
+  }
   if (plan && stats) {
     lines.push(
       theme.fg("dim", `  ${plan.id} v${plan.version}: `) +
@@ -1841,6 +1845,7 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
 /** Plan progress used by the footer status. */
 export function statusText(project: Project): string {
   const plan = activePlan(project);
+  if (project.meta.paused) return `${project.meta.name}: paused`;
   if (!plan) return project.meta.name;
   const stats = dagStats(plan.nodes);
   return `${project.meta.name}: ${stats.byStatus.COMPLETED}/${stats.total} · ${stats.ready} ready`;

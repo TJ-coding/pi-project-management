@@ -18,6 +18,7 @@ import { appendHistory } from "./history.ts";
 import { nextId, slugify } from "./ids.ts";
 import { analyzeReplan, applyReplan as applyReplanProposal, activePlan, type ReplanInputs, type ReplanProposal } from "./replan.ts";
 import { clamp01, clampInt } from "./scoring.ts";
+import { readyNodes } from "./dag.ts";
 import {
   commitProjectChanges,
   findProjectRoot,
@@ -1272,6 +1273,47 @@ export class ProjectManager {
       return project;
     }, options);
     return { status: "applied", value, autoAccepted, note: autoAccepted ? "Pi automatically accepted completion." : "" };
+  }
+
+  /**
+   * Park the project deliberately. Reversible, unlike completion: the plan, the
+   * goals and every open question stay exactly as they are, so resuming is one
+   * call. `note` records what to do first, which is what makes resuming cheap.
+   */
+  async pauseProject(note?: string, options: MutateOptions = {}): Promise<Project> {
+    return (
+      await this.mutate("project: pause", (project) => {
+        const wasPaused = project.meta.paused;
+        project.meta.paused = true;
+        project.meta.pausedAt = this.clock.now();
+        if (note !== undefined && cleanProse(note) !== "") project.meta.resumeNote = cleanProse(note);
+        if (!wasPaused) {
+          // Default the note from the DAG so resuming is one step even when the
+          // human only typed /project pause. An explicit note always wins.
+          if (!project.meta.resumeNote) {
+            const plan = activePlan(project);
+            const next = plan ? readyNodes(plan.nodes)[0] : undefined;
+            project.meta.resumeNote = next ? `${next.id} ${next.title}` : null;
+          }
+          const hint = project.meta.resumeNote ?? "no ready work";
+          this.record("project.paused", `Project paused — resume with: ${hint}`, []);
+        }
+        return project;
+      }, options)
+    ).value;
+  }
+
+  /** Resume work. Clears the pause but keeps the resume note for the record. */
+  async resumeProject(options: MutateOptions = {}): Promise<Project> {
+    return (
+      await this.mutate("project: resume", (project) => {
+        const wasPaused = project.meta.paused;
+        project.meta.paused = false;
+        project.meta.pausedAt = null;
+        if (wasPaused) this.record("project.resumed", `Project resumed: ${project.meta.name}`, []);
+        return project;
+      }, options)
+    ).value;
   }
 
   async setYolo(enabled: boolean, options: MutateOptions = {}): Promise<Project> {

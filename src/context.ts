@@ -66,6 +66,11 @@ export function buildDigest(project: Project): string {
     lines.push("PLAN: none");
   }
   lines.push(`YOLO: ${project.meta.yolo ? "on" : "off"}`);
+  // A paused project says so, and says how to pick the thread back up.
+  if (project.meta.paused) {
+    const hint = project.meta.resumeNote ? ` — resume with: ${truncate(project.meta.resumeNote, 120)}` : "";
+    lines.push(`PAUSED (${project.meta.pausedAt?.slice(0, 10) ?? "date unknown"})${hint} — do not start new work without asking`);
+  }
   // Twitter-length budget: the agent writes short first time instead of being rejected.
   lines.push(`BUDGETS (over-budget writes are rejected): ${budgetSummary()}`);
   return lines.join("\n");

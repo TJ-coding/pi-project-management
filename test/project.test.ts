@@ -8,6 +8,7 @@ import { buildTargetedContext, buildDigest, buildResumeReport } from "../src/con
 import { renderCompletionSummary, planEvolution, summarizeSince, formatAwaySummary } from "../src/history.ts";
 import { ProjectManager } from "../src/project.ts";
 import { renderStatusText } from "../src/format.ts";
+import { statusText } from "../src/dashboard.ts";
 import { PROJECT_DIR } from "../src/storage.ts";
 import { cleanup, fixedClock, tempDir } from "./helpers.ts";
 
@@ -450,5 +451,76 @@ describe("history and formatting", () => {
     // And the opposite: a mutation with commit left on does commit.
     await manager.updateState({ current: "changed" });
     assert.ok((await head()) > before, "auto_commit still commits by default");
+  });
+});
+
+describe("start / pause", () => {
+  const dirs: string[] = [];
+  after(async () => {
+    for (const dir of dirs) await cleanup(dir);
+  });
+
+  test("pausing is reversible and survives a reload", async () => {
+    const root = await tempDir();
+    const clock = fixedClock();
+    const manager = await ProjectManager.init(root, { name: "Pausable", clock, by: "test" });
+    await manager.createGoal({ title: "Goal", priority: 3 }, { commit: false });
+    await manager.addNode({ title: "Ready work", type: "TASK" }, { commit: false });
+
+    assert.equal(manager.project.meta.paused, false, "a new project is running");
+
+    const paused = await manager.pauseProject(undefined, { commit: false });
+    assert.equal(paused.meta.paused, true);
+    assert.ok(paused.meta.pausedAt, "the pause is timestamped");
+    assert.match(paused.meta.resumeNote ?? "", /N1 Ready work/, "the next ready node becomes the resume note by default");
+    assert.ok(
+      paused.history.some((event) => event.kind === "project.paused"),
+      "pausing is recorded in history",
+    );
+
+    const reopened = await ProjectManager.open(root, { clock: fixedClock() });
+    assert.equal(reopened.project.meta.paused, true, "the pause survives a reload");
+    assert.equal(reopened.project.meta.resumeNote, paused.meta.resumeNote, "the resume note survives too");
+
+    const resumed = await manager.resumeProject({ commit: false });
+    assert.equal(resumed.meta.paused, false);
+    assert.equal(resumed.meta.pausedAt, null);
+    assert.ok(
+      resumed.history.some((event) => event.kind === "project.resumed"),
+      "resuming is recorded in history",
+    );
+
+    // Pausing when already paused does not spam history.
+    await manager.pauseProject("first", { commit: false });
+    const pauses = manager.project.history.filter((event) => event.kind === "project.paused").length;
+    await manager.pauseProject("second", { commit: false });
+    assert.equal(
+      manager.project.history.filter((event) => event.kind === "project.paused").length,
+      pauses,
+      "an idempotent pause adds no second entry",
+    );
+
+    // Resuming when not paused is also a no-op.
+    await manager.resumeProject({ commit: false });
+    const resumes = manager.project.history.filter((event) => event.kind === "project.resumed").length;
+    await manager.resumeProject({ commit: false });
+    assert.equal(manager.project.history.filter((event) => event.kind === "project.resumed").length, resumes);
+  });
+
+  test("a paused project announces itself in the digest and the status line", async () => {
+    const { root, manager } = await newProject("Parked");
+    dirs.push(root);
+    await manager.addNode({ title: "Some work", type: "TASK" }, { commit: false });
+
+    const running = buildDigest(manager.project);
+    assert.doesNotMatch(running, /PAUSED/, "a running project does not claim to be paused");
+    assert.doesNotMatch(statusText(manager.project), /paused/);
+
+    await manager.pauseProject("read the migration notes", { commit: false });
+    const digest = buildDigest(manager.project);
+    assert.match(digest, /PAUSED/);
+    assert.match(digest, /read the migration notes/, "the resume note reaches the agent");
+    assert.match(digest, /do not start new work without asking/);
+    assert.match(statusText(manager.project), /paused/);
   });
 });

@@ -832,6 +832,9 @@ export function defaultMeta(name: string, clock: Clock = systemClock): ProjectMe
     activePlan: null,
     completed: false,
     completedAt: null,
+    paused: false,
+    pausedAt: null,
+    resumeNote: null,
   };
 }
 
@@ -887,6 +890,9 @@ export async function loadProject(root: string, clock: Clock = systemClock): Pro
     activePlan: asNullable(metaRaw.active_plan ?? metaRaw.activePlan),
     completed: asBoolean(metaRaw.completed, false),
     completedAt: asNullable(metaRaw.completed_at ?? metaRaw.completedAt),
+    paused: asBoolean(metaRaw.paused, false),
+    pausedAt: asNullable(metaRaw.paused_at ?? metaRaw.pausedAt),
+    resumeNote: asNullable(metaRaw.resume_note ?? metaRaw.resumeNote),
   };
 
   const directionText = (await readTextIfExists(join(dir, "direction.md"))) ?? "";
@@ -995,6 +1001,9 @@ export async function saveProject(project: Project, options: SaveOptions = {}): 
       active_plan: project.meta.activePlan,
       completed: project.meta.completed,
       completed_at: project.meta.completedAt ?? null,
+      paused: project.meta.paused,
+      paused_at: project.meta.pausedAt ?? null,
+      resume_note: project.meta.resumeNote ?? null,
     }),
   );
 

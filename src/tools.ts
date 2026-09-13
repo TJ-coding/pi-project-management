@@ -1305,6 +1305,48 @@ export function registerProjectTools(pi: ExtensionAPI): void {
     },
   });
 
+  /* ---------------- pause / start ---------------- */
+
+  pi.registerTool({
+    name: "project_pause",
+    label: "Project: pause or start",
+    description:
+      "Park a project deliberately (PAUSED) or resume it (STARTED). Pausing is reversible, unlike completion: " +
+      "the plan, goals and open questions all stay as they are. Record a resume note so picking the thread " +
+      "back up is one step.",
+    promptSnippet: "Pause or resume the project",
+    parameters: Type.Object({
+      action: StringEnum(["pause", "start", "status"] as const),
+      note: Type.Optional(Type.String({ description: "What to do first when work resumes" })),
+    }),
+    async execute(_id, params, _signal, _update, ctx) {
+      const manager = await requireManager(ctx);
+      if (params.action === "pause") {
+        const project = await manager.pauseProject(params.note);
+        return ok(
+          project.meta.resumeNote
+            ? `Project paused. Resume with: ${project.meta.resumeNote}`
+            : "Project paused. No resume note recorded.",
+        );
+      }
+      if (params.action === "start") {
+        const wasPaused = manager.project.meta.paused;
+        const project = await manager.resumeProject();
+        return ok(
+          (wasPaused ? "Project resumed." : "Project was not paused.") +
+            (project.meta.resumeNote ? ` First step: ${project.meta.resumeNote}` : ""),
+        );
+      }
+      const project = manager.project;
+      const paused = project.meta.paused
+        ? `PAUSED since ${project.meta.pausedAt ?? "unknown"}${project.meta.resumeNote ? ` — resume with: ${project.meta.resumeNote}` : ""}`
+        : project.meta.completed
+          ? "COMPLETED"
+          : "ACTIVE";
+      return ok(`${project.meta.name}: ${paused}`);
+    },
+  });
+
   /* ---------------- resume ---------------- */
 
   pi.registerTool({

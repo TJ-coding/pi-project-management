@@ -319,6 +319,8 @@ export interface Run {
 export const HISTORY_KINDS = [
   "project.init",
   "project.renamed",
+  "project.paused",
+  "project.resumed",
   "project.completed",
   "direction.changed",
   "state.changed",
@@ -378,6 +380,11 @@ export interface ProjectMeta {
   activePlan: Id | null;
   completed: boolean;
   completedAt?: string | null;
+  /** Parked deliberately: reversible, unlike `completed`. */
+  paused: boolean;
+  pausedAt?: string | null;
+  /** What to do first when work resumes; shown while paused. */
+  resumeNote?: string | null;
 }
 
 export interface PlansFile {

@@ -62,6 +62,8 @@ export const PROJECT_SUBCOMMANDS = [
   "resume",
   "yolo",
   "rename",
+  "pause",
+  "start",
   "complete",
   "watch",
   "projects",
@@ -121,6 +123,8 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
   },
   yolo: { usage: "/project yolo [on|off]", summary: "toggle YOLO auto-accept (still recorded)" },
   rename: { usage: "/project rename <name>", summary: "rename the project (label and slug only)" },
+  pause: { usage: "/project pause [note]", summary: "park the project; note what resumes it" },
+  start: { usage: "/project start", summary: "resume a paused project" },
   complete: { usage: "/project complete", summary: "mark the project complete and show the summary" },
   watch: { usage: "/project watch [on|off]", summary: "toggle the editor widget" },
   projects: { usage: "/project projects", summary: "list projects in the local workspace" },
@@ -140,7 +144,7 @@ export function renderHelp(pi?: ExtensionAPI): string {
   const lines: string[] = ["Project commands", ""];
   const groups: Array<[string, Subcommand[]]> = [
     ["View", ["dashboard", "status", "direction", "goals", "state", "intelligence", "risks", "strategy", "plan", "history", "evolution", "runs", "summary"]],
-    ["Act", ["init", "edit", "review", "replan", "resume", "rename", "yolo", "complete", "watch"]],
+    ["Act", ["init", "edit", "review", "replan", "resume", "rename", "pause", "start", "yolo", "complete", "watch"]],
     ["Discover", ["tools", "projects", "help"]],
   ];
   for (const [title, names] of groups) {
@@ -378,6 +382,12 @@ async function handleProjectCommand(
     case "rename":
       await runRename(pi, ctx, manager, rest);
       return;
+    case "pause":
+      await runPause(pi, ctx, manager, rest);
+      return;
+    case "start":
+      await runStart(pi, ctx, manager);
+      return;
     case "complete":
       await runComplete(pi, ctx, manager);
       return;
@@ -520,6 +530,30 @@ async function runRename(
   const previous = manager.project.meta.name;
   const project = await manager.renameProject(name);
   await showText(pi, ctx, `Renamed "${previous}" to "${project.meta.name}" (id ${project.meta.id}).`);
+}
+
+async function runPause(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  rest: string,
+): Promise<void> {
+  const note = rest.trim();
+  const project = await manager.pauseProject(note === "" ? undefined : note);
+  await showText(
+    pi,
+    ctx,
+    project.meta.resumeNote
+      ? `Project paused. Resume with: ${project.meta.resumeNote}`
+      : "Project paused. Add a note with `/project pause <what to do next>` so resuming is one step.",
+  );
+}
+
+async function runStart(pi: ExtensionAPI, ctx: ExtensionCommandContext, manager: ProjectManager): Promise<void> {
+  const wasPaused = manager.project.meta.paused;
+  const project = await manager.resumeProject();
+  const note = project.meta.resumeNote ? `\n\nFirst step: ${project.meta.resumeNote}` : "";
+  await showText(pi, ctx, `${wasPaused ? "Project resumed." : "Project was not paused."}${note}`);
 }
 
 async function runComplete(pi: ExtensionAPI, ctx: ExtensionCommandContext, manager: ProjectManager): Promise<void> {
