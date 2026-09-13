@@ -37,6 +37,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 ## Major Questions
 
 - Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
+- Q8 Should the rail drop to ten views so every key works? — UNKNOWN (MEDIUM)
 - Q6 Is pause a new status or a view of existing state? — ANSWERED (LOW)
 - Q4 Which panels can go without losing a spec requirement? — ANSWERED (LOW)
 - Q2 Should rename touch only meta.name, or ids and paths too? — ANSWERED (LOW)

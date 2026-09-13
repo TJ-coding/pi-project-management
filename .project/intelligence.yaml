@@ -168,3 +168,20 @@
   created: 2026-09-13T17:25:21.961Z
   updated: 2026-09-13T17:25:46.053Z
   answered: 2026-09-13T17:25:46.053Z
+- id: Q8
+  question: Should the rail drop to ten views so every key works?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.5
+  uncertainty: 0.6
+  decision_impact: 0.5
+  confidence: 0
+  evidence: []
+  goals:
+    - G8
+  risks: []
+  tasks: []
+  decisions: []
+  created: 2026-09-13T17:30:20.514Z
+  updated: 2026-09-13T17:30:20.514Z
+  answered: null

@@ -114,3 +114,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T17:25:21.765Z **goal.completed** — Goal G4 COMPLETED: Minimalism [G4] (by agent)
 - 2026-09-13T17:25:21.961Z **question.created** — Question Q7 created: Hierarchy or frequency for the panel rail order? [Q7] (by agent)
 - 2026-09-13T17:25:46.053Z **question.answered** — Question Q7 ANSWERED: Hierarchy or frequency for the panel rail order? [Q7] (by agent)
+- 2026-09-13T17:30:20.514Z **question.created** — Question Q8 created: Should the rail drop to ten views so every key works? [Q8] (by agent)
