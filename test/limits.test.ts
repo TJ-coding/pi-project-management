@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, describe, test } from "node:test";
 
-import { BUDGETS, budgetViolations, collectTextFields, countWords, overBudget, overBudgetFields } from "../src/limits.ts";
+import { BUDGETS, budgetViolations, collectTextFields, countWords, overBudget, overBudgetByView, overBudgetEntityIds, overBudgetFields } from "../src/limits.ts";
 import { ProjectManager } from "../src/project.ts";
 import { cleanup, fixedClock, tempDir } from "./helpers.ts";
 
@@ -46,6 +46,44 @@ describe("limits", () => {
     assert.equal(violations.length, 1);
     assert.match(violations[0]!, /G1 description is \d+ (words|chars)/);
     assert.match(violations[0]!, /may only shrink/);
+  });
+
+  test("the ratchet compares one severity scalar, not each dimension", () => {
+    const key = "state.discoveries[0]";
+    const before = new Map([[key, { key, label: "Discovery #1", text: "x".repeat(400), kind: "line" as const }]]);
+    // One enormous token (1 word) becomes eleven short ones: fewer characters, more
+    // words. That is clearly shorter and must be accepted.
+    const repacked = "ten short words replace one enormous token and still read fine";
+    const after = new Map([[key, { ...before.get(key)!, text: repacked }]]);
+    assert.deepEqual(budgetViolations(before, after), []);
+  });
+
+  test("the tally, the row markers and the field list all agree", async () => {
+    const root = await tempDir();
+    dirs.push(root);
+    const manager = await ProjectManager.init(root, { name: "Limits", clock: fixedClock(), by: "test" });
+    await manager.createGoal({ title: "Short goal", description: "Tight.", commit: false } as never, { commit: false });
+    await manager.createRisk({ title: "Short risk", probability: 0.5, impact: 0.5, commit: false } as never, { commit: false });
+    const project = await manager.read((current) => current);
+    const legacy = {
+      ...project,
+      goals: [{ ...project.goals[0]!, description: prose(150) }, ...project.goals.slice(1)],
+      risks: [{ ...project.risks[0]!, mitigation: prose(150) }, ...project.risks.slice(1)],
+      state: { ...project.state, discoveries: [prose(150)] },
+    };
+
+    const fields = overBudgetFields(legacy);
+    const tally = overBudgetByView(legacy);
+    assert.equal(tally.total, fields.length, "the tally must count every over-budget field");
+    assert.equal([...tally.byView.values()].reduce((sum, count) => sum + count, 0), tally.total);
+    assert.equal(tally.byView.get("goals"), 1);
+    assert.equal(tally.byView.get("risks"), 1);
+    assert.equal(tally.byView.get("state"), 1);
+
+    const ids = overBudgetEntityIds(legacy);
+    assert.ok(ids.has("goal:G1"), "the goal row must be markable");
+    assert.ok(ids.has("risk:R1"), "the risk row must be markable");
+    assert.ok(!ids.has("goal:G2"), "a tight goal must not be marked");
   });
 
   test("every budgeted field has a known kind and a path", async () => {

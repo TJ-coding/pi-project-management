@@ -28,7 +28,7 @@ export function validateProjectDetailed(project: Project): ValidationReport {
   // Over-budget text is a warning, never an error: it cannot block edits to a
   // project that was written before the budget existed.
   for (const { field, over } of overBudgetFields(project)) {
-    warnings.push(`[budget] ${field.label} is ${over.exceeded.join(" and ")}`);
+    warnings.push(`[budget] ${field.label} is ${over.exceeded.join(" and ")} — grandfathered, edits may only shrink it`);
   }
   return { errors, warnings };
 }

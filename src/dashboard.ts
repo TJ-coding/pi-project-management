@@ -13,7 +13,7 @@ import { blockedByDependencies, dagStats, nextActionable, readyNodes, topoOrder 
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
-import { overBudget, overBudgetFields, type TextKind } from "./limits.ts";
+import { overBudget, overBudgetByView, overBudgetEntityIds, type TextKind } from "./limits.ts";
 import type { Goal, HistoryEvent, PlanNode, Project, Question, Risk } from "./types.ts";
 
 export interface ViewDefinition {
@@ -414,8 +414,7 @@ export function renderPlanInteractive(
   theme: Theme,
   width: number,
   cursor: string | null,
-): PlanRender {
-  const plan = activePlan(project);
+): PlanRender {  const plan = activePlan(project);
   if (!plan) {
     return { lines: [theme.fg("dim", "no active plan yet"), "", theme.fg("dim", "the agent can create one when you ask for a plan")], ids: [] };
   }
@@ -423,6 +422,7 @@ export function renderPlanInteractive(
   const ids = groups.flatMap((group) => group.nodes.map((node) => node.id));
   const activeId = cursor && ids.includes(cursor) ? cursor : ids[0] ?? null;
   const stats = dagStats(plan.nodes);
+  const bloated = overBudgetEntityIds(project);
 
   const lines: string[] = [];
   const done = stats.byStatus.COMPLETED;
@@ -440,7 +440,7 @@ export function renderPlanInteractive(
   for (const group of groups) {
     lines.push(sectionHeader(theme, group.label, `${group.nodes.length + group.hidden}`, width, group.tone));
     for (const node of group.nodes) {
-      lines.push(containerRow(theme, planNodeContent(theme, node), width, node.id === activeId));
+      lines.push(containerRow(theme, planNodeContent(theme, node, bloated.has(`plan:${plan.id}/${node.id}`)), width, node.id === activeId));
     }
     if (group.hidden > 0) {
       lines.push(containerNote(theme, theme.fg("dim", `… +${group.hidden} more`), width));
@@ -455,9 +455,9 @@ export function renderPlanInteractive(
 }
 
 /** Row content for a node; the container adds the gutter and the selection bar. */
-function planNodeContent(theme: Theme, node: PlanNode): string {
+function planNodeContent(theme: Theme, node: PlanNode, bloated = false): string {
   const glyphColor = node.status === "COMPLETED" ? "success" : node.status === "FAILED" ? "error" : node.status === "RUNNING" ? "accent" : "dim";
-  const glyph = theme.fg(glyphColor, statusGlyph(node.status));
+  const glyph = `${bloated ? theme.fg("warning", "⚠ ") : ""}${theme.fg(glyphColor, statusGlyph(node.status))}`;
   const id = theme.fg("muted", node.id.padEnd(4));
   const type = theme.fg("dim", (NODE_TYPE_ABBREVIATIONS[node.type] ?? node.type).padEnd(5));
 
@@ -747,11 +747,14 @@ const dashboardView: ViewDefinition = {
     if (plan) full.push(`${plan.nodes.length} nodes`);
     if (full.length > 0) lines.push(`  ${theme.fg("dim", `full lists: ${full.join(" · ")}`)}`);
     // One number, not a wall of warnings: the exact list is in /project review.
-    const bloated = overBudgetFields(project).length;
-    if (bloated > 0) {
-      lines.push(
-        `  ${theme.fg("warning", `${bloated} field${bloated === 1 ? "" : "s"} over budget`)}${theme.fg("dim", ` — State (4), Intelligence (5), Risks (6); enter reads a row`)}`,
-      );
+    const bloated = overBudgetByView(project);
+    if (bloated.total > 0) {
+      // Per-view counts that add up, so the number is actionable.
+      const ranked = [...bloated.byView.entries()].sort((a, b) => b[1] - a[1]);
+      const head = ranked.slice(0, 3).map(([view, count]) => `${view} ${count}`).join(" · ");
+      const rest = bloated.total - ranked.slice(0, 3).reduce((sum, [, count]) => sum + count, 0);
+      const tail = rest > 0 ? ` · +${rest} elsewhere` : "";
+      lines.push(`  ${theme.fg("warning", `${bloated.total} over budget`)}${theme.fg("dim", ` — ${head}${tail}`)}`);
     }
     return lines;
   },
@@ -856,6 +859,7 @@ const goalsView: ViewDefinition = {
     }
     const lines: string[] = [];
     let focusLine: number | undefined;
+    const bloatedIds = overBudgetEntityIds(project);
     for (const group of GOAL_GROUPS) {
       const goals = project.goals
         .filter((goal) => group.statuses.includes(goal.status))
@@ -864,7 +868,7 @@ const goalsView: ViewDefinition = {
       lines.push(sectionHeader(theme, group.label, `${goals.length}`, width, group.tone));
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
-        const head = `${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
+        const head = `${bloatedIds.has(`goal:${goal.id}`) ? theme.fg("warning", "⚠ ") : ""}${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
@@ -965,6 +969,7 @@ const intelligenceView: ViewDefinition = {
     }
     const lines: string[] = [];
     let focusLine: number | undefined;
+    const bloatedIds = overBudgetEntityIds(project);
     const open = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
     const answered = byQuestionPriority(project.questions.filter((q) => q.status === "ANSWERED"));
     const settled = byQuestionPriority(project.questions.filter((q) => q.status === "CONFIRMED" || q.status === "INVALIDATED"));
@@ -974,7 +979,7 @@ const intelligenceView: ViewDefinition = {
       lines.push(sectionHeader(theme, label, `${questions.length}`, width, tone));
       for (const question of questions) {
         const band = scoreBand(questionScore(question));
-        const head = `${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
+        const head = `${bloatedIds.has(`question:${question.id}`) ? theme.fg("warning", "⚠ ") : ""}${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", question.status)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(question.question);
@@ -1008,13 +1013,15 @@ const risksView: ViewDefinition = {
     }
     const lines: string[] = [];
     let focusLine: number | undefined;
+    const bloatedIds = overBudgetEntityIds(project);
     for (const group of riskGroups) {
       const risks = byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status)));
       if (risks.length === 0) continue;
       lines.push(sectionHeader(theme, group.label, `${risks.length}`, width, group.tone));
       for (const risk of risks) {
         const band = scoreBand(riskScore(risk));
-        const head = `${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
+        const mark = bloatedIds.has(`risk:${risk.id}`) ? theme.fg("warning", "⚠ ") : "";
+        const head = `${mark}${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `${risk.status === "MITIGATING" ? "MITIGATING · " : ""}exp ${riskExposure(risk).toFixed(2)}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(risk.title);
@@ -1288,7 +1295,7 @@ export function renderDetailDoc(theme: Theme, doc: DetailDoc, width: number): st
     if (text === "" || (placeholders.has(text) && field.tone !== "text")) continue;
     // Twitter-style counter, but only when it has something to say.
     const over = field.kind ? overBudget(field.text, field.kind) : null;
-    lines.push(...heading(theme, over ? `${field.label.toUpperCase()} — ${over.exceeded.join(" and ")}` : field.label.toUpperCase(), width));
+    lines.push(...heading(theme, over ? `${field.label.toUpperCase()} — ${over.exceeded.join(" and ")}, may only shrink` : field.label.toUpperCase(), width));
     for (const line of wrapTextWithAnsi(theme.fg(field.tone ?? "text", field.text), width)) lines.push(line);
     lines.push("");
   }

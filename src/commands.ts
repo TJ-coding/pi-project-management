@@ -152,6 +152,8 @@ export function renderHelp(pi?: ExtensionAPI): string {
 
   lines.push("Changing work directly: /project edit <section> — forms for goals/risks/questions/direction/state/strategy");
   lines.push("(or press e in the dashboard; E edits the raw text, useful for the plan).");
+  lines.push("Text budgets: titles ≤12 words, one-liners ≤30, values ≤20, prose ≤60 — over-budget writes are");
+  lines.push("refused. Existing long text is grandfathered (marked ⚠ in lists) and may only be edited shorter.");
   lines.push("Otherwise work is added by talking to the agent, for example:");
   lines.push('  "add a goal to ship the parser, priority 4"            -> project_goal');
   lines.push('  "record what we do not know about the evaluator"       -> project_question');

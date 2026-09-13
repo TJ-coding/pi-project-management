@@ -174,11 +174,18 @@ export function budgetViolations(
     const previous = before.get(field.key);
     if (previous && previous.text === field.text) continue;
     const previousOver = previous ? overBudget(previous.text, field.kind) : null;
-    if (previousOver && over.words <= previousOver.words && over.chars <= previousOver.chars) continue;
+    // Ratchet on one scalar, not per dimension: swapping a 90-char URL for three
+    // short words must count as shrinking.
+    if (previousOver && severity(over) <= severity(previousOver) + 1e-9) continue;
     const ratchet = previousOver ? ` (was ${previousOver.words}w/${previousOver.chars}c — may only shrink)` : "";
     violations.push(`${field.label} is ${over.exceeded.join(" and ")}${ratchet} — ${field.kind} budget is ${over.budget.shape}`);
   }
   return violations;
+}
+
+/** How badly a field misses its budget: 1.0 = exactly at the limit, 2.0 = twice. */
+function severity(over: OverBudget): number {
+  return Math.max(over.words / over.budget.words, over.chars / over.budget.chars);
 }
 
 /** Throw unless every new or changed field fits its budget. */
@@ -203,6 +210,42 @@ export function overBudgetFields(project: Project): Array<{ field: TextField; ov
     if (over) findings.push({ field, over });
   }
   return findings;
+}
+
+/** Field-path prefix -> dashboard view, used for the over-budget tally. */
+export const BUDGET_VIEWS: Record<string, string> = {
+  direction: "direction",
+  state: "state",
+  goal: "goals",
+  question: "intelligence",
+  risk: "risks",
+  strategy: "strategy",
+  plan: "plan",
+  decision: "summary",
+  run: "runs",
+};
+
+/** Entity ids (`goal:G4`, `plan:P2/N7`, …) that have at least one field over budget. */
+export function overBudgetEntityIds(project: Project): Set<string> {
+  const ids = new Set<string>();
+  for (const { field } of overBudgetFields(project)) {
+    const match = /^(goal|question|risk|plan):([^.\[]+)/.exec(field.key);
+    if (match) ids.add(`${match[1]}:${match[2]}`);
+  }
+  return ids;
+}
+
+/** Over-budget counts per dashboard view, so the tally adds up. */
+export function overBudgetByView(project: Project): { total: number; byView: Map<string, number> } {
+  const byView = new Map<string, number>();
+  let total = 0;
+  for (const { field } of overBudgetFields(project)) {
+    const prefix = field.key.split(/[.:[]/)[0] ?? "";
+    const view = BUDGET_VIEWS[prefix] ?? "other";
+    byView.set(view, (byView.get(view) ?? 0) + 1);
+    total += 1;
+  }
+  return { total, byView };
 }
 
 /** Compact budget line: shown in the digest and in errors. */
