@@ -19,7 +19,12 @@
   "scripts": {
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "smoke:rpc": "node scripts/rpc-smoke.mjs",
+    "smoke:workflow": "node scripts/rpc-smoke.mjs --prompt-file scripts/smoke-workflow.txt --expect-goal 'End-to-end tools' --expect-tool project_direction,project_gate,project_replan,project_run,project_decision,project_context,project_resume,project_review --timeout 600000",
+    "smoke:commands": "node scripts/rpc-commands.mjs",
+    "smoke:tui": "python3 scripts/tui-smoke.py",
+    "smoke": "npm run smoke:rpc && npm run smoke:commands && npm run smoke:tui"
   },
   "dependencies": {
     "yaml": "^2.6.1"

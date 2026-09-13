@@ -1,0 +1,26 @@
+[1:Dashboard]| 2:Direction | 3:Goals | 4:State | 5:Intelligence | 6:Risks | 7:Strategy | 8:Plan / DAG | 9:History |
+10:Runs | 11:Summary 
+Smoke Project
+/private/tmp/pm-smoke2/.project  — YOLO
+─── VISION ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Ship a verified persistent project layer
+intent: Prove agents and humans share one project interface
+─── GOALS ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+→ End-to-end tools [ACTIVE] P5
+─── STATE ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Smoke workflow running
+─── RISKS ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+! Schema mismatch between agent and extension MEDIUM   exposure 0.27
+─── INTELLIGENCE ───────────────────────────────────────────────────────────────────────────────────────────────────────
+? Do all tools persist correctly? LOW      CONFIRMED
+─── ACTIVE PLAN ────────────────────────────────────────────────────────────────────────────────────────────────────────
+P2 v2 — Initial plan (replanned)
+1/4 done · 0 running · 2 ready · 0 failed
+  ✓ N4 Verify persistence
+  ▶ N1 Investigate: Do all tools persist correctly? (next)
+─── RUNS ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓ RUN1 Smoke run COMPLETED
+
+
+Dashboard
+tab/←→ switch · 1-9 jump · ↑↓/j/k scroll · space/pgdn page · g/G top/bottom · r reload · q close

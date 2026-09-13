@@ -14,6 +14,7 @@ import { Type } from "typebox";
 
 import { buildDigest, buildResumeReport, buildTargetedContext } from "./context.ts";
 import { formatAwaySummary, planEvolution, renderCompletionSummary, summarizeSince } from "./history.ts";
+import { nextId } from "./ids.ts";
 import { renderReplanAnalysis, renderReviewReport } from "./reports.ts";
 import {
   renderAwayText,
@@ -981,8 +982,8 @@ export function registerProjectTools(pi: ExtensionAPI): void {
           let log: string | null = null;
           if (command) {
             const runDir = `${manager.root}/${PROJECT_DIR}/runs`;
-            const provisional = await manager.read((project) => project.runs.length + 1);
-            const logFile = `${runDir}/RUN${provisional}.log`;
+            const nextRunId = await manager.read((project) => nextId("run", project.runs.map((run) => run.id)));
+            const logFile = `${runDir}/${nextRunId}.log`;
             const spawnResult = spawnDetached(command, params.cwd ?? manager.root, logFile);
             pid = spawnResult.pid;
             log = spawnResult.logFile;
