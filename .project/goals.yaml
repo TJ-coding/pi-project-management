@@ -62,9 +62,8 @@
   risks: []
   tasks:
     - N7
-    - N8
   created: 2026-09-13T16:07:06.066Z
-  updated: 2026-09-13T16:16:04.205Z
+  updated: 2026-09-13T16:16:08.032Z
 - id: G5
   title: Visual DAG
   description: It is difficult to identify how the DAG hierarhy are structred. Within the same pannel
