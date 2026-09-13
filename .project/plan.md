@@ -12,7 +12,11 @@ Rationale: Created implicitly when the first node was added.
     Count words and characters while typing, so a save is never refused by surprise.
 - [PENDING] N3 INVESTIGATION — Decide the digest shape without dropping facts {goal:G3 q:Q1}
     Work out what the digest must carry and what moves to /project status.
+- [PENDING] N4 REVIEW — k3 sign-off on the frames (after N1, N2, N3) {goal:G1}
+    Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
 
 ## Edges
 
-_No edges._
+N1 -> N4
+N2 -> N4
+N3 -> N4

@@ -20,3 +20,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:02.928Z **task.updated** — Node N1 added to P1: Add rename for the project name [N1] (by agent)
 - 2026-09-13T15:59:03.093Z **task.updated** — Node N2 added to P1: Show live word counters in entity forms [N2] (by agent)
 - 2026-09-13T15:59:03.266Z **task.updated** — Node N3 added to P1: Decide the digest shape without dropping facts [N3] (by agent)
+- 2026-09-13T15:59:03.439Z **task.updated** — Node N4 added to P1: k3 sign-off on the frames [N4] (by agent)

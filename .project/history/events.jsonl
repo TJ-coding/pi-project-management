@@ -16,3 +16,4 @@
 {"seq":16,"at":"2026-09-13T15:59:02.928Z","kind":"task.updated","summary":"Node N1 added to P1: Add rename for the project name","by":"agent","refs":["N1"]}
 {"seq":17,"at":"2026-09-13T15:59:03.093Z","kind":"task.updated","summary":"Node N2 added to P1: Show live word counters in entity forms","by":"agent","refs":["N2"]}
 {"seq":18,"at":"2026-09-13T15:59:03.266Z","kind":"task.updated","summary":"Node N3 added to P1: Decide the digest shape without dropping facts","by":"agent","refs":["N3"]}
+{"seq":19,"at":"2026-09-13T15:59:03.439Z","kind":"task.updated","summary":"Node N4 added to P1: k3 sign-off on the frames","by":"agent","refs":["N4"]}

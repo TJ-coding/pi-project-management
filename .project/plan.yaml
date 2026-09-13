@@ -61,5 +61,26 @@ plans:
         updated: 2026-09-13T15:59:03.265Z
         started: null
         finished: null
+      - id: N4
+        title: k3 sign-off on the frames
+        type: REVIEW
+        status: PENDING
+        description: Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
+        depends_on:
+          - N1
+          - N2
+          - N3
+        goal: G1
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T15:59:03.439Z
+        updated: 2026-09-13T15:59:03.439Z
+        started: null
+        finished: null
     gates: []
 changes: []
