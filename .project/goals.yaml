@@ -142,12 +142,16 @@
   description: I keep on existing edit screens without saving, and it's really annoying. I wish there
     were like an are you sure warning before it just removes all my changes.
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - Esc on a changed form asks before discarding.
+    - Esc on an unchanged form closes immediately.
+    - The raw text editor keeps its own confirm.
   status: ACTIVE
   parent: null
   superseded_by: null
   questions: []
   risks: []
-  tasks: []
+  tasks:
+    - N11
   created: 2026-09-13T16:12:51.088Z
-  updated: 2026-09-13T16:12:51.088Z
+  updated: 2026-09-13T16:15:28.401Z
