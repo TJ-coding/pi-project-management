@@ -15,3 +15,20 @@
   created: 2026-09-13T15:59:01.558Z
   updated: 2026-09-13T15:59:01.558Z
   answered: null
+- id: Q2
+  question: Should rename touch only meta.name, or ids and paths too?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.6
+  uncertainty: 0.6
+  decision_impact: 0.5
+  confidence: 0
+  evidence: []
+  goals:
+    - G3
+  risks: []
+  tasks: []
+  decisions: []
+  created: 2026-09-13T15:59:01.677Z
+  updated: 2026-09-13T15:59:01.677Z
+  answered: null

@@ -25,6 +25,7 @@ _No risks recorded._
 ## Major Questions
 
 - Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
+- Q2 Should rename touch only meta.name, or ids and paths too? — UNKNOWN (MEDIUM)
 
 ## Major Decisions
 
