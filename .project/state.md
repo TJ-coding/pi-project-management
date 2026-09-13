@@ -6,7 +6,7 @@ Seeded 2026-09-14: direction, three goals, three questions, three risks, a four-
 
 ## Current State
 
-9 goals on the board; the plan has 11 nodes (N1-N5 from the review loop, N6-N11 from the six new goals). Three questions answered from the source; R5/R6 added. No credentials in the repo; it is safe to publish.
+6 of 11 original nodes done (N1, N2, N3, N5, N6, N11) plus N12 for G10. G3 and G10 closed; R4 resolved. 108 tests, TUI smoke and a pause round-trip pass. Ready: N7, N9; N4/N10 blocked behind reviews and publishing.
 
 ## Capabilities
 
@@ -31,4 +31,4 @@ _None yet._
 
 ## Last Updated
 
-2026-09-13T17:10:09.035Z
+2026-09-13T17:21:15.880Z
