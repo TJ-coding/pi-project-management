@@ -1,0 +1,20 @@
+id: RUN1
+title: k3 usability review loop
+node: null
+status: STARTED
+environment:
+  - kind: api
+    target: kimi-k3 via opencode-go
+    note: headless --print --no-tools
+command: null
+cwd: null
+pid: null
+host: null
+session: null
+log: null
+exit_code: null
+started: 2026-09-13T15:59:03.626Z
+finished: null
+updated: 2026-09-13T15:59:03.626Z
+entries: []
+outputs: []

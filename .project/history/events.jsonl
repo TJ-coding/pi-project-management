@@ -17,3 +17,4 @@
 {"seq":17,"at":"2026-09-13T15:59:03.093Z","kind":"task.updated","summary":"Node N2 added to P1: Show live word counters in entity forms","by":"agent","refs":["N2"]}
 {"seq":18,"at":"2026-09-13T15:59:03.266Z","kind":"task.updated","summary":"Node N3 added to P1: Decide the digest shape without dropping facts","by":"agent","refs":["N3"]}
 {"seq":19,"at":"2026-09-13T15:59:03.439Z","kind":"task.updated","summary":"Node N4 added to P1: k3 sign-off on the frames","by":"agent","refs":["N4"]}
+{"seq":20,"at":"2026-09-13T15:59:03.626Z","kind":"run.started","summary":"Run RUN1 started: k3 usability review loop","by":"agent","refs":["RUN1"],"details":{"environment":[{"kind":"api","target":"kimi-k3 via opencode-go","note":"headless --print --no-tools"}]}}
