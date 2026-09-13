@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. Open: this project is shadowed by $HOME/.project, so sessions must start inside the repo.
+9 goals on the board; the plan has 11 nodes (N1-N5 from the review loop, N6-N11 from the six new goals). Three questions answered from the source; R5/R6 added. Open: publishing is blocked on the ACL26 names in .project/.
 
 ## Goals
 
