@@ -196,6 +196,31 @@ describe("dashboard", () => {
     assert.match(after!, /←N1✓/, "a done parent is marked with a tick");
   });
 
+  test("summary does not repeat the plan reasons history already carries", async () => {
+    // Panel audit (Q4): no panel was removable, but Summary restated the
+    // plan.changed reason that History records with a timestamp. Summary is now a
+    // one-line-per-plan index that points at History for the why.
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const summary = VIEWS.find((view) => view.id === "summary")!.render(project, theme, 100).join("\n");
+    const history = VIEWS.find((view) => view.id === "history")!.render(project, theme, 100).join("\n");
+
+    const changes = project.plans.changes;
+    assert.ok(changes.length > 0, "the fixture has a plan change");
+    assert.match(summary, /PLAN EVOLUTION/);
+    assert.match(summary, /P\d+ v\d+/, "each plan is still listed");
+    assert.match(summary, /reasons and triggers: History/, "and the reader is pointed at the log");
+
+    // The reason itself must not appear in Summary if History carries it.
+    for (const change of changes) {
+      const why = change.reason.slice(0, 40);
+      if (history.includes(why)) {
+        assert.ok(!summary.includes(why), `Summary repeats a History reason: ${why}`);
+      }
+    }
+  });
+
   test("plan browser moves the cursor and emits edit/new/delete actions", async () => {
     const { root, manager } = await richProject();
     dirs.push(root);

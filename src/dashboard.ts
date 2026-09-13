@@ -308,14 +308,21 @@ const summaryView: ViewDefinition = {
     const evolution = planEvolution(project);
     if (evolution.length === 0) lines.push(theme.fg("dim", "no plans"));
     for (const entry of evolution) {
-      lines.push(...bulletLines(theme, "• ", theme.fg("text", `${entry.plan} v${entry.version} — ${entry.title}`), width));
-      if (entry.change) {
-        const why = `why: ${entry.change.reason}`;
-        // Wrap inside the indent: 2 spaces for the first line, 6 for the rest, and
-        // the total must still fit `width` or the outer wrapper re-wraps at column 0.
-        wrapTextWithAnsi(theme.fg("muted", why), Math.max(8, width - 6)).forEach((line, index) => lines.push(index === 0 ? `  ${line}` : `      ${line}`));
-      }
-      if (entry.supersededBy) lines.push(`  ${theme.fg("dim", `superseded by ${entry.supersededBy}`)}`);
+      // One line per plan. The reason and trigger live in History, which records
+      // every plan.changed event with a timestamp — repeating them here was the
+      // one real duplication between two panels.
+      const superseded = entry.supersededBy ? theme.fg("dim", ` → ${entry.supersededBy}`) : "";
+      lines.push(
+        ...bulletLines(
+          theme,
+          "• ",
+          `${theme.fg("text", `${entry.plan} v${entry.version}`)} ${theme.fg("muted", entry.title)} ${theme.fg("dim", entry.change ? entry.change.at.slice(0, 10) : entry.createdAt.slice(0, 10))}${superseded}`,
+          width,
+        ),
+      );
+    }
+    if (evolution.some((entry) => entry.change)) {
+      lines.push(`  ${theme.fg("dim", "reasons and triggers: History")}`);
     }
 
     lines.push(...heading(theme, "MAJOR DECISIONS", width));
