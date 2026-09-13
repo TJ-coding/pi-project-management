@@ -90,14 +90,6 @@
         all refs found no key material
       kind: measurement
       ref: git ls-files; git log --all -p
-    - description: Only sensitive hits are ACL26 names in .project/state.md and risks.yaml plus the repo
-        path in history
-      kind: measurement
-      ref: .project/history/events.jsonl:1
-    - description: git ls-files shows 64 files, none matching secret/env/key patterns; git log -p across
-        all refs found no key material
-      kind: measurement
-      ref: git ls-files; git log --all -p
     - description: The human confirmed this project is unrelated to any other project in .project/, so its
         references are not a privacy concern
       kind: doc
@@ -111,5 +103,5 @@
   decisions:
     - D3
   created: 2026-09-13T16:16:29.862Z
-  updated: 2026-09-13T16:21:36.893Z
+  updated: 2026-09-13T16:22:14.332Z
   answered: 2026-09-13T16:21:36.893Z
