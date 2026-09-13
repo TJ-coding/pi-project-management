@@ -280,6 +280,50 @@ describe("dashboard", () => {
     assert.match(rail, new RegExp(`${keyFor("risks")}\\(${counts.get("risks")}\\)`), "risks badge sits on risks");
   });
 
+  test("every container is closed on all four sides", async () => {
+    // Regression: body rows carried a left spine but no right wall, so the header's
+    // ┓ and the close's ┛ connected to nothing. A box open down one side reads as
+    // a render bug on the first screen a user opens.
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    for (const view of VIEWS) {
+      for (const width of [60, 80, 100, 132]) {
+        const lines = view.render(project, theme, width);
+        const opens = lines.filter((line) => line.includes("┏━"));
+        for (const open of opens) {
+          assert.ok(open.endsWith("┓"), `${view.id}@${width}: header does not close: ${JSON.stringify(open.slice(-8))}`);
+        }
+        // Every body row between a header and its close must reach the right wall.
+        let depth = 0;
+        for (const line of lines) {
+          const visibleEnd = line.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+          if (line.includes("┏━")) {
+            depth += 1;
+            continue;
+          }
+          if (line.includes("┗") && line.includes("┛")) {
+            depth = Math.max(0, depth - 1);
+            assert.ok(visibleEnd.endsWith("┛"), `${view.id}@${width}: close missing corner`);
+            continue;
+          }
+          if (depth > 0 && visibleEnd.trim() !== "") {
+            assert.ok(
+              visibleEnd.endsWith("┃"),
+              `${view.id}@${width}: body row has no right wall: ${JSON.stringify(visibleEnd.slice(-14))}`,
+            );
+            // Both sides: a row with only one wall leaves the box visibly open.
+            assert.ok(
+              visibleEnd.startsWith("┃"),
+              `${view.id}@${width}: body row has no left wall: ${JSON.stringify(visibleEnd.slice(0, 14))}`,
+            );
+          }
+        }
+        assert.equal(depth, 0, `${view.id}@${width}: a container was never closed`);
+      }
+    }
+  });
+
   test("plan browser moves the cursor and emits edit/new/delete actions", async () => {
     const { root, manager } = await richProject();
     dirs.push(root);

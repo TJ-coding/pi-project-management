@@ -108,20 +108,39 @@ export function sectionHeader(
   return truncateToWidth(`${left}${theme.fg("borderMuted", "━".repeat(rule))}${right}${theme.fg(tone, "━┓")}`, width, "…");
 }
 
-/** A row inside a container: two-space gutter, a `┃` spine, then content. */
+/**
+ * A row inside a container. The spine is drawn on the left and the wall on the
+ * right, padded to `width`, so the sides actually connect to the header's `┏`/`┓`
+ * and the footer's `┗`/`┛`. A box open down one side reads as a render bug.
+ */
 export function containerRow(theme: Theme, content: string, width: number, selected = false): string {
-  return selectionRow(theme, theme.fg("borderMuted", "  ┃ ") + content, width, selected);
+  const spine = theme.fg("borderMuted", "┃ ");
+  const wall = theme.fg("borderMuted", "┃");
+  // Two columns are spent on the right wall; the spine is already inside content.
+  const body = truncateToWidth(content, Math.max(1, width - 3), "…");
+  const filled = padStyled(body, Math.max(1, width - 3));
+  return selectionRow(theme, `${spine}${filled}${wall}`, width, selected);
 }
 
-/** A continuation row inside a container (no spine, aligned with the content). */
+/**
+ * A continuation row inside a container. It carries both walls so the box reads as
+ * a single closed rectangle, with the spine replaced by a space so continuation
+ * text stays visually subordinate to the row above it.
+ */
 export function containerNote(theme: Theme, content: string, width: number): string {
-  return truncateToWidth(`      ${content}`, width, "…");
+  const gutter = theme.fg("borderMuted", "┃ ");
+  const wall = theme.fg("borderMuted", "┃");
+  const body = truncateToWidth(content, Math.max(1, width - 3), "…");
+  return `${gutter}${padStyled(body, Math.max(1, width - 3))}${wall}`;
 }
 
-/** `  ┗━━━┛` — closes a container. */
+/**
+ * Closes a container. The rule starts at column 0 and reaches the full width so
+ * it lines up with the `┏`/`┓` corners the header drew.
+ */
 export function containerClose(theme: Theme, width: number): string {
-  const rule = Math.max(2, width - 6);
-  return truncateToWidth(`  ${theme.fg("borderMuted", "┗")}${theme.fg("borderMuted", "━".repeat(rule))}${theme.fg("borderMuted", "┛")}`, width, "…");
+  const rule = Math.max(2, width - 2);
+  return truncateToWidth(`${theme.fg("borderMuted", "┗")}${theme.fg("borderMuted", "━".repeat(rule))}${theme.fg("borderMuted", "┛")}`, width, "…");
 }
 
 function padStyled(text: string, width: number): string {
