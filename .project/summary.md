@@ -24,7 +24,7 @@ _No risks recorded._
 
 ## Major Questions
 
-_No questions recorded._
+- Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
 
 ## Major Decisions
 

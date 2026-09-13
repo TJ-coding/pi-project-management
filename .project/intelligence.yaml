@@ -1,1 +1,17 @@
-[]
+- id: Q1
+  question: What belongs in the digest when long values cannot fit?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.7
+  uncertainty: 0.7
+  decision_impact: 0.5
+  confidence: 0
+  evidence: []
+  goals:
+    - G3
+  risks: []
+  tasks: []
+  decisions: []
+  created: 2026-09-13T15:59:01.558Z
+  updated: 2026-09-13T15:59:01.558Z
+  answered: null
