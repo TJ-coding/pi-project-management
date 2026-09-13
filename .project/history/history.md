@@ -100,3 +100,5 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:45:56.142Z **task.updated** — Node N11 PENDING -> COMPLETED: Confirm before discarding a dirty form [N11] (by agent)
 - 2026-09-13T16:52:50.005Z **task.updated** — Node N12 RUNNING -> COMPLETED: Add start and pause for the project [N12] (by agent)
 - 2026-09-13T16:52:50.183Z **goal.completed** — Goal G10 COMPLETED: Start / Pause Project [G10] (by agent)
+- 2026-09-13T17:10:08.996Z **risk.resolved** — Risk R2 resolved: This project is shadowed by $HOME/.project [R2] (by agent)
+- 2026-09-13T17:10:09.035Z **state.changed** — State changed: the $HOME shadowing is gone (by agent)

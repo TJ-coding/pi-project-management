@@ -18,10 +18,10 @@
   title: This project is shadowed by $HOME/.project
   description: A session started in $HOME attaches to whichever project owns $HOME/.project, so edits
     land in the wrong project.
-  probability: 0.9
+  probability: 0
   impact: 0.3
-  status: OPEN
-  mitigation: Start sessions inside this repo, or move the other project's .project out of $HOME.
+  status: RESOLVED
+  mitigation: "Done: $HOME/.project no longer exists, so nothing shadows this project."
   contingency: ""
   questions: []
   goals:
@@ -29,7 +29,7 @@
   tasks: []
   owner: ""
   created: 2026-09-13T15:59:02.121Z
-  updated: 2026-09-13T16:21:29.241Z
+  updated: 2026-09-13T17:10:08.996Z
 - id: R3
   title: Budgets block legitimate long content
   description: A hard limit can refuse text that is genuinely needed, e.g. an offset pair or a quoted error.
