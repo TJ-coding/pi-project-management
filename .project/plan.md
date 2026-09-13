@@ -15,8 +15,9 @@ Rationale: Created implicitly when the first node was added.
     outputs: A capped NEXT list names how many ready nodes it hid and where to read them; Digest answers Q1; test asserts the pointer appears only when something is hidden
 - [PENDING] N4 REVIEW — k3 sign-off on the frames (after N1, N2, N3) {goal:G1 risk:R1}
     Frames at 40, 80 and 120 columns, tests green, smoke green, k3 says stop.
-- [PENDING] N5 TASK — Forward options in every mutation {risk:R4}
+- [COMPLETED] N5 TASK — Forward options in every mutation {risk:R4}
     Pass MutateOptions through so commit:false really skips the commit; cover it with a test that runs two mutations and checks git log stays clean.
+    outputs: All 37 mutate call sites forward options; Regression test: every mutation with commit:false leaves HEAD unmoved; updateDirection, recordDecision and setNodeStatus were the last three leaks
 - [PENDING] N6 TASK — Draw DAG depth and parents {goal:G5}
     Show each node's depth and parents in the plan panel, in the same pane.
 - [PENDING] N7 INVESTIGATION — Audit the 11 panels and features (after N6) {goal:G4}

@@ -87,22 +87,25 @@ plans:
       - id: N5
         title: Forward options in every mutation
         type: TASK
-        status: PENDING
+        status: COMPLETED
         description: Pass MutateOptions through so commit:false really skips the commit; cover it with a
           test that runs two mutations and checks git log stays clean.
         depends_on: []
         goal: null
         risk: R4
         question: null
-        outputs: []
+        outputs:
+          - All 37 mutate call sites forward options
+          - "Regression test: every mutation with commit:false leaves HEAD unmoved"
+          - updateDirection, recordDecision and setNodeStatus were the last three leaks
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-13T15:59:43.537Z
-        updated: 2026-09-13T16:15:32.474Z
+        updated: 2026-09-13T16:38:12.583Z
         started: null
-        finished: null
+        finished: 2026-09-13T16:38:12.583Z
       - id: N6
         title: Draw DAG depth and parents
         type: TASK
