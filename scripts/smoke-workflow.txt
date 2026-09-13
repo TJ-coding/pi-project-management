@@ -22,6 +22,8 @@ Work through the project-management tooling step by step. Call every tool listed
 20. project_resume.
 21. project_review.
 22. project_history action=list.
-23. project_status section=overview.
+23. project_resource action=set_resources, resources=[{kind:"gpu", target:"training-box", note:"smoke"}].
+24. project_resource action=get.
+25. project_status section=overview.
 
 When every step is done, reply with the single word DONE.

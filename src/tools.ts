@@ -1224,6 +1224,55 @@ export function registerProjectTools(pi: ExtensionAPI): void {
     },
   });
 
+  /* ---------------- resources ---------------- */
+
+  pi.registerTool({
+    name: "project_resource",
+    label: "Project: scope and resources",
+    description:
+      "Read or update the project's scope: Git repositories, local directories, external machines/services/APIs and other " +
+      "resources. The project is broader than a Git repository; references are recorded here rather than orchestrated.",
+    promptSnippet: "Read or update project repositories and external resources",
+    parameters: Type.Object({
+      action: StringEnum(["get", "set_repositories", "set_resources"] as const),
+      repositories: Type.Optional(
+        Type.Array(Type.String({ description: "Repository URL, path or remote name" })),
+      ),
+      resources: Type.Optional(EnvironmentSchema),
+    }),
+    async execute(_id, params, _signal, _update, ctx) {
+      const manager = await requireManager(ctx);
+      if (params.action === "set_repositories") {
+        if (!params.repositories) throw new Error("repositories is required");
+        await manager.setRepositories(params.repositories);
+      }
+      if (params.action === "set_resources") {
+        if (!params.resources) throw new Error("resources is required");
+        await manager.setResources(params.resources);
+      }
+      return ok(
+        await manager.read((project) => {
+          const lines = [`# Scope — ${project.meta.name}`, "", "## Repositories", ""];
+          lines.push(
+            ...(project.meta.repositories.length > 0
+              ? project.meta.repositories.map((repository) => `- ${repository}`)
+              : ["_none recorded_"]),
+          );
+          lines.push("", "## Resources", "");
+          lines.push(
+            ...(project.meta.resources.length > 0
+              ? project.meta.resources.map(
+                  (resource) => `- ${resource.kind}: ${resource.target}${resource.note ? ` (${resource.note})` : ""}`,
+                )
+              : ["_none recorded_"]),
+          );
+          lines.push("", `Local project directory: ${project.root}`);
+          return lines.join("\n");
+        }),
+      );
+    },
+  });
+
   /* ---------------- resume ---------------- */
 
   pi.registerTool({

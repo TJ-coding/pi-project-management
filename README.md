@@ -108,7 +108,7 @@ arrows scroll, `space`/`pgdn` page, `r` reload from disk, `q` close.
 `project_goal`, `project_state`, `project_question`, `project_risk`,
 `project_strategy`, `project_plan`, `project_gate`, `project_decision`,
 `project_history`, `project_run`, `project_replan`, `project_review`,
-`project_complete`, `project_resume`.
+`project_complete`, `project_resume`, `project_resource`.
 
 Humans and agents share the same operations (spec 2.4). The difference is
 authority: routine work is automatic, significant work is recorded, and

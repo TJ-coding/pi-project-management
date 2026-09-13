@@ -367,7 +367,11 @@ export class ProjectManager {
       status: "applied",
       value,
       autoAccepted,
-      note: autoAccepted ? `Pi automatically accepted: direction change. Reason: ${reason}` : gate.message,
+      note: autoAccepted
+        ? `Pi automatically accepted: direction change. Reason: ${reason}`
+        : options.approved
+          ? `Direction change approved by ${options.approvedBy ?? "human"}.`
+          : "",
     };
   }
 
@@ -736,8 +740,7 @@ export class ProjectManager {
   async addNode(input: NodeInput, options: MutateOptions = {}): Promise<PlanNode> {
     return (
       await this.mutate(`project: add node "${truncate(input.title, 50)}"`, (project) => {
-        const plan = activePlan(project);
-        if (!plan) throw new Error("No active plan. Provide a plan first (project_replan with apply, or create plan).");
+        const plan = activePlan(project) ?? this.createDraftPlan(project);
         const node: PlanNode = {
           id: input.id ?? nextId("node", plan.nodes.map((item) => item.id)),
           title: cleanProse(input.title),
@@ -763,6 +766,27 @@ export class ProjectManager {
         return node;
       })
     ).value;
+  }
+
+  /** Create a draft plan when a node is added before any replan happened. */
+  private createDraftPlan(project: Project): Plan {
+    const id = nextId("plan", project.plans.plans.map((plan) => plan.id));
+    const timestamp = this.clock.now();
+    const plan: Plan = {
+      id,
+      version: (project.plans.plans[project.plans.plans.length - 1]?.version ?? 0) + 1,
+      title: "Draft plan",
+      rationale: "Created implicitly when the first node was added.",
+      createdAt: timestamp,
+      supersededBy: null,
+      nodes: [],
+      gates: [],
+    };
+    project.plans.plans.push(plan);
+    project.plans.active = id;
+    project.meta.activePlan = id;
+    this.record("plan.created", `Draft plan ${id} created`, [id]);
+    return plan;
   }
 
   async updateNode(id: string, patch: Partial<NodeInput>, options: MutateOptions = {}): Promise<PlanNode> {
@@ -1128,6 +1152,17 @@ export class ProjectManager {
     return (
       await this.mutate("project: set resources", (project) => {
         project.meta.resources = resources;
+        this.record("state.changed", `Project resources updated (${resources.length})`, []);
+        return project;
+      })
+    ).value;
+  }
+
+  async setRepositories(repositories: string[], options: MutateOptions = {}): Promise<Project> {
+    return (
+      await this.mutate("project: set repositories", (project) => {
+        project.meta.repositories = repositories.map((repository) => repository.trim()).filter(Boolean);
+        this.record("state.changed", `Project repositories updated (${project.meta.repositories.length})`, []);
         return project;
       })
     ).value;

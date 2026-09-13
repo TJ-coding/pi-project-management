@@ -6,7 +6,7 @@ Every row names the implementation and the evidence that verifies it.
 Evidence shorthand:
 
 - `unit:` `test/*.test.ts` (node's test runner)
-- `e2e:` `scripts/rpc-smoke.mjs` (real `pi --mode rpc`, real model, 16 tools)
+- `e2e:` `scripts/rpc-smoke.mjs` (real `pi --mode rpc`, real model, 19 tools)
 - `tui:` `scripts/tui-smoke.py` (real `pi` in a pty)
 
 | Spec | Requirement | Implementation | Evidence |
@@ -34,8 +34,8 @@ Evidence shorthand:
 | 14 | Humans and agents share the interface; routine/significant/strategic authority | `checkAuthorization`, `withApproval`, `AuthorityLevel`, all `project_*` tools | unit: project ("strategic … require approval"), e2e |
 | 15 | YOLO auto-accepts but records ("Pi automatically accepted …") | `meta.yolo`, `checkAuthorization`, history summaries; `/project yolo`, `project_init(yolo)` | unit: project (direction + goal YOLO), e2e |
 | 16 | Long-running work independent of the session; full task status vocabulary; persisted; resumable | `Run`, `runs/RUN*.yaml`, `spawnDetached`, `project_run`, `project_resume`, `reconcileRuns`, `session_start` stale-run warning | unit: project runs/reconcile; e2e (detached `echo` run + completed run) |
-| 16 | External resources referenced, not orchestrated | `ExternalRef`, `Run.environment`, `meta.resources` | unit: storage/project; e2e (`ssh` ref) |
-| 17 | Project scope: repos, directories, machines, services, resources | `meta.repositories`, `meta.resources`, `root` | unit: storage |
+| 16 | External resources referenced, not orchestrated | `ExternalRef`, `Run.environment`, `meta.resources`, `project_resource` | unit: storage/project/tools; e2e (`ssh` ref + `gpu` resource) |
+| 17 | Project scope: repos, directories, machines, services, resources | `meta.repositories`, `meta.resources`, `project_resource`, `root` | unit: storage, tools; e2e |
 | 18 | Local workspace grouping without complex hierarchy | `registerInWorkspace`, `loadWorkspace`, `/project projects`, `~/.pi/agent/project-manager.json` | unit: storage; smoke (init with workspace) |
 | 19 | Filesystem + Git persistence, human readable, diffable, portable | `storage.ts` (atomic writes, derived documents), `commitProjectChanges` | unit: storage round-trip/idempotence, hand-edited files |
 | 20 | Semantic history plus Git low-level history; reconstruct evolution | `HistoryEvent`, `history/events.jsonl`, `history/history.md`, `planEvolution`, `/project history`, `/project evolution` | unit: history, project |

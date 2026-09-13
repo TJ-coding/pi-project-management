@@ -37,6 +37,10 @@ export function buildDigest(project: Project): string {
 
   lines.push(`PROJECT: ${project.meta.name} (${project.meta.workspace ?? project.root})`);
   if (project.direction.vision) lines.push(`VISION: ${truncate(project.direction.vision, 300)}`);
+  if (project.direction.values.length > 0) lines.push(`VALUES: ${truncate(project.direction.values.join(", "), 220)}`);
+  if (project.direction.concepts.length > 0) {
+    lines.push(`CONCEPTS: ${truncate(project.direction.concepts.map((concept) => `[${concept.type}] ${concept.text}`).join("; "), 260)}`);
+  }
   lines.push(`STATE: ${project.state.current ? truncate(project.state.current, 300) : "not recorded"}`);
   if (goals.length > 0) {
     lines.push(`ACTIVE GOALS: ${goals.map((goal) => `${goal.id}(${priorityBand(goal.priority)}) ${truncate(goal.title, 60)}`).join("; ")}`);
