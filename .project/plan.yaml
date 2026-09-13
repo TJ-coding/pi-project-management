@@ -82,5 +82,24 @@ plans:
         updated: 2026-09-13T15:59:03.439Z
         started: null
         finished: null
+      - id: N5
+        title: Forward options in every mutation
+        type: TASK
+        status: PENDING
+        description: Pass MutateOptions through so commit:false really skips the commit; cover it with a
+          test that runs two mutations and checks git log stays clean.
+        depends_on: []
+        goal: null
+        risk: R4
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-13T15:59:43.537Z
+        updated: 2026-09-13T15:59:43.537Z
+        started: null
+        finished: null
     gates: []
 changes: []

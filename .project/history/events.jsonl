@@ -21,3 +21,4 @@
 {"seq":21,"at":"2026-09-13T15:59:03.953Z","kind":"state.changed","summary":"Project resources updated (undefined)","by":"agent","refs":[]}
 {"seq":22,"at":"2026-09-13T15:59:43.187Z","kind":"state.changed","summary":"State changed: seed the project state","by":"agent","refs":[]}
 {"seq":23,"at":"2026-09-13T15:59:43.363Z","kind":"risk.created","summary":"Risk R4 created: commit:false is ignored by several mutations","by":"agent","refs":["R4"],"details":{"probability":0.8,"impact":0.2}}
+{"seq":24,"at":"2026-09-13T15:59:43.537Z","kind":"task.updated","summary":"Node N5 added to P1: Forward options in every mutation","by":"agent","refs":["N5"]}

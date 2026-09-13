@@ -25,3 +25,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T15:59:03.953Z **state.changed** — Project resources updated (undefined) (by agent)
 - 2026-09-13T15:59:43.187Z **state.changed** — State changed: seed the project state (by agent)
 - 2026-09-13T15:59:43.363Z **risk.created** — Risk R4 created: commit:false is ignored by several mutations [R4] (by agent)
+- 2026-09-13T15:59:43.537Z **task.updated** — Node N5 added to P1: Forward options in every mutation [N5] (by agent)
