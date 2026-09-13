@@ -11,6 +11,21 @@
   goals:
     - G1
   tasks: []
-  owner: null
+  owner: ""
   created: 2026-09-13T15:59:01.967Z
   updated: 2026-09-13T15:59:01.967Z
+- id: R2
+  title: This project is shadowed by $HOME/.project
+  description: A session started in $HOME attaches to the ACL26 project, so edits land in the wrong project.
+  probability: 0.9
+  impact: 0.3
+  status: OPEN
+  mitigation: Start sessions inside this repo, or move the ACL26 project out of $HOME.
+  contingency: ""
+  questions: []
+  goals:
+    - G1
+  tasks: []
+  owner: null
+  created: 2026-09-13T15:59:02.121Z
+  updated: 2026-09-13T15:59:02.121Z
