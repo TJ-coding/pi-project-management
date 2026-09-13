@@ -79,3 +79,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:19:51.013Z **task.updated** — Node N3 PENDING -> COMPLETED: Decide the digest shape without dropping facts [N3] (by agent)
 - 2026-09-13T16:21:29.241Z **risk.updated** — Risk R2 updated: This project is shadowed by $HOME/.project [R2] (by agent)
 - 2026-09-13T16:21:29.428Z **direction.changed** — Direction changed: Remove the ACL26 name; keep the shadowing constraint, which is about $HOME/.project generally (by agent)
+- 2026-09-13T16:21:29.612Z **risk.updated** — Risk R6 updated: Publishing leaks secrets or private project data [R6] (by agent)
