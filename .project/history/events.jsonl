@@ -20,3 +20,4 @@
 {"seq":20,"at":"2026-09-13T15:59:03.626Z","kind":"run.started","summary":"Run RUN1 started: k3 usability review loop","by":"agent","refs":["RUN1"],"details":{"environment":[{"kind":"api","target":"kimi-k3 via opencode-go","note":"headless --print --no-tools"}]}}
 {"seq":21,"at":"2026-09-13T15:59:03.953Z","kind":"state.changed","summary":"Project resources updated (undefined)","by":"agent","refs":[]}
 {"seq":22,"at":"2026-09-13T15:59:43.187Z","kind":"state.changed","summary":"State changed: seed the project state","by":"agent","refs":[]}
+{"seq":23,"at":"2026-09-13T15:59:43.363Z","kind":"risk.created","summary":"Risk R4 created: commit:false is ignored by several mutations","by":"agent","refs":["R4"],"details":{"probability":0.8,"impact":0.2}}

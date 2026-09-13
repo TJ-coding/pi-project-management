@@ -43,3 +43,18 @@
   owner: ""
   created: 2026-09-13T15:59:02.269Z
   updated: 2026-09-13T15:59:02.269Z
+- id: R4
+  title: commit:false is ignored by several mutations
+  description: "Seeding wrote about twenty 'project: ...' commits although every call passed
+    commit:false; setResources, logRun and peers never forward their options."
+  probability: 0.8
+  impact: 0.2
+  status: OPEN
+  mitigation: Forward MutateOptions in every this.mutate() call and assert it with a test.
+  contingency: Squash the seeding commits if the history noise matters.
+  questions: []
+  goals: []
+  tasks: []
+  owner: null
+  created: 2026-09-13T15:59:43.363Z
+  updated: 2026-09-13T15:59:43.363Z

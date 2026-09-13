@@ -21,6 +21,7 @@ Seeded from the ACL26 review history. N1-N4 are ready; RUN1 tracks the k3 loop. 
 ## Major Risks
 
 - R2 This project is shadowed by $HOME/.project — exposure 0.90 x 0.30, status OPEN
+- R4 commit:false is ignored by several mutations — exposure 0.80 x 0.20, status OPEN
 - R1 A panel regression ships without review — exposure 0.30 x 0.50, status OPEN
 - R3 Budgets block legitimate long content — exposure 0.30 x 0.40, status OPEN
 
