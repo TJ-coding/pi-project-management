@@ -12,6 +12,7 @@ import {
   renderPlanInteractive,
   statusText,
   widgetLines,
+  internals,
 } from "../src/dashboard.ts";
 import { ProjectManager } from "../src/project.ts";
 import {
@@ -111,7 +112,9 @@ describe("dashboard", () => {
     const text = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 120).join("\n");
     // Hierarchy: quiet vision, one focal NEXT block, then aligned numbers/signals.
     assert.match(text, /Build an autonomous research environment\./);
-    assert.match(text, /┏━ NOW/);
+    // The focal box names itself honestly: RUNNING when work is in flight,
+    // NEXT UP when it is only the top-ranked ready pick.
+    assert.match(text, /┏━ (RUNNING|NEXT UP)/);
     assert.match(text, /N\d/);
     assert.doesNotMatch(text, /▌ VISION/, "vision is quiet context, not a competing header");
     assert.match(text, /┏━ PROGRESS/);
@@ -141,6 +144,56 @@ describe("dashboard", () => {
     const groups = planGroups(project);
     assert.ok(groups.some((group) => group.key === "running" && group.nodes.some((node) => node.id === "N1")));
     assert.deepEqual(flatPlanNodes(project).map((node) => node.id), rendered.ids);
+  });
+
+  test("the plan view shows depth, so the DAG shape is visible without a second view", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const rendered = renderPlanInteractive(project, theme, 100, "N1");
+    const text = rendered.lines.join("\n");
+
+    // Every node row carries a marker: `├─` when it depends on something, `·` when it is a root.
+    assert.match(text, /├─|·/, "node rows carry a tree marker");
+    const nodes = project.plans.plans[0]!.nodes;
+    const depths = internals.computeDepths(nodes);
+    const rootNode = nodes.find((node) => node.dependsOn.length === 0);
+    assert.ok(rootNode, "the fixture has a root node");
+    assert.equal(depths.get(rootNode!.id), 0, "a root is depth 0");
+
+    // The selected-node detail pane names the depth it sits at.
+    const withParents = nodes.find((node) => node.dependsOn.length > 0);
+    if (withParents) {
+      const detail = renderPlanInteractive(project, theme, 100, withParents.id).lines.join("\n");
+      assert.match(detail, /depth \d/, "the reading pane reports the node's depth");
+    }
+  });
+
+  test("a node row shows its links and its parents at once", async () => {
+    // Regression: the right edge once held "parents or links", so a node that
+    // gained a question badge silently lost its parent reference.
+    const root = await tempDir();
+    dirs.push(root);
+    const manager = await ProjectManager.init(root, { name: "Rows", clock: fixedClock(), by: "test" });
+    await manager.createQuestion({ question: "what is the evaluator worth?" }, { commit: false });
+    await manager.addNode({ title: "Parent", type: "TASK" }, { commit: false });
+    await manager.addNode({ title: "Child with links", type: "TASK", dependsOn: ["N1"], question: "Q1" }, { commit: false });
+    const project = await manager.read((current) => current);
+
+    for (const width of [80, 100, 132]) {
+      const row = renderPlanInteractive(project, theme, width, null)
+        .lines.find((line) => line.includes("Child with links"));
+      assert.ok(row, `the child row renders at ${width}`);
+      assert.match(row!, /Q1/, "the question link survives");
+      assert.match(row!, /←N1/, "and so does the parent reference");
+      assert.ok(visibleWidth(row!) <= width, `row fits ${width}: ${visibleWidth(row!)}`);
+    }
+
+    // A completed parent is marked, so you can see the edge is already satisfied.
+    await manager.setNodeStatus("N1", "COMPLETED", { commit: false });
+    const after = renderPlanInteractive(await manager.read((c) => c), theme, 100, null)
+      .lines.find((line) => line.includes("Child with links"));
+    assert.match(after!, /←N1✓/, "a done parent is marked with a tick");
   });
 
   test("plan browser moves the cursor and emits edit/new/delete actions", async () => {

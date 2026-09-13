@@ -9,12 +9,12 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
-import { blockedByDependencies, dagStats, nextActionable, readyNodes, topoOrder } from "./dag.ts";
+import { blockedByDependencies, dagStats, nextActionable, readyNodes, runningNodes, topoOrder } from "./dag.ts";
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
 import { overBudget, overBudgetByView, overBudgetEntityIds, type TextKind } from "./limits.ts";
-import type { Goal, HistoryEvent, PlanNode, Project, Question, Risk } from "./types.ts";
+import type { Goal, HistoryEvent, Plan, PlanNode, Project, Question, Risk } from "./types.ts";
 
 export interface ViewDefinition {
   id: string;
@@ -386,7 +386,9 @@ export function planGroups(project: Project, cap = 6): PlanGroup[] {
   void blocked;
 
   for (const group of groups) {
-    if (group.nodes.length > cap) {
+    // The "… +N more" note costs one line. Showing one extra node in that same
+    // line is strictly more information, so only cap when it saves ≥2 lines.
+    if (group.nodes.length > cap + 1) {
       group.hidden = group.nodes.length - cap;
       group.nodes = group.nodes.slice(0, cap);
     }
@@ -441,7 +443,8 @@ export function renderPlanInteractive(
     lines.push(sectionHeader(theme, group.label, `${group.nodes.length + group.hidden}`, width, group.tone));
     for (const node of group.nodes) {
       const markable = node.status !== "COMPLETED" && node.status !== "ABANDONED" && node.status !== "SUPERSEDED";
-      lines.push(containerRow(theme, planNodeContent(theme, node, bloated.has(`plan:${plan.id}/${node.id}`) && markable), width, node.id === activeId));
+      const content = planNodeContent(theme, node, bloated.has(`plan:${plan.id}/${node.id}`) && markable, parentBadge(plan, node));
+      lines.push(containerRow(theme, content, width, node.id === activeId));
     }
     if (group.hidden > 0) {
       lines.push(containerNote(theme, theme.fg("dim", `… +${group.hidden} more`), width));
@@ -456,7 +459,7 @@ export function renderPlanInteractive(
 }
 
 /** Row content for a node; the container adds the gutter and the selection bar. */
-function planNodeContent(theme: Theme, node: PlanNode, bloated = false): string {
+function planNodeContent(theme: Theme, node: PlanNode, bloated = false, parents = ""): string {
   const glyphColor = node.status === "COMPLETED" ? "success" : node.status === "FAILED" ? "error" : node.status === "RUNNING" ? "accent" : "dim";
   const glyph = `${bloated ? theme.fg("warning", "⚠ ") : ""}${theme.fg(glyphColor, statusGlyph(node.status))}`;
   const id = theme.fg("muted", node.id.padEnd(4));
@@ -466,16 +469,44 @@ function planNodeContent(theme: Theme, node: PlanNode, bloated = false): string 
   if (node.question) badges.push(node.question);
   if (node.risk) badges.push(node.risk);
   if (node.goal) badges.push(node.goal);
-  if (node.dependsOn.length > 0) badges.push(`←${node.dependsOn.join(",")}`);
 
-  const head = `${glyph} ${id}${type} `;
-  const badgeText = badges.length > 0 ? ` ${badges.join(" ")}` : "";
-  const available = Math.max(8, 68 - visibleWidth(head) - visibleWidth(badgeText));
+  // Fixed columns: identity, then links, then the title; parents live on the
+  // right edge and nothing ever displaces them. A shared column that changes
+  // meaning per row forces the reader to decode every line.
+  const head = `${glyph} ${id}${type}`;
+  const links = badges.length > 0 ? ` ${theme.fg("muted", badges.join(" "))}` : "";
+  const parentText = parents ? ` ${theme.fg("dim", parents)}` : "";
+  const start = `${head}${links} `;
+  const titleRoom = Math.max(8, 68 - visibleWidth(head) - visibleWidth(links));
+  const parentRoom = visibleWidth(parentText);
+  const available = Math.max(8, titleRoom - (parentRoom > 0 && titleRoom - parentRoom > 20 ? parentRoom : 0));
   const flat = oneLine(node.title);
   const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
-  const fill = " ".repeat(Math.max(1, available - visibleWidth(title) + 1));
-  const badgesStyled = badges.length > 0 ? theme.fg("dim", `${fill}${badges.join(" ")}`) : "";
-  return `${head}${theme.fg("text", title)}${badgesStyled}`;
+  const fill = " ".repeat(Math.max(1, 68 - visibleWidth(start) - visibleWidth(title) - parentRoom));
+  return `${start}${theme.fg("text", title)}${parents ? `${fill}${theme.fg("dim", parents)}` : ""}`;
+}
+
+/**
+ * `←N1✓` — the parent ids, marking one that is already done. This is what makes
+ * a node's place in the DAG readable: a tree glyph only works when parent and
+ * child share a group, and grouping by status guarantees they often do not.
+ */
+function parentBadge(plan: Plan, node: PlanNode): string {
+  if (node.dependsOn.length === 0) return "";
+  // Single parent: `←N1✓`. Several: `← ✓N1 N2` — a fixed status slot per parent,
+  // because a selective ✓ after a comma has to be re-bound on every read.
+  if (node.dependsOn.length === 1) {
+    const parent = plan.nodes.find((candidate) => candidate.id === node.dependsOn[0]);
+    if (!parent) return `←${node.dependsOn[0]}?`;
+    return `←${parent.status === "COMPLETED" ? `${parent.id}✓` : parent.id}`;
+  }
+  return `←${node.dependsOn
+    .map((dep) => {
+      const parent = plan.nodes.find((candidate) => candidate.id === dep);
+      if (!parent) return `${dep}?`;
+      return parent.status === "COMPLETED" ? `✓${dep}` : dep;
+    })
+    .join(" ")}`;
 }
 
 function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width: number): string[] {
@@ -498,6 +529,20 @@ function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width:
     meta.push("no dependencies");
   }
   lines.push(containerNote(theme, theme.fg("dim", meta.join("  ·  ")), width));
+  // Depth is only useful next to the ancestors that produce it, so name them.
+  // At depth 1 the chain restates the row badge, so it is suppressed there.
+  if (node.dependsOn.length > 0) {
+    const plan = activePlan(project);
+    const depth = computeDepths(plan?.nodes ?? []).get(node.id) ?? 0;
+    const chain = plan && depth > 1 ? longestChain(plan.nodes, node.id) : [];
+    lines.push(
+      containerNote(
+        theme,
+        theme.fg("muted", depth > 1 ? `depth ${depth}  ·  ${chain.join(" → ")}` : `depth ${depth}`),
+        width,
+      ),
+    );
+  }
   const links: string[] = [];
   if (node.question) links.push(`question ${node.question}`);
   if (node.risk) links.push(`risk ${node.risk}`);
@@ -520,6 +565,24 @@ function fitLines(lines: string[], width: number): string[] {
   return lines
     .flatMap((line) => wrapTextWithAnsi(line, safeWidth))
     .map((line) => truncateToWidth(line, safeWidth, "…"));
+}
+
+/** `N1 → N6 → N7`: the longest dependency path ending at `id`, roots first. */
+function longestChain(nodes: PlanNode[], id: string): string[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const walk = (current: string, seen: Set<string>): string[] => {
+    if (seen.has(current)) return [current];
+    const node = byId.get(current);
+    if (!node || node.dependsOn.length === 0) return [current];
+    const next = new Set(seen).add(current);
+    let best: string[] = [];
+    for (const dep of node.dependsOn) {
+      const chain = walk(dep, next);
+      if (chain.length > best.length) best = chain;
+    }
+    return [...best, current];
+  };
+  return walk(id, new Set());
 }
 
 function computeDepths(nodes: { id: string; dependsOn: string[] }[]): Map<string, number> {
@@ -646,10 +709,21 @@ const dashboardView: ViewDefinition = {
     }
 
     // ── The single focal point: the one thing to act on now. ──────────────
-    lines.push(sectionHeader(theme, "NOW", plan ? `${plan.id} v${plan.version}` : "", width, "success"));
-    if (next) {
-      lines.push(containerRow(theme, strong(theme, `${next.id} ${next.title}`), width));
-      const rationale = [next.type, next.question ? `answers ${next.question}` : null, next.risk ? `reduces ${next.risk}` : null]
+    // The header says whether this is already running or merely the top-ranked
+    // next pick, so "NOW" never implies work that has not started.
+    const running = plan ? runningNodes(plan.nodes) : [];
+    const nowLabel = running.length > 0 ? "RUNNING" : "NEXT UP";
+    const nowTone: "accent" | "success" = running.length > 0 ? "accent" : "success";
+    lines.push(sectionHeader(theme, nowLabel, plan ? `${plan.id} v${plan.version}` : "", width, nowTone));
+    const focal = running[0] ?? next;
+    if (focal) {
+      lines.push(containerRow(theme, strong(theme, `${focal.id} ${focal.title}`), width));
+      const rationale = [
+        running.length > 0 ? "in progress" : "top-ranked ready work",
+        focal.type,
+        focal.question ? `answers ${focal.question}` : null,
+        focal.risk ? `reduces ${focal.risk}` : null,
+      ]
         .filter(Boolean)
         .join(" · ");
       lines.push(containerNote(theme, theme.fg("dim", rationale), width));
