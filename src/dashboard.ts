@@ -9,11 +9,11 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
-import { dagStats, nextActionable, readyNodes, topoOrder } from "./dag.ts";
+import { blockedByDependencies, dagStats, nextActionable, readyNodes, topoOrder } from "./dag.ts";
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
-import type { Project } from "./types.ts";
+import type { PlanNode, Project } from "./types.ts";
 
 export interface ViewDefinition {
   id: string;
@@ -68,6 +68,28 @@ function heading(theme: Theme, title: string, width: number): string[] {
   return [theme.fg("borderMuted", "─".repeat(3)) + label + theme.fg("borderMuted", "─".repeat(remaining))];
 }
 
+/** Per-view count badges for the rail (index matches VIEWS order). */
+export function viewCounts(project: Project): number[] {
+  const openQuestions = project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL").length;
+  const openRisks = project.risks.filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
+  const plan = activePlan(project);
+  const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED").length;
+  const activeGoals = project.goals.filter((goal) => goal.status === "ACTIVE").length;
+  return [
+    0, // Dashboard
+    0, // Direction
+    activeGoals, // Goals
+    0, // State
+    openQuestions, // Intelligence
+    openRisks, // Risks
+    0, // Strategy
+    plan ? plan.nodes.length : 0, // Plan
+    0, // History
+    runningRuns || project.runs.length, // Runs
+    0, // Summary
+  ];
+}
+
 function activePlan(project: Project) {
   if (project.meta.activePlan) {
     const found = project.plans.plans.find((plan) => plan.id === project.meta.activePlan);
@@ -87,78 +109,114 @@ const dashboardView: ViewDefinition = {
     const lines: string[] = [];
     const plan = activePlan(project);
     const stats = plan ? dagStats(plan.nodes) : null;
+    const next = plan ? nextActionable(plan.nodes) : undefined;
+    const openQuestions = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
+    const topRisks = byRiskPriority(project.risks).filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING");
+    const activeGoals = project.goals.filter((goal) => goal.status === "ACTIVE");
+    const doneGoals = project.goals.filter((goal) => goal.status === "COMPLETED");
+    const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED");
 
-    lines.push(theme.fg("accent", theme.bold(project.meta.name)) + theme.fg("dim", project.meta.workspace ? `  (${project.meta.workspace})` : ""));
-    lines.push(theme.fg("dim", `${project.root}/${PROJECT_DIR}${project.meta.completed ? "  — COMPLETED" : ""}${project.meta.yolo ? "  — YOLO" : ""}`));
-
-    lines.push(...heading(theme, "VISION", width));
-    lines.push(project.direction.vision ? theme.fg("text", project.direction.vision) : theme.fg("dim", "not defined"));
-    if (project.direction.intent) lines.push(theme.fg("muted", `intent: ${project.direction.intent}`));
-
-    lines.push(...heading(theme, "GOALS", width));
-    if (project.goals.length === 0) lines.push(theme.fg("dim", "no goals"));
-    for (const goal of project.goals) {
-      const color = goal.status === "ACTIVE" ? "text" : goal.status === "COMPLETED" ? "success" : "muted";
-      lines.push(
-        `${theme.fg("accent", statusGlyph(goal.status))} ${theme.fg(color, goal.title)} ${theme.fg("dim", `[${goal.status}] P${goal.priority}`)}`,
-      );
-    }
-
-    lines.push(...heading(theme, "STATE", width));
-    lines.push(project.state.current ? theme.fg("text", project.state.current) : theme.fg("dim", "not recorded"));
-    if (project.state.problems.length > 0) {
-      lines.push(theme.fg("warning", `problems: ${project.state.problems.join("; ")}`));
-    }
-
-    lines.push(...heading(theme, "RISKS", width));
-    if (project.risks.length === 0) lines.push(theme.fg("dim", "no risks"));
-    for (const risk of byRiskPriority(project.risks).slice(0, 5)) {
-      const band = scoreBand(riskScore(risk));
-      lines.push(
-        `${theme.fg("error", "!")} ${theme.fg("text", risk.title)} ${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `exposure ${riskExposure(risk)}`)}`,
-      );
-    }
-
-    lines.push(...heading(theme, "INTELLIGENCE", width));
-    if (project.questions.length === 0) lines.push(theme.fg("dim", "no questions"));
-    for (const question of byQuestionPriority(project.questions).slice(0, 5)) {
-      const band = scoreBand(questionScore(question));
-      lines.push(
-        `${theme.fg("accent", "?")} ${theme.fg("text", question.question)} ${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", question.status)}`,
-      );
-    }
-
-    lines.push(...heading(theme, "ACTIVE PLAN", width));
-    if (!plan) {
-      lines.push(theme.fg("dim", "no active plan"));
+    // Identity + vision (one or two lines, no walls of text).
+    lines.push(
+      sectionHeader(theme, "VISION", `${project.goals.length} goals · ${project.plans.plans.length} plans`, width),
+    );
+    if (project.direction.vision) {
+      lines.push(...truncateWrapped(project.direction.vision, width, 2).map((line) => `  ${theme.fg("muted", line)}`));
     } else {
-      lines.push(theme.fg("muted", `${plan.id} v${plan.version} — ${plan.title}`));
-      if (stats) {
-        lines.push(
-          theme.fg(
-            "dim",
-            `${stats.byStatus.COMPLETED}/${stats.total} done · ${stats.byStatus.RUNNING} running · ${stats.ready} ready · ${stats.byStatus.FAILED} failed`,
-          ),
-        );
-      }
-      const actionable = nextActionable(plan.nodes);
-      for (const node of plan.nodes.filter((item) => item.status !== "PENDING").slice(0, 4)) {
-        lines.push(`  ${theme.fg("accent", statusGlyph(node.status))} ${theme.fg("muted", `${node.id} ${node.title}`)}`);
-      }
-      if (actionable) {
-        lines.push(`  ${theme.fg("success", "▶")} ${theme.fg("text", `${actionable.id} ${actionable.title}`)} ${theme.fg("dim", "(next)")}`);
-      }
+      lines.push(`  ${theme.fg("dim", "no vision yet — press 2 or type /project edit direction")}`);
     }
+    lines.push("");
 
-    if (project.runs.length > 0) {
-      lines.push(...heading(theme, "RUNS", width));
-      for (const run of project.runs.slice(-3)) {
-        lines.push(`  ${theme.fg("accent", statusGlyph(run.status === "RUNNING" ? "RUNNING" : run.status === "COMPLETED" ? "COMPLETED" : "PENDING"))} ${theme.fg("muted", `${run.id} ${run.title}`)} ${theme.fg("dim", run.status)}`);
-      }
+    // NOW: the three things a human needs before acting.
+    lines.push(sectionHeader(theme, "NOW", plan ? `${plan.id} v${plan.version}` : "no plan", width, "success"));
+    if (next) {
+      lines.push(`  ${theme.fg("success", "▶ next  ")}${theme.fg("text", truncateToWidth(`${next.id} ${next.title}`, width - 12))}`);
+    } else if (plan) {
+      lines.push(`  ${theme.fg("dim", "no actionable node — ask the agent to replan")}`);
+    }
+    lines.push(
+      `  ${theme.fg("dim", "state ")}${theme.fg("text", truncateToWidth(project.state.current || "not recorded", width - 10))}` +
+        (project.state.problems.length > 0 ? `  ${theme.fg("warning", `(${project.state.problems.length} problem${project.state.problems.length === 1 ? "" : "s"})`)}` : ""),
+    );
+    if (runningRuns.length > 0) {
+      lines.push(
+        `  ${theme.fg("dim", "runs  ")}${theme.fg("warning", `${runningRuns.length} in progress`)} ${theme.fg("muted", truncateToWidth(runningRuns.map((run) => run.id).join(", "), width - 24))}`,
+      );
+    }
+    lines.push("");
+
+    // PROGRESS: numbers, not lists.
+    lines.push(sectionHeader(theme, "PROGRESS", "", width, "muted"));
+    if (plan && stats) {
+      const barWidth = Math.max(8, Math.min(20, width - 46));
+      const filled = stats.total === 0 ? 0 : Math.round((stats.byStatus.COMPLETED / stats.total) * barWidth);
+      lines.push(
+        `  ${theme.fg("dim", "plan  ")}${theme.fg("success", "█".repeat(filled))}${theme.fg("dim", "░".repeat(barWidth - filled))}` +
+          `  ${theme.fg("muted", `${stats.byStatus.COMPLETED}/${stats.total}`)}${theme.fg("dim", ` · ${stats.ready} ready · ${stats.byStatus.BLOCKED + stats.byStatus.INTERRUPTED} blocked`)}`,
+      );
+    } else {
+      lines.push(`  ${theme.fg("dim", "plan  none yet")}`);
+    }
+    lines.push(
+      `  ${theme.fg("dim", "goals ")}${theme.fg("text", `${doneGoals.length}/${project.goals.length}`)}` +
+        `${theme.fg("dim", " done")}  ${theme.fg("dim", "·")}  ` +
+        `${theme.fg("dim", "open questions ")}${theme.fg(openQuestions.length > 0 ? "warning" : "text", String(openQuestions.length))}  ` +
+        `${theme.fg("dim", "·")}  ${theme.fg("dim", "open risks ")}${theme.fg(topRisks.length > 0 ? "warning" : "text", String(topRisks.length))}`,
+    );
+    lines.push("");
+
+    // SIGNALS: only the top few, with a pointer to the full view.
+    lines.push(sectionHeader(theme, "SIGNALS", "top of each list", width, "warning"));
+    const signals: string[] = [];
+    for (const question of openQuestions.slice(0, 2)) {
+      const band = scoreBand(questionScore(question));
+      signals.push(`  ${bandColor(theme, band)("?")} ${theme.fg("text", truncateToWidth(`${question.id} ${question.question}`, width - 16))} ${bandColor(theme, band)(band)}`);
+    }
+    for (const risk of topRisks.slice(0, 2)) {
+      const band = scoreBand(riskScore(risk));
+      signals.push(`  ${bandColor(theme, band)("!")} ${theme.fg("text", truncateToWidth(`${risk.id} ${risk.title}`, width - 22))} ${theme.fg("dim", `exposure ${riskExposure(risk)}`)}`);
+    }
+    for (const goal of activeGoals.slice(0, 2)) {
+      signals.push(`  ${theme.fg("accent", "→")} ${theme.fg("text", truncateToWidth(`${goal.id} ${goal.title}`, width - 22))} ${theme.fg("dim", `P${goal.priority} ${priorityBand(goal.priority)}`)}`);
+    }
+    if (signals.length === 0) lines.push(`  ${theme.fg("dim", "nothing recorded yet — ask the agent to set goals, questions and risks")}`);
+    lines.push(...signals);
+
+    const hints: string[] = [];
+    if (activeGoals.length > 0 || project.goals.length > 0) hints.push("3 goals");
+    if (project.questions.length > 0) hints.push("5 intelligence");
+    if (project.risks.length > 0) hints.push("6 risks");
+    if (plan) hints.push("8 plan");
+    if (hints.length > 0) {
+      lines.push("");
+      lines.push(`  ${theme.fg("dim", `full lists: ${hints.join(" · ")} · ? help`)}`);
     }
     return lines;
   },
 };
+
+/** Wrap prose to at most `maxLines` lines, adding an ellipsis when truncated. */
+function truncateWrapped(text: string, width: number, maxLines: number): string[] {
+  const words = text.replace(/\s+/g, " ").trim().split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current === "" ? word : `${current} ${word}`;
+    if (visibleWidth(candidate) <= width - 2) {
+      current = candidate;
+    } else {
+      lines.push(current);
+      current = word;
+      if (lines.length === maxLines) break;
+    }
+  }
+  if (lines.length < maxLines && current !== "") lines.push(current);
+  const clipped = lines.slice(0, maxLines);
+  if (clipped.length === maxLines && words.join(" ").length > clipped.join(" ").length) {
+    clipped[maxLines - 1] = `${clipped[maxLines - 1]!.slice(0, Math.max(0, width - 4))}…`;
+  }
+  return clipped;
+}
 
 const directionView: ViewDefinition = {
   id: "direction",
@@ -181,52 +239,83 @@ const directionView: ViewDefinition = {
   },
 };
 
+const GOAL_GROUPS: Array<{ label: string; statuses: string[]; tone: "accent" | "success" | "muted" }> = [
+  { label: "ACTIVE", statuses: ["ACTIVE"], tone: "accent" },
+  { label: "COMPLETED", statuses: ["COMPLETED"], tone: "success" },
+  { label: "NOT PURSUED", statuses: ["FAILED", "ABANDONED", "SUPERSEDED"], tone: "muted" },
+];
+
 const goalsView: ViewDefinition = {
   id: "goals",
   title: "Goals",
   render(project, theme, width) {
-    const lines: string[] = [];
-    if (project.goals.length === 0) return [theme.fg("dim", "no goals yet")];
-    const ordered = [...project.goals].sort((a, b) => (b.priority - a.priority) || a.id.localeCompare(b.id, undefined, { numeric: true }));
-    for (const goal of ordered) {
-      const band = priorityBand(goal.priority);
-      lines.push(
-        `${theme.fg("accent", statusGlyph(goal.status))} ${theme.fg("text", theme.bold(`${goal.id} ${goal.title}`))} ${bandColor(theme, band)(band)} ${theme.fg("dim", goal.status)}`,
-      );
-      if (goal.description) lines.push(`    ${theme.fg("muted", goal.description)}`);
-      if (goal.parent) lines.push(`    ${theme.fg("dim", `parent ${goal.parent}`)}`);
-      for (const criterion of goal.successCriteria) lines.push(`    ${theme.fg("dim", "✓")} ${theme.fg("muted", criterion)}`);
-      const links: string[] = [];
-      if (goal.questions.length) links.push(`questions ${goal.questions.join(", ")}`);
-      if (goal.risks.length) links.push(`risks ${goal.risks.join(", ")}`);
-      if (goal.tasks.length) links.push(`tasks ${goal.tasks.join(", ")}`);
-      if (goal.supersededBy) links.push(`superseded by ${goal.supersededBy}`);
-      if (links.length) lines.push(`    ${theme.fg("dim", links.join(" · "))}`);
+    if (project.goals.length === 0) {
+      return [`  ${theme.fg("dim", "no goals yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent")}`];
     }
+    const lines: string[] = [];
+    for (const group of GOAL_GROUPS) {
+      const goals = project.goals
+        .filter((goal) => group.statuses.includes(goal.status))
+        .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id, undefined, { numeric: true }));
+      if (goals.length === 0) continue;
+      lines.push(sectionHeader(theme, group.label, `${goals.length}/${project.goals.length}`, width, group.tone));
+      for (const goal of goals) {
+        const band = priorityBand(goal.priority);
+        const head = `  ${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
+        const meta = `${band.padEnd(8)} P${goal.priority}`;
+        const available = Math.max(10, width - visibleWidth(head) - meta.length - 8);
+        const title = goal.title.length > available ? `${goal.title.slice(0, available - 1)}…` : goal.title;
+        const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} criteria` : "no criteria";
+        lines.push(
+          truncateToWidth(
+            `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, width - visibleWidth(head) - visibleWidth(title) - meta.length - 2))}${bandColor(theme, band)(band)} ${theme.fg("dim", `P${goal.priority} · ${extra}`)}`,
+            width,
+          ),
+        );
+        if (goal.supersededBy) lines.push(`       ${theme.fg("dim", `superseded by ${goal.supersededBy}`)}`);
+      }
+      lines.push("");
+    }
+    lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a goal")}`);
     return lines;
   },
 };
+
+const riskGroups: Array<{ label: string; statuses: string[]; tone: "warning" | "success" | "muted" }> = [
+  { label: "OPEN", statuses: ["OPEN", "MITIGATING"], tone: "warning" },
+  { label: "OCCURRED", statuses: ["OCCURRED"], tone: "warning" },
+  { label: "CLOSED", statuses: ["RESOLVED", "ACCEPTED", "CLOSED"], tone: "muted" },
+];
 
 const stateView: ViewDefinition = {
   id: "state",
   title: "State",
   render(project, theme, width) {
     const lines: string[] = [];
-    lines.push(...heading(theme, "INITIAL STATE", width));
-    lines.push(theme.fg("muted", project.state.initial || "not recorded"));
-    lines.push(...heading(theme, "CURRENT STATE", width));
-    lines.push(theme.fg("text", project.state.current || "not recorded"));
-    const list = (title: string, items: string[], color = "muted"): void => {
+    const list = (
+      title: string,
+      items: string[],
+      tone: "accent" | "success" | "warning" | "muted",
+      cap = 4,
+    ): void => {
       if (items.length === 0) return;
-      lines.push(...heading(theme, title.toUpperCase(), width));
-      for (const item of items) lines.push(`${theme.fg("accent", "•")} ${theme.fg(color as "muted", item)}`);
+      lines.push(sectionHeader(theme, title, `${items.length}`, width, tone));
+      for (const item of items.slice(0, cap)) {
+        lines.push(`  ${theme.fg("accent", "· ")}${theme.fg("muted", truncateToWidth(item, width - 6))}`);
+      }
+      if (items.length > cap) lines.push(`  ${theme.fg("dim", `… +${items.length - cap} more`)}`);
     };
-    list("Capabilities", project.state.capabilities);
-    list("Known facts", project.state.facts);
-    list("Active problems", project.state.problems, "warning");
-    list("Constraints", project.state.constraints);
-    list("Discoveries", project.state.discoveries, "success");
-    lines.push(theme.fg("dim", `updated ${project.state.updated}`));
+
+    lines.push(sectionHeader(theme, "CURRENT", "", width, "accent"));
+    lines.push(...truncateWrapped(project.state.current || "not recorded", width, 4).map((line) => `  ${theme.fg("text", line)}`));
+    list("PROBLEMS", project.state.problems, "warning");
+    list("CAPABILITIES", project.state.capabilities, "success");
+    list("KNOWN FACTS", project.state.facts, "muted");
+    list("CONSTRAINTS", project.state.constraints, "muted");
+    list("DISCOVERIES", project.state.discoveries, "success");
+    lines.push(sectionHeader(theme, "INITIAL", "", width, "muted"));
+    lines.push(...truncateWrapped(project.state.initial || "not recorded", width, 2).map((line) => `  ${theme.fg("dim", line)}`));
+    lines.push(`  ${theme.fg("dim", "press e to edit the state")}`);
     return lines;
   },
 };
@@ -235,28 +324,32 @@ const intelligenceView: ViewDefinition = {
   id: "intelligence",
   title: "Intelligence",
   render(project, theme, width) {
-    if (project.questions.length === 0) return [theme.fg("dim", "no questions yet")];
-    const lines: string[] = [];
-    for (const question of byQuestionPriority(project.questions)) {
-      const band = scoreBand(questionScore(question));
-      lines.push(
-        `${theme.fg("accent", "?")} ${theme.fg("text", theme.bold(`${question.id} ${question.question}`))} ${bandColor(theme, band)(band)}`,
-      );
-      lines.push(
-        `    ${theme.fg("muted", question.answer || "unknown")} ${theme.fg("dim", `[${question.status}] conf ${question.confidence.toFixed(2)}`)}`,
-      );
-      lines.push(
-        `    ${theme.fg("dim", `importance ${question.importance.toFixed(2)} · uncertainty ${question.uncertainty.toFixed(2)} · decision impact ${question.decisionImpact.toFixed(2)}`)}`,
-      );
-      for (const evidence of question.evidence.slice(0, 3)) {
-        lines.push(`    ${theme.fg("dim", `evidence: ${evidence.description}${evidence.ref ? ` (${evidence.ref})` : ""}`)}`);
-      }
-      const links: string[] = [];
-      if (question.goals.length) links.push(`goals ${question.goals.join(", ")}`);
-      if (question.risks.length) links.push(`risks ${question.risks.join(", ")}`);
-      if (question.tasks.length) links.push(`tasks ${question.tasks.join(", ")}`);
-      if (links.length) lines.push(`    ${theme.fg("dim", links.join(" · "))}`);
+    if (project.questions.length === 0) {
+      return [`  ${theme.fg("dim", "no questions yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent what we don't know")}`];
     }
+    const lines: string[] = [];
+    const open = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
+    const answered = byQuestionPriority(project.questions.filter((q) => q.status === "ANSWERED"));
+    const settled = byQuestionPriority(project.questions.filter((q) => q.status === "CONFIRMED" || q.status === "INVALIDATED"));
+
+    const group = (label: string, questions: typeof open, tone: "warning" | "success" | "muted"): void => {
+      if (questions.length === 0) return;
+      lines.push(sectionHeader(theme, label, `${questions.length}`, width, tone));
+      for (const question of questions) {
+        const band = scoreBand(questionScore(question));
+        const head = `  ${bandColor(theme, band)("?")} ${theme.fg("muted", question.id.padEnd(4))}`;
+        const available = Math.max(10, width - visibleWidth(head) - band.length - question.status.length - 8);
+        const title = question.question.length > available ? `${question.question.slice(0, available - 1)}…` : question.question;
+        lines.push(
+          truncateToWidth(`${head}${theme.fg("text", title)}  ${bandColor(theme, band)(band)} ${theme.fg("dim", question.status)}`, width),
+        );
+      }
+      lines.push("");
+    };
+    group("OPEN", open, "warning");
+    group("ANSWERED", answered, "success");
+    group("SETTLED", settled, "muted");
+    lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a question")}`);
     return lines;
   },
 };
@@ -264,26 +357,28 @@ const intelligenceView: ViewDefinition = {
 const risksView: ViewDefinition = {
   id: "risks",
   title: "Risks",
-  render(project, theme) {
-    if (project.risks.length === 0) return [theme.fg("dim", "no risks yet")];
-    const lines: string[] = [];
-    for (const risk of byRiskPriority(project.risks)) {
-      const band = scoreBand(riskScore(risk));
-      lines.push(
-        `${theme.fg("error", "!")} ${theme.fg("text", theme.bold(`${risk.id} ${risk.title}`))} ${bandColor(theme, band)(band)} ${theme.fg("dim", risk.status)}`,
-      );
-      if (risk.description) lines.push(`    ${theme.fg("muted", risk.description)}`);
-      lines.push(
-        `    ${theme.fg("dim", `probability ${risk.probability.toFixed(2)} × impact ${risk.impact.toFixed(2)} = exposure ${riskExposure(risk)}`)}`,
-      );
-      if (risk.mitigation) lines.push(`    ${theme.fg("muted", `mitigation: ${risk.mitigation}`)}`);
-      if (risk.contingency) lines.push(`    ${theme.fg("muted", `contingency: ${risk.contingency}`)}`);
-      const links: string[] = [];
-      if (risk.questions.length) links.push(`questions ${risk.questions.join(", ")}`);
-      if (risk.goals.length) links.push(`goals ${risk.goals.join(", ")}`);
-      if (risk.tasks.length) links.push(`tasks ${risk.tasks.join(", ")}`);
-      if (links.length) lines.push(`    ${theme.fg("dim", links.join(" · "))}`);
+  render(project, theme, width) {
+    if (project.risks.length === 0) {
+      return [`  ${theme.fg("dim", "no risks yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent how this could fail")}`];
     }
+    const lines: string[] = [];
+    for (const group of riskGroups) {
+      const risks = byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status)));
+      if (risks.length === 0) continue;
+      lines.push(sectionHeader(theme, group.label, `${risks.length}`, width, group.tone));
+      for (const risk of risks) {
+        const band = scoreBand(riskScore(risk));
+        const head = `  ${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
+        const meta = `exposure ${riskExposure(risk).toFixed(2)}`;
+        const available = Math.max(10, width - visibleWidth(head) - meta.length - band.length - 6);
+        const title = risk.title.length > available ? `${risk.title.slice(0, available - 1)}…` : risk.title;
+        lines.push(
+          truncateToWidth(`${head}${theme.fg("text", title)}  ${bandColor(theme, band)(band)} ${theme.fg("dim", `exp ${riskExposure(risk).toFixed(2)} · ${risk.status}`)}`, width),
+        );
+      }
+      lines.push("");
+    }
+    lines.push(`  ${theme.fg("dim", "press e on this view to edit or add a risk")}`);
     return lines;
   },
 };
@@ -314,58 +409,187 @@ const strategyView: ViewDefinition = {
 const planView: ViewDefinition = {
   id: "plan",
   title: "Plan / DAG",
-  render(project, theme, width) {
-    const lines: string[] = [];
-    const plan = activePlan(project);
-    if (!plan) return [theme.fg("dim", "no active plan")];
-    lines.push(theme.fg("accent", theme.bold(`${plan.id} v${plan.version} — ${plan.title}`)));
-    if (plan.rationale) lines.push(theme.fg("muted", plan.rationale));
-    const stats = dagStats(plan.nodes);
-    lines.push(
-      theme.fg(
-        "dim",
-        `${stats.byStatus.COMPLETED} completed · ${stats.byStatus.RUNNING} running · ${stats.ready} ready · ${stats.blocked} blocked · ${stats.byStatus.FAILED} failed`,
-      ),
-    );
-    lines.push("");
-
-    const depth = computeDepths(plan.nodes);
-    for (const node of topoOrder(plan.nodes)) {
-      const indent = "  ".repeat(Math.min(3, depth.get(node.id) ?? 0));
-      const color = node.status === "COMPLETED" ? "success" : node.status === "FAILED" ? "error" : node.status === "RUNNING" ? "accent" : "text";
-      lines.push(
-        `${indent}${theme.fg("accent", statusGlyph(node.status))} ${theme.fg(color, `${node.id} ${node.title}`)} ${theme.fg("dim", `[${node.type} ${node.status}]`)}`,
-      );
-      const meta: string[] = [];
-      if (node.dependsOn.length) meta.push(`after ${node.dependsOn.join(", ")}`);
-      if (node.goal) meta.push(`goal ${node.goal}`);
-      if (node.question) meta.push(`question ${node.question}`);
-      if (node.risk) meta.push(`risk ${node.risk}`);
-      if (node.run) meta.push(`run ${node.run}`);
-      if (meta.length) lines.push(`${indent}    ${theme.fg("dim", meta.join(" · "))}`);
-      if (node.gate) lines.push(`${indent}    ${theme.fg("muted", `gate(${node.gate.type}): ${node.gate.criteria}`)}`);
-      if (node.failureReason) lines.push(`${indent}    ${theme.fg("error", `failure: ${node.failureReason}`)}`);
-      if (node.outputs.length) lines.push(`${indent}    ${theme.fg("dim", `outputs: ${node.outputs.join("; ")}`)}`);
-    }
-
-    const ready = readyNodes(plan.nodes);
-    if (ready.length > 0) {
-      lines.push("");
-      lines.push(...heading(theme, "READY NOW", width));
-      for (const node of ready) lines.push(`${theme.fg("success", "▶")} ${theme.fg("text", `${node.id} ${node.title}`)}`);
-    }
-
-    if (plan.gates.length > 0) {
-      lines.push("");
-      lines.push(...heading(theme, "GATE RESULTS", width));
-      for (const gate of plan.gates) {
-        const color = gate.outcome === "PASS" ? "success" : "warning";
-        lines.push(`${theme.fg(color as "success", gate.outcome.padEnd(9))} ${theme.fg("muted", `${gate.node} ${gate.notes}`)}`);
-      }
-    }
-    return lines;
-  },
+  render: (project, theme, width) => renderPlanInteractive(project, theme, width, null).lines,
 };
+
+/* ------------------------------------------------------------------ */
+/* Plan browser (master / detail)                                     */
+/* ------------------------------------------------------------------ */
+
+const NODE_TYPE_ABBREVIATIONS: Record<string, string> = {
+  TASK: "TASK",
+  INVESTIGATION: "INVE",
+  EXPERIMENT: "EXPE",
+  DECISION: "DECI",
+  REVIEW: "REVI",
+  GATE: "GATE",
+  WAIT: "WAIT",
+};
+
+export interface PlanGroup {
+  key: string;
+  label: string;
+  tone: "accent" | "success" | "warning" | "muted";
+  nodes: PlanNode[];
+  hidden: number;
+}
+
+/** Group the active plan's nodes by what the user can do with them (spec 12). */
+export function planGroups(project: Project, cap = 6): PlanGroup[] {
+  const plan = activePlan(project);
+  if (!plan) return [];
+  const readyIds = new Set(readyNodes(plan.nodes).map((node) => node.id));
+  const blocked = blockedByDependencies(plan.nodes);
+
+  const groups: PlanGroup[] = [
+    { key: "running", label: "RUNNING", tone: "accent", nodes: [], hidden: 0 },
+    { key: "ready", label: "READY", tone: "success", nodes: [], hidden: 0 },
+    { key: "blocked", label: "BLOCKED", tone: "warning", nodes: [], hidden: 0 },
+    { key: "finished", label: "FINISHED", tone: "muted", nodes: [], hidden: 0 },
+  ];
+  const byKey = new Map(groups.map((group) => [group.key, group]));
+
+  for (const node of topoOrder(plan.nodes)) {
+    if (node.status === "RUNNING") byKey.get("running")!.nodes.push(node);
+    else if (readyIds.has(node.id)) byKey.get("ready")!.nodes.push(node);
+    else if (node.status === "PENDING" || node.status === "BLOCKED" || node.status === "INTERRUPTED") {
+      byKey.get("blocked")!.nodes.push(node);
+    } else byKey.get("finished")!.nodes.push(node);
+  }
+  void blocked;
+
+  for (const group of groups) {
+    if (group.nodes.length > cap) {
+      group.hidden = group.nodes.length - cap;
+      group.nodes = group.nodes.slice(0, cap);
+    }
+  }
+  return groups.filter((group) => group.nodes.length > 0);
+}
+
+/** Nodes in visual order, used for cursor movement. */
+export function flatPlanNodes(project: Project): PlanNode[] {
+  return planGroups(project).flatMap((group) => group.nodes);
+}
+
+export interface PlanRender {
+  lines: string[];
+  /** Visible node ids in order, so the caller can move a cursor. */
+  ids: string[];
+}
+
+/**
+ * A scannable DAG: status groups with counts, one line per node, and a detail
+ * pane for the selected node. Nothing is hidden behind raw YAML.
+ */
+export function renderPlanInteractive(
+  project: Project,
+  theme: Theme,
+  width: number,
+  cursor: string | null,
+): PlanRender {
+  const plan = activePlan(project);
+  if (!plan) {
+    return { lines: [theme.fg("dim", "no active plan yet"), "", theme.fg("dim", "the agent can create one when you ask for a plan")], ids: [] };
+  }
+  const groups = planGroups(project);
+  const ids = groups.flatMap((group) => group.nodes.map((node) => node.id));
+  const activeId = cursor && ids.includes(cursor) ? cursor : ids[0] ?? null;
+  const stats = dagStats(plan.nodes);
+
+  const lines: string[] = [];
+  const done = stats.byStatus.COMPLETED;
+  const barWidth = Math.max(8, Math.min(24, width - 34));
+  const filled = stats.total === 0 ? 0 : Math.round((done / stats.total) * barWidth);
+  lines.push(
+    theme.fg("accent", theme.bold(`${plan.id} v${plan.version}`)) +
+      theme.fg("muted", `  ${plan.title}`) +
+      theme.fg("success", `  ${"█".repeat(filled)}`) +
+      theme.fg("dim", `${"░".repeat(barWidth - filled)} ${done}/${stats.total}`),
+  );
+  lines.push(theme.fg("dim", `${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked · ${stats.byStatus.COMPLETED} done · ${stats.byStatus.FAILED} failed`));
+  lines.push("");
+
+  for (const group of groups) {
+    lines.push(sectionHeader(theme, group.label, `${group.nodes.length + group.hidden}`, width, group.tone));
+    for (const node of group.nodes) {
+      lines.push(planNodeLine(theme, node, width, node.id === activeId));
+    }
+    if (group.hidden > 0) lines.push(`     ${theme.fg("dim", `… +${group.hidden} more (folded; use the agent or the form to see them)`)}`);
+  }
+
+  const selected = activeId ? plan.nodes.find((node) => node.id === activeId) : undefined;
+  if (selected) lines.push("", ...renderPlanDetail(theme, project, selected, width));
+
+  return { lines, ids };
+}
+
+function planNodeLine(theme: Theme, node: PlanNode, width: number, selected: boolean): string {
+  const marker = selected ? theme.fg("accent", "▸ ") : "  ";
+  const glyph = theme.fg(node.status === "COMPLETED" ? "success" : node.status === "FAILED" ? "error" : node.status === "RUNNING" ? "accent" : "dim", statusGlyph(node.status));
+  const id = theme.fg(selected ? "accent" : "muted", node.id.padEnd(4));
+  const type = theme.fg("dim", (NODE_TYPE_ABBREVIATIONS[node.type] ?? node.type).padEnd(5));
+
+  const badges: string[] = [];
+  if (node.question) badges.push(node.question);
+  if (node.risk) badges.push(node.risk);
+  if (node.goal) badges.push(node.goal);
+  if (node.dependsOn.length > 0) badges.push(`←${node.dependsOn.join(",")}`);
+  const badgeText = badges.length > 0 ? ` ${badges.join(" ")}` : "";
+
+  const head = `${marker}${glyph} ${id}${type} `;
+  const available = Math.max(8, width - visibleWidth(head) - visibleWidth(badgeText) - 2);
+  const title = node.title.length > available ? `${node.title.slice(0, available - 1)}…` : node.title;
+  const body = selected ? theme.fg("text", title) : theme.fg("muted", title);
+  const fill = " ".repeat(Math.max(1, available - visibleWidth(title) + 1));
+  const badgesStyled = badges.length > 0 ? theme.fg("dim", `${fill}${badges.join(" ")}`) : "";
+  return truncateToWidth(`${head}${body}${badgesStyled}`, width);
+}
+
+function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width: number): string[] {
+  const lines: string[] = [];
+  lines.push(sectionHeader(theme, `SELECTED ${node.id}`, `${node.type} · ${node.status}`, width, "accent"));
+  if (node.description) lines.push(`  ${theme.fg("muted", truncateToWidth(node.description.replace(/\s+/g, " "), width - 4))}`);
+  const meta: string[] = [];
+  if (node.assignee) meta.push(`assignee ${node.assignee}`);
+  if (node.dependsOn.length > 0) {
+    const plan = activePlan(project);
+    const described = node.dependsOn.map((dep) => {
+      const target = plan?.nodes.find((candidate) => candidate.id === dep);
+      return `${dep}${target ? ` (${target.status})` : " (missing)"}`;
+    });
+    meta.push(`after ${described.join(", ")}`);
+  } else {
+    meta.push("no dependencies");
+  }
+  lines.push(`  ${theme.fg("dim", meta.join("  ·  "))}`);
+  const links: string[] = [];
+  if (node.question) links.push(`question ${node.question}`);
+  if (node.risk) links.push(`risk ${node.risk}`);
+  if (node.goal) links.push(`goal ${node.goal}`);
+  if (node.run) links.push(`run ${node.run}`);
+  if (node.gate) links.push(`gate ${node.gate.type}`);
+  if (links.length > 0) lines.push(`  ${theme.fg("muted", links.join("  ·  "))}`);
+  if (node.gate?.criteria) lines.push(`  ${theme.fg("muted", `criteria: ${truncateToWidth(node.gate.criteria, width - 15)}`)}`);
+  if (node.failureReason) lines.push(`  ${theme.fg("error", `failure: ${truncateToWidth(node.failureReason, width - 12)}`)}`);
+  if (node.outputs.length > 0) lines.push(`  ${theme.fg("success", `outputs: ${truncateToWidth(node.outputs.join("; "), width - 12)}`)}`);
+  lines.push(`  ${theme.fg("dim", "↑↓ select · enter edit · a new node · D delete · E raw yaml")}`);
+  return lines;
+}
+
+/** `▌ TITLE   meta` — lighter and more structured than a full-width rule. */
+export function sectionHeader(
+  theme: Theme,
+  title: string,
+  meta: string,
+  width: number,
+  tone: "accent" | "success" | "warning" | "muted" = "accent",
+): string {
+  const left = theme.fg(tone, "▌") + " " + theme.fg(tone, theme.bold(title));
+  const right = meta ? theme.fg("dim", meta) : "";
+  const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right) - 1);
+  return truncateToWidth(`${left}${" ".repeat(gap)}${right}`, width);
+}
 
 const historyView: ViewDefinition = {
   id: "history",
@@ -527,11 +751,15 @@ export interface ProjectBrowserOptions {
   editableViews?: string[];
   /** Called when the user presses `e` (form) or `E` (raw text) on an editable view. */
   onRequestEdit?: (view: string, raw?: boolean) => void;
+  /** Called for plan-specific actions (edit/new/delete a node). */
+  onPlanAction?: (action: { kind: "edit" | "new" | "delete"; id?: string }) => void;
+  /** Node id to preselect when opening the plan view. */
+  initialCursor?: string;
 }
 
-/** Minimum number of body rows (chrome is title + tabs + 2 footer lines). */
+/** Minimum number of body rows (chrome is title + rail + footer). */
 const MIN_VIEWPORT = 3;
-const CHROME_LINES = 4;
+const CHROME_LINES = 3;
 
 export class ProjectBrowser {
   private project: Project;
@@ -544,6 +772,8 @@ export class ProjectBrowser {
   private helpVisible = false;
   private editableViews: Set<string>;
   private onRequestEdit?: (view: string, raw?: boolean) => void;
+  private onPlanAction?: (action: { kind: "edit" | "new" | "delete"; id?: string }) => void;
+  private planCursor: string | null;
   private viewIndex = 0;
   private scroll = 0;
   private cachedWidth = -1;
@@ -559,6 +789,8 @@ export class ProjectBrowser {
     this.helpText = options.helpText;
     this.editableViews = new Set(options.editableViews ?? []);
     this.onRequestEdit = options.onRequestEdit;
+    this.onPlanAction = options.onPlanAction;
+    this.planCursor = options.initialCursor ?? null;
     const index = options.initialView ? VIEWS.findIndex((view) => view.id === options.initialView) : 0;
     this.viewIndex = index >= 0 ? index : 0;
   }
@@ -591,6 +823,36 @@ export class ProjectBrowser {
       this.onChange?.();
       return;
     }
+    if (!this.helpVisible && this.currentView === "plan" && this.onPlanAction) {
+      const nodes = flatPlanNodes(this.project);
+      const index = Math.max(0, nodes.findIndex((node) => node.id === this.planCursor));
+      if (nodes.length > 0) this.planCursor = nodes[index]?.id ?? nodes[0]!.id;
+      if (matchesKey(data, "down") || data === "j") {
+        const next = nodes[Math.min(nodes.length - 1, index + 1)];
+        if (next) this.planCursor = next.id;
+        this.onChange?.();
+        return;
+      }
+      if (matchesKey(data, "up") || data === "k") {
+        const previous = nodes[Math.max(0, index - 1)];
+        if (previous) this.planCursor = previous.id;
+        this.onChange?.();
+        return;
+      }
+      if (matchesKey(data, "enter") || matchesKey(data, "e")) {
+        if (this.planCursor) this.onPlanAction({ kind: "edit", id: this.planCursor });
+        return;
+      }
+      if (data === "a") {
+        this.onPlanAction({ kind: "new" });
+        return;
+      }
+      if (matchesKey(data, "shift+d")) {
+        if (this.planCursor) this.onPlanAction({ kind: "delete", id: this.planCursor });
+        return;
+      }
+    }
+
     if (
       !this.helpVisible &&
       this.onRequestEdit &&
@@ -662,24 +924,26 @@ export class ProjectBrowser {
     }
   }
 
-  /** One-line, always-fitting tab strip so the chrome height never changes. */
+  /**
+   * One-line view rail with a count badge per view, so the chrome shows where
+   * the activity is without growing into a second line.
+   */
   private tabLine(width: number): string {
     const theme = this.theme;
-    const full = VIEWS.map((candidate, index) => {
-      const label = `${index + 1}:${candidate.title}`;
-      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${label}]`)) : theme.fg("dim", ` ${label} `);
-    }).join(theme.fg("borderMuted", "|"));
-    if (visibleWidth(full) <= width) return full;
-
-    // Narrow terminal: numbers only, with the active view named at the end.
+    const counts = viewCounts(this.project);
     const numbers = VIEWS.map((_, index) => {
       const label = String(index + 1);
-      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${label}]`)) : theme.fg("dim", ` ${label} `);
+      const count = counts[index] ?? 0;
+      const badge = count > 0 ? `(${count})` : "";
+      const text = `${label}${badge}`;
+      return index === this.viewIndex ? theme.fg("accent", theme.bold(`[${text}]`)) : theme.fg("dim", ` ${text} `);
     }).join(theme.fg("borderMuted", "·"));
-    const active = theme.fg("accent", theme.bold(` ${VIEWS[this.viewIndex]!.title} `));
+    const active = theme.fg("muted", VIEWS[this.viewIndex]!.title);
     const combined = `${numbers}  ${active}`;
     if (visibleWidth(combined) <= width) return combined;
-    return truncateToWidth(theme.fg("accent", theme.bold(`[${VIEWS[this.viewIndex]!.title}]`)), width);
+    const activeText = theme.fg("accent", theme.bold(`[${VIEWS[this.viewIndex]!.title}]`));
+    if (visibleWidth(numbers) + visibleWidth(activeText) + 4 <= width) return `${numbers}  ${activeText}`;
+    return truncateToWidth(activeText, width);
   }
 
   render(width: number): string[] {
@@ -691,12 +955,17 @@ export class ProjectBrowser {
     const viewport = this.viewportHeight();
     const showingHelp = this.helpVisible && Boolean(this.helpText);
 
-    // Title bar (single line).
+    // Title bar (single line): breadcrumb on the left, status on the right.
     const titleLabel = showingHelp ? "Help" : view.title;
-    const title = showingHelp
-      ? `${this.project.meta.name} — Help`
-      : `${this.project.meta.name} — ${view.title} (${this.viewIndex + 1}/${VIEWS.length})`;
-    out.push(truncateToWidth(theme.bg("customMessageBg", theme.fg("accent", theme.bold(` ${title} `))), width));
+    const breadcrumb = showingHelp ? `${this.project.meta.name} › Help` : `${this.project.meta.name} › ${view.title}`;
+    const plan = activePlan(this.project);
+    const status = this.project.meta.completed
+      ? "COMPLETED"
+      : `${this.project.meta.yolo ? "YOLO · " : ""}${plan ? `${plan.id} v${plan.version}` : "no plan"}`;
+    const headerLeft = theme.fg("accent", theme.bold(` ${breadcrumb}`));
+    const headerRight = theme.fg("dim", `${status} `);
+    const headerGap = Math.max(1, width - visibleWidth(headerLeft) - visibleWidth(headerRight));
+    out.push(truncateToWidth(theme.bg("customMessageBg", `${headerLeft}${" ".repeat(headerGap)}${headerRight}`), width));
 
     // Tab bar (single line, never wraps).
     out.push(showingHelp ? theme.fg("muted", " project commands and agent tools") : this.tabLine(width));
@@ -704,7 +973,9 @@ export class ProjectBrowser {
     // Content window.
     const content = showingHelp
       ? fitLines((this.helpText ?? "").split("\n"), width)
-      : view.render(this.project, theme, width);
+      : view.id === "plan"
+        ? renderPlanInteractive(this.project, theme, width, this.planCursor).lines
+        : view.render(this.project, theme, width);
     const maxScroll = Math.max(0, content.length - viewport);
     this.scroll = Math.max(0, Math.min(this.scroll, maxScroll));
     const end = Math.min(content.length, this.scroll + viewport);
@@ -716,32 +987,21 @@ export class ProjectBrowser {
       for (let i = window.length; i < viewport; i++) out.push("");
     }
 
-    // Footer: position/scroll feedback + keys.
-    const range = content.length === 0 ? "0 lines" : `Lines ${this.scroll + 1}-${end}/${content.length}`;
+    // Footer: contextual keys on the left, scroll position on the right.
     const scrollable = content.length > viewport;
-    const up = scrollable && this.scroll > 0 ? "↑" : " ";
-    const down = scrollable && end < content.length ? "↓" : " ";
-    const notice = this.notice ? `  ${this.notice}` : "";
-    out.push(
-      truncateToWidth(
-        theme.fg("dim", `${up}${down} `) +
-          theme.fg("muted", titleLabel) +
-          theme.fg("dim", `  ${range}${scrollable ? " · j/k ↑↓ scroll · space page · g/G top/bottom" : " · nothing more to scroll"}${notice}`),
-        width,
-      ),
-    );
-    out.push(
-      truncateToWidth(
-        theme.fg(
-          "dim",
-          showingHelp
-            ? "? or esc close help · j/k scroll · q close dashboard"
-            : `tab/←→ switch · 1-9 jump · r reload${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.helpText ? " · ? help" : ""} · q close`,
-        ),
-        width,
-      ),
-    );
+    const range = content.length === 0 ? "0 lines" : scrollable ? `${this.scroll + 1}-${end}/${content.length} lines` : `all ${content.length} lines`;
+    const scrollHint = scrollable && !showingHelp && this.currentView !== "plan" ? " · j/k scroll" : "";
+    const keys = showingHelp
+      ? "? or esc close help · j/k scroll · q close"
+      : this.currentView === "plan"
+        ? `↑↓ select · enter edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
+        : `tab views · 1-9 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
+    const left = theme.fg("dim", ` ${keys}`);
+    const right = theme.fg("dim", `${scrollable ? "↕ " : ""}${range} `);
+    const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
+    out.push(truncateToWidth(`${left}${" ".repeat(gap)}${right}`, width));
 
+    if (this.notice) out.push(truncateToWidth(theme.fg("dim", ` ${this.notice}`), width));
     return out.map((line) => truncateToWidth(line, width));
   }
 

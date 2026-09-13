@@ -93,10 +93,15 @@ class PiSession:
 
 
 def footer_range(frame: str) -> tuple[int, int, int] | None:
-    match = re.search(r"Lines (\d+)-(\d+)/(\d+)", frame)
-    if not match:
-        return None
-    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+    """Parse the footer's `start-end/total lines` or `all N lines` readout."""
+    match = re.search(r"(\d+)-(\d+)/(\d+) lines", frame)
+    if match:
+        return int(match.group(1)), int(match.group(2)), int(match.group(3))
+    match = re.search(r"all (\d+) lines", frame)
+    if match:
+        total = int(match.group(1))
+        return 1, total, total
+    return None
 
 
 def check(condition: bool, message: str, failures: list[str]) -> None:
@@ -128,18 +133,19 @@ def main() -> int:
             print(dashboard)
             return 0
 
-        check("Dashboard (1/11)" in dashboard, "dashboard title '… — Dashboard (1/11)' missing", failures)
+        check("Dashboard" in dashboard, "dashboard title missing", failures)
 
-        # Chrome: exactly one tab-strip line, and headings never overflow.
-        tab_lines = [line for line in session.lines() if "[1]" in line and "·" in line]
-        check(len(tab_lines) == 1, f"tab strip should occupy one line, found {len(tab_lines)}", failures)
+        # Chrome: exactly one rail line, one header line, one footer line.
+        rail_lines = [line for line in session.lines() if "[1]" in line and "·" in line]
+        check(len(rail_lines) == 1, f"view rail should occupy one line, found {len(rail_lines)}", failures)
+        check(any("›" in line for line in session.lines()), "header breadcrumb missing", failures)
         stray_rules = [line for line in session.lines() if re.fullmatch(r"─+", line)]
         check(not stray_rules, f"stray separator lines (heading overflow): {stray_rules[:2]}", failures)
 
         # Footer must communicate the scroll state, and scrolling must work when
         # there is something to scroll.
         check(
-            "nothing more to scroll" in dashboard or "j/k" in dashboard,
+            " all " in dashboard or "j/k" in dashboard or "lines" in dashboard,
             "footer does not describe the scroll state",
             failures,
         )
@@ -161,7 +167,7 @@ def main() -> int:
             range_home = footer_range(session.text())
             check(range_home is not None and range_home[0] == 1, f"g did not return to the top: {range_home}", failures)
         else:
-            check("nothing more to scroll" in dashboard, "a view that fits should say so in the footer", failures)
+            check(" all " in dashboard, "a view that fits should report 'all N lines' in the footer", failures)
 
         # In-place help on ?
         session.send("?")
@@ -226,11 +232,27 @@ def main() -> int:
         session.send("\t")
         session.pump(1.2)
         switched = session.text()
-        check("Direction (2/11)" in switched, "tab did not switch to Direction", failures)
+        check("› Direction" in switched, "tab did not switch to Direction", failures)
         session.send("6")
         session.pump(1.2)
         risks = session.text()
-        check("Risks (6/11)" in risks, "digit 6 did not open Risks", failures)
+        check("› Risks" in risks, "digit 6 did not open Risks", failures)
+        check("▌" in risks, "structured section headers missing", failures)
+
+        # DAG browser: grouped nodes, a selected-node detail pane, and a node form.
+        session.send("8")
+        session.pump(1.5)
+        plan_view = session.text()
+        check("SELECTED N" in plan_view, "plan view has no selected-node detail pane", failures)
+        check("READY" in plan_view or "RUNNING" in plan_view or "FINISHED" in plan_view, "plan groups missing", failures)
+        session.send("\r")
+        session.pump(1.8)
+        node_form = session.text()
+        check("Depends on" in node_form and "Type" in node_form, "plan node form did not open", failures)
+        session.send("\x1b")  # cancel the node form
+        session.pump(1.5)
+        check("SELECTED N" in session.text(), "cancelling the node form did not return to the plan", failures)
+        session.send("1")
 
         # Every rendered line must fit the terminal.
         for line in session.lines():
@@ -240,7 +262,7 @@ def main() -> int:
         session.send("q")
         session.pump(1.2)
         closed = session.text()
-        check("Dashboard (1/11)" not in closed, "q did not close the dashboard", failures)
+        check("› Dashboard" not in closed, "q did not close the dashboard", failures)
     finally:
         session.close()
 

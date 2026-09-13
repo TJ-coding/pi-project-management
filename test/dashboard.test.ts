@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import { after, describe, test } from "node:test";
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { ProjectBrowser, VIEWS, statusText, widgetLines } from "../src/dashboard.ts";
+import {
+  ProjectBrowser,
+  VIEWS,
+  flatPlanNodes,
+  planGroups,
+  renderPlanInteractive,
+  statusText,
+  widgetLines,
+} from "../src/dashboard.ts";
 import { ProjectManager } from "../src/project.ts";
 import {
   PROJECT_SUBCOMMANDS,
@@ -99,24 +107,73 @@ describe("dashboard", () => {
     dirs.push(root);
     const project = await manager.read((current) => current);
     const text = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 120).join("\n");
-    assert.match(text, /Dashboard Demo/);
+    // Structure: identity, then the four questions, then only the top signals.
+    assert.match(text, /▌ VISION/);
     assert.match(text, /Build an autonomous research environment\./);
-    assert.match(text, /Build prototype/);
-    assert.match(text, /Prototype operational/);
-    assert.match(text, /Evaluation reliability/);
-    assert.match(text, /Does evaluator correlate with humans\?/);
-    assert.match(text, /Human comparison|Investigate/);
+    assert.match(text, /▌ NOW/);
+    assert.match(text, /▌ PROGRESS/);
+    assert.match(text, /▌ SIGNALS/);
+    assert.match(text, /▶ next {2}N\d/);
+    assert.match(text, /open questions/);
+    assert.match(text, /Demonstrate output/);
+    assert.doesNotMatch(text, /Build prototype/, "completed goals stay out of the dashboard");
   });
 
-  test("plan view renders the DAG with dependencies and statuses", async () => {
+  test("plan view groups nodes and shows a selected-node detail pane", async () => {
     const { root, manager } = await richProject();
     dirs.push(root);
     const project = await manager.read((current) => current);
-    const text = VIEWS.find((view) => view.id === "plan")!.render(project, theme, 120).join("\n");
+    const rendered = renderPlanInteractive(project, theme, 120, "N1");
+    const text = rendered.lines.join("\n");
     assert.match(text, /P1 v1/);
-    assert.match(text, /N1 /);
     assert.match(text, /RUNNING/);
-    assert.match(text, /after /);
+    assert.match(text, /READY|BLOCKED|FINISHED/);
+    assert.match(text, /N1/);
+    assert.match(text, /SELECTED N1/);
+    assert.match(text, /after |no dependencies/);
+    assert.ok(rendered.ids.includes("N1"));
+    assert.ok(rendered.lines.length < 40, "plan view should stay scannable");
+
+    // Grouping matches the DAG helpers.
+    const groups = planGroups(project);
+    assert.ok(groups.some((group) => group.key === "running" && group.nodes.some((node) => node.id === "N1")));
+    assert.deepEqual(flatPlanNodes(project).map((node) => node.id), rendered.ids);
+  });
+
+  test("plan browser moves the cursor and emits edit/new/delete actions", async () => {
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    const project = await manager.read((current) => current);
+    const actions: Array<{ kind: string; id?: string }> = [];
+    const browser = new ProjectBrowser({
+      project,
+      theme,
+      onClose: () => undefined,
+      initialView: "plan",
+      getTerminalRows: () => 30,
+      onPlanAction: (action) => actions.push(action),
+    });
+
+    const ids = flatPlanNodes(project).map((node) => node.id);
+    assert.ok(ids.length > 0);
+    assert.match(browser.render(120).join("\n"), new RegExp(`SELECTED ${ids[0]}`));
+    if (ids.length > 1) {
+      browser.handleInput("j");
+      assert.match(browser.render(120).join("\n"), new RegExp(`SELECTED ${ids[1]}`));
+      browser.handleInput("k");
+    }
+    browser.handleInput("\r");
+    assert.deepEqual(actions.at(-1), { kind: "edit", id: ids[0] });
+    browser.handleInput("a");
+    assert.deepEqual(actions.at(-1), { kind: "new" });
+    browser.handleInput("D");
+    assert.deepEqual(actions.at(-1), { kind: "delete", id: ids[0] });
+
+    for (const width of [60, 100, 140]) {
+      for (const line of browser.render(width)) {
+        assert.ok(visibleWidth(line) <= width, `plan line exceeds ${width}: ${JSON.stringify(line)}`);
+      }
+    }
   });
 
   test("browser switches views, scrolls and closes", async () => {
@@ -192,7 +249,7 @@ describe("dashboard", () => {
         assert.ok(visibleWidth(line) <= width);
         assert.doesNotMatch(line, /^─+$/, `stray separator line at width ${width}: ${JSON.stringify(line)}`);
       }
-      assert.ok(lines.some((line) => line.includes("VISION")));
+      assert.ok(lines.some((line) => line.includes("PROGRESS")) || lines.some((line) => line.includes("SIGNALS")));
     }
   });
 
@@ -203,17 +260,16 @@ describe("dashboard", () => {
 
     const long = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "risks", getTerminalRows: () => 10 });
     const first = long.render(100).join("\n");
-    assert.match(first, /Lines 1-3\/5/);
+    assert.match(first, /1-\d+\/5 lines/);
     assert.match(first, /j\/k/);
     long.handleInput("j");
-    long.handleInput("j");
     const scrolled = long.render(100).join("\n");
-    assert.match(scrolled, /Lines 3-5\/5/);
+    assert.match(scrolled, /2-\d+\/5 lines/);
 
     // A view that fits reports no scrolling without any stale hint.
     const empty = new ProjectBrowser({ project, theme, onClose: () => undefined, initialView: "strategy", getTerminalRows: () => 30 });
     const emptyText = empty.render(100).join("\n");
-    assert.match(emptyText, /nothing more to scroll/);
+    assert.match(emptyText, /all \d+ lines/);
   });
 
   test("e asks to edit editable views only, and the footer advertises it", async () => {

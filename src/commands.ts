@@ -19,6 +19,7 @@ import {
   entityChoices,
   entityForm,
   entityKindLabel,
+  nodeForm,
   type EntityForm,
   type EntityKind,
 } from "./entity-forms.ts";
@@ -352,8 +353,8 @@ async function handleProjectCommand(
         await showText(pi, ctx, `Unknown section "${name}". Editable: ${editableSectionIds().join(", ")}.`);
         return;
       }
-      if (wantsRaw || section.id === "plan") await runSectionEditor(pi, ctx, manager, section);
-      else await runGraphicalEditor(pi, ctx, manager, section.id);
+      if (wantsRaw) await runSectionEditor(pi, ctx, manager, section);
+      else if (section.id !== "plan") await runGraphicalEditor(pi, ctx, manager, section.id);
       await showBrowser(pi, ctx, manager, section.view);
       return;
     }
@@ -549,13 +550,43 @@ async function showBrowser(
   view: string,
   notice?: string,
 ): Promise<void> {
-  // The browser can hand control back to an editor; loop until the user closes it.
+  // The browser can hand control back to an editor/form; loop until it closes.
   let currentView = view;
   let pendingNotice = notice;
+  let cursor: string | undefined;
   for (;;) {
-    const action = await openBrowser(pi, ctx, manager, currentView, pendingNotice);
+    const action = await openBrowser(pi, ctx, manager, currentView, pendingNotice, cursor);
     pendingNotice = undefined;
     if (!action) return;
+
+    // Plan node actions (the DAG browser).
+    const planEdit = /^plan-edit:(.+)$/.exec(action);
+    if (planEdit) {
+      const project = await manager.read((current) => current);
+      await runForm(pi, ctx, manager, nodeForm(project, planEdit[1]));
+      currentView = "plan";
+      cursor = planEdit[1];
+      continue;
+    }
+    if (action === "plan-new") {
+      const project = await manager.read((current) => current);
+      await runForm(pi, ctx, manager, nodeForm(project));
+      currentView = "plan";
+      continue;
+    }
+    const planDelete = /^plan-delete:(.+)$/.exec(action);
+    if (planDelete) {
+      const id = planDelete[1]!;
+      const confirmed = await ctx.ui.confirm("Delete node", `${id}: delete this node and remove it from other nodes' dependencies?`);
+      if (confirmed) {
+        await manager.removeNode(id);
+        ctx.ui.notify(`Node ${id} deleted.`, "info");
+      }
+      currentView = "plan";
+      cursor = undefined;
+      continue;
+    }
+
     const rawMatch = /^raw:(.+)$/.exec(action);
     const editMatch = /^edit:(.+)$/.exec(action);
     const section = editableSection((rawMatch ?? editMatch)?.[1] ?? "");
@@ -733,6 +764,7 @@ async function openBrowser(
   manager: ProjectManager,
   view: string,
   notice?: string,
+  cursor?: string,
 ): Promise<string | null> {
   if (notice) ctx.ui.notify(notice, "info");
 
@@ -750,7 +782,10 @@ async function openBrowser(
       initialView: view,
       helpText: renderHelp(pi),
       editableViews: EDITABLE_SECTIONS.map((section) => section.view),
+      ...(cursor ? { initialCursor: cursor } : {}),
       onRequestEdit: (editView, raw) => done(`${raw ? "raw" : "edit"}:${editView}`),
+      onPlanAction: (planAction) =>
+        done(planAction.kind === "new" ? "plan-new" : `plan-${planAction.kind}:${planAction.id ?? ""}`),
       onClose: () => done(null),
       getTerminalRows: () => tui.terminal.rows,
       onChange: () => tui.requestRender(),

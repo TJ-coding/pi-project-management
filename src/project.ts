@@ -743,6 +743,7 @@ export class ProjectManager {
   async addNode(input: NodeInput, options: MutateOptions = {}): Promise<PlanNode> {
     return (
       await this.mutate(`project: add node "${truncate(input.title, 50)}"`, (project) => {
+        const preexisting = new Set(validateProjectDetailed(project).errors);
         const plan = activePlan(project) ?? this.createDraftPlan(project);
         const node: PlanNode = {
           id: input.id ?? nextId("node", plan.nodes.map((item) => item.id)),
@@ -765,6 +766,7 @@ export class ProjectManager {
           finished: null,
         };
         plan.nodes.push(node);
+        assertNoNewErrors(project, preexisting, "plan node");
         this.record("task.updated", `Node ${node.id} added to ${plan.id}: ${node.title}`, [node.id]);
         return node;
       })
@@ -795,6 +797,7 @@ export class ProjectManager {
   async updateNode(id: string, patch: Partial<NodeInput>, options: MutateOptions = {}): Promise<PlanNode> {
     return (
       await this.mutate(`project: update node ${id}`, (project) => {
+        const preexisting = new Set(validateProjectDetailed(project).errors);
         const { plan, node } = locateNode(project, id);
         if (patch.title !== undefined) node.title = cleanProse(patch.title);
         if (patch.description !== undefined) node.description = cleanProse(patch.description);
@@ -807,6 +810,7 @@ export class ProjectManager {
         if (patch.gate !== undefined) node.gate = patch.gate;
         if (patch.assignee !== undefined) node.assignee = patch.assignee;
         node.updated = this.clock.now();
+        assertNoNewErrors(project, preexisting, "plan node");
         this.record("task.updated", `Node ${node.id} updated in ${plan.id}`, [node.id]);
         return node;
       })

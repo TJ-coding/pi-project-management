@@ -10,8 +10,15 @@
 import type { FormField } from "./form.ts";
 import type { ProjectManager } from "./project.ts";
 import { priorityBand, riskExposure, scoreBand } from "./scoring.ts";
-import type { Concept, ExternalRef, Goal, Project, Question, Risk } from "./types.ts";
-import { ANSWER_STATUSES, GOAL_STATUSES, RISK_STATUSES } from "./types.ts";
+import type { Concept, ExternalRef, GateType, Goal, PlanNode, Project, Question, Risk } from "./types.ts";
+import {
+  ANSWER_STATUSES,
+  GATE_TYPES,
+  GOAL_STATUSES,
+  NODE_STATUSES,
+  NODE_TYPES,
+  RISK_STATUSES,
+} from "./types.ts";
 
 export type EntityKind = "goal" | "risk" | "question";
 
@@ -671,6 +678,276 @@ export function questionForm(project: Project, id?: string): EntityForm {
           remove: async (manager: ProjectManager) => {
             await manager.deleteQuestion(existing.id);
             return `Question ${existing.id} deleted`;
+          },
+        }
+      : {}),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Plan nodes (DAG)                                                   */
+/* ------------------------------------------------------------------ */
+
+interface NodeDraft {
+  id?: string;
+  title: string;
+  type: string;
+  status: string;
+  description: string;
+  dependsOn: string[];
+  goal: string | null;
+  question: string | null;
+  risk: string | null;
+  gateType: string;
+  gateCriteria: string;
+  outputs: string[];
+  failureReason: string;
+  assignee: string;
+}
+
+/** Nodes of the active plan, excluding one id (used for dependency pickers). */
+function planNodeChoices(project: Project, exclude?: string): Array<{ id: string; label: string }> {
+  const plan = activePlanOf(project);
+  if (!plan) return [];
+  return plan.nodes
+    .filter((node) => node.id !== exclude)
+    .map((node) => ({ id: node.id, label: `${node.title} [${node.status}]` }));
+}
+
+function activePlanOf(project: Project) {
+  if (project.meta.activePlan) {
+    const found = project.plans.plans.find((plan) => plan.id === project.meta.activePlan);
+    if (found) return found;
+  }
+  if (project.plans.active) {
+    const found = project.plans.plans.find((plan) => plan.id === project.plans.active);
+    if (found) return found;
+  }
+  return project.plans.plans[project.plans.plans.length - 1];
+}
+
+export function nodeForm(project: Project, id?: string): EntityForm {
+  const plan = activePlanOf(project);
+  const existing = id && plan ? plan.nodes.find((node) => node.id === id) : undefined;
+  const draft: NodeDraft = existing
+    ? {
+        id: existing.id,
+        title: existing.title,
+        type: existing.type,
+        status: existing.status,
+        description: existing.description,
+        dependsOn: [...existing.dependsOn],
+        goal: existing.goal,
+        question: existing.question,
+        risk: existing.risk,
+        gateType: existing.gate?.type ?? "REVIEW",
+        gateCriteria: existing.gate?.criteria ?? "",
+        outputs: [...existing.outputs],
+        failureReason: existing.failureReason ?? "",
+        assignee: existing.assignee,
+      }
+    : {
+        title: "",
+        type: "TASK",
+        status: "PENDING",
+        description: "",
+        dependsOn: [],
+        goal: null,
+        question: null,
+        risk: null,
+        gateType: "REVIEW",
+        gateCriteria: "",
+        outputs: [],
+        failureReason: "",
+        assignee: "agent",
+      };
+
+  const fields: FormField[] = [
+    {
+      kind: "text",
+      key: "title",
+      label: "Title",
+      required: true,
+      placeholder: "(required)",
+      get: () => draft.title,
+      set: (value) => {
+        draft.title = value;
+      },
+    },
+    {
+      kind: "enum",
+      key: "type",
+      label: "Type",
+      options: NODE_TYPES,
+      get: () => draft.type,
+      set: (value) => {
+        draft.type = value;
+      },
+    },
+    {
+      kind: "enum",
+      key: "status",
+      label: "Status",
+      options: NODE_STATUSES,
+      get: () => draft.status,
+      set: (value) => {
+        draft.status = value;
+      },
+    },
+    {
+      kind: "enum",
+      key: "assignee",
+      label: "Assignee",
+      options: ["agent", "human"],
+      get: () => draft.assignee,
+      set: (value) => {
+        draft.assignee = value;
+      },
+    },
+    {
+      kind: "prose",
+      key: "description",
+      label: "Description",
+      lines: 3,
+      get: () => draft.description,
+      set: (value) => {
+        draft.description = value;
+      },
+    },
+    {
+      kind: "refs",
+      key: "dependsOn",
+      label: "Depends on",
+      hint: "the DAG edges",
+      get: () => draft.dependsOn,
+      set: (value) => {
+        draft.dependsOn = value;
+      },
+      available: () => planNodeChoices(project, draft.id),
+    },
+    {
+      kind: "ref",
+      key: "question",
+      label: "Question",
+      get: () => draft.question,
+      set: (value) => {
+        draft.question = value;
+      },
+      available: () => questionChoices(project),
+    },
+    {
+      kind: "ref",
+      key: "risk",
+      label: "Risk",
+      get: () => draft.risk,
+      set: (value) => {
+        draft.risk = value;
+      },
+      available: () => riskChoices(project),
+    },
+    {
+      kind: "ref",
+      key: "goal",
+      label: "Goal",
+      get: () => draft.goal,
+      set: (value) => {
+        draft.goal = value;
+      },
+      available: () => goalChoices(project),
+    },
+    {
+      kind: "enum",
+      key: "gateType",
+      label: "Gate type",
+      hint: "used when Type = GATE",
+      options: GATE_TYPES,
+      get: () => draft.gateType,
+      set: (value) => {
+        draft.gateType = value;
+      },
+    },
+    {
+      kind: "prose",
+      key: "gateCriteria",
+      label: "Gate criteria",
+      hint: "used when Type = GATE",
+      lines: 2,
+      get: () => draft.gateCriteria,
+      set: (value) => {
+        draft.gateCriteria = value;
+      },
+    },
+    {
+      kind: "list",
+      key: "outputs",
+      label: "Outputs",
+      hint: "evidence produced",
+      get: () => draft.outputs,
+      set: (value) => {
+        draft.outputs = value;
+      },
+    },
+    {
+      kind: "text",
+      key: "failureReason",
+      label: "Failure reason",
+      hint: "shown when Status = FAILED",
+      get: () => draft.failureReason,
+      set: (value) => {
+        draft.failureReason = value;
+      },
+    },
+  ];
+
+  return {
+    title: existing ? `Node ${existing.id}` : "New node",
+    fields,
+    save: async (manager) => {
+      const gate: { type: GateType; criteria: string } | null =
+        draft.type === "GATE" ? { type: draft.gateType as GateType, criteria: draft.gateCriteria } : null;
+      if (draft.id) {
+        const original = plan?.nodes.find((node) => node.id === draft.id);
+        await manager.updateNode(draft.id, {
+          title: draft.title,
+          type: draft.type as PlanNode["type"],
+          description: draft.description,
+          dependsOn: draft.dependsOn,
+          goal: draft.goal,
+          risk: draft.risk,
+          question: draft.question,
+          assignee: draft.assignee as PlanNode["assignee"],
+          gate,
+        });
+        if (original && original.status !== draft.status) {
+          await manager.setNodeStatus(draft.id, draft.status as PlanNode["status"], {
+            reason: draft.failureReason,
+            outputs: draft.outputs.filter((output) => !original.outputs.includes(output)),
+          });
+        } else if (draft.outputs.length > 0) {
+          const extra = draft.outputs.filter((output) => !(original?.outputs ?? []).includes(output));
+          if (extra.length > 0) await manager.setNodeStatus(draft.id, draft.status as PlanNode["status"], { outputs: extra });
+        }
+        return `Node ${draft.id} updated`;
+      }
+      const created = await manager.addNode({
+        title: draft.title,
+        type: draft.type as PlanNode["type"],
+        description: draft.description,
+        dependsOn: draft.dependsOn,
+        goal: draft.goal,
+        risk: draft.risk,
+        question: draft.question,
+        assignee: draft.assignee as PlanNode["assignee"],
+        gate,
+        status: draft.status as PlanNode["status"],
+      });
+      return `Node ${created.id} created`;
+    },
+    ...(existing
+      ? {
+          remove: async (manager: ProjectManager) => {
+            await manager.removeNode(existing.id);
+            return `Node ${existing.id} deleted (dependencies removed)`;
           },
         }
       : {}),

@@ -118,8 +118,11 @@ you can edit the project yourself:
     criteria.
   - Direction / State / Strategy are single forms with prose fields and list
     fields (values, capabilities, hypotheses, …).
-  - Press **`E`** instead of `e` to edit the underlying text, and note that the
-    Plan always uses text editing (a DAG form is out of scope).
+  - **Plan** is a browser + form: `↑↓` select a node, `Enter` opens the node form
+    (title, type, status, depends-on picker for the DAG edges, question/risk/goal
+    links, gate type and criteria, outputs, failure reason), `a` adds a node and
+    `D` deletes one (removing it from other nodes' dependencies).
+  - Press **`E`** instead of `e` to edit the underlying text for any section.
 - **By command:** `/project edit goals`, `/project edit direction`,
   `/project edit plan`, or `/project edit goals raw` for the text form.
 - **In your own editor:** prose fields open Pi's editor, where **`Ctrl+G`** opens
