@@ -53,3 +53,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:15:59.004Z **task.updated** — Node N11 added to P1: Confirm before discarding a dirty form [N11] (by agent)
 - 2026-09-13T16:16:03.674Z **goal.updated** — Goal G7 updated: Upload the project to github repository [G7] (by agent)
 - 2026-09-13T16:16:03.841Z **goal.updated** — Goal G6 updated: Auto complete / Propagate [G6] (by agent)
+- 2026-09-13T16:16:04.013Z **goal.updated** — Goal G9 updated: Warn when exiting change without saving. [G9] (by agent)
