@@ -61,3 +61,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:16:08.206Z **risk.updated** — Risk R1 updated: A panel regression ships without review [R1] (by agent)
 - 2026-09-13T16:16:11.805Z **risk.created** — Risk R5 created: Propagation overwrites human text [R5] (by agent)
 - 2026-09-13T16:16:11.993Z **risk.created** — Risk R6 created: Publishing leaks secrets or private project data [R6] (by agent)
+- 2026-09-13T16:16:15.450Z **task.updated** — Node N9 updated in P1 [N9] (by agent)

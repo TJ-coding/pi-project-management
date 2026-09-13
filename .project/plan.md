@@ -22,7 +22,7 @@ Rationale: Created implicitly when the first node was added.
     Name the reason each panel and feature exists; propose removals with evidence.
 - [PENDING] N8 TASK — Reorder the panel rail (after N7) {goal:G8}
     Order panels by hierarchy and use, then remove what N7 found unused.
-- [PENDING] N9 TASK — Offer to fill empty goal fields on save (after N2) {goal:G6}
+- [PENDING] N9 TASK — Offer to fill empty goal fields on save (after N2) {goal:G6 risk:R5}
     When a goal edit saves, offer to fill empty derived fields and write the accepted ones.
 - [PENDING] N10 TASK — Publish the repo to GitHub (after N4) {goal:G7}
     Create a public GitHub repo, push, and confirm the checks pass from a clean clone.
