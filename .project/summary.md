@@ -20,7 +20,7 @@ _Not recorded._
 
 ## Major Risks
 
-_No risks recorded._
+- R1 A panel regression ships without review — exposure 0.30 x 0.50, status OPEN
 
 ## Major Questions
 

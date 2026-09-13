@@ -1,1 +1,16 @@
-[]
+- id: R1
+  title: A panel regression ships without review
+  description: "Unit tests cannot see layout: only frames and a k3 pass caught the selected-row
+    overflow and the clipped metric column."
+  probability: 0.3
+  impact: 0.5
+  status: OPEN
+  mitigation: Run the k3 frame review after every panel change; the recipe is a fact and an instinct.
+  contingency: ""
+  questions: []
+  goals:
+    - G1
+  tasks: []
+  owner: null
+  created: 2026-09-13T15:59:01.967Z
+  updated: 2026-09-13T15:59:01.967Z
