@@ -88,3 +88,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T16:22:20.877Z **risk.updated** — Risk R6 updated: Publishing leaks secrets or private project data [R6] (by agent)
 - 2026-09-13T16:22:21.068Z **decision.made** — Decision D4 (ROUTINE): Remove the other project's name from live state [D4, Q5, R6] (by agent)
 - 2026-09-13T16:24:48.622Z **goal.created** — Goal G10 created: Start / Pause Project [G10] (by human)
+- 2026-09-13T16:35:16.500Z **goal.updated** — Goal G10 updated: Start / Pause Project [G10] (by agent)

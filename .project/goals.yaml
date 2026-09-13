@@ -158,7 +158,10 @@
   title: Start / Pause Project
   description: Add a mechanism for user to signal start / pausing project.
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - A project has an explicit ACTIVE or PAUSED state.
+    - Pausing states the next action to resume.
+    - A paused project says so in the digest and the widget.
   status: ACTIVE
   parent: null
   superseded_by: null
@@ -166,4 +169,4 @@
   risks: []
   tasks: []
   created: 2026-09-13T16:24:48.622Z
-  updated: 2026-09-13T16:24:48.622Z
+  updated: 2026-09-13T16:35:16.500Z
