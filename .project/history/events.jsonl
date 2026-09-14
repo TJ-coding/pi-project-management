@@ -191,3 +191,4 @@
 {"seq":191,"at":"2026-09-14T14:56:13.116Z","kind":"goal.abandoned","summary":"Goal G15 ABANDONED: Validate tools","by":"agent","refs":["G15"],"details":{"reason":"smoke-test fixture created by scripts/rpc-smoke.mjs; never project work"}}
 {"seq":192,"at":"2026-09-14T14:57:19.356Z","kind":"state.changed","summary":"State changed: Every goal closed and verified; the project is complete","by":"agent","refs":[]}
 {"seq":193,"at":"2026-09-14T14:57:27.368Z","kind":"risk.updated","summary":"Risk R5 updated: Propagation overwrites human text","by":"agent","refs":["R5"]}
+{"seq":194,"at":"2026-09-14T14:57:28.197Z","kind":"risk.updated","summary":"Risk R1 updated: A panel regression ships without review","by":"agent","refs":["R1"]}

@@ -195,3 +195,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T14:56:13.116Z **goal.abandoned** — Goal G15 ABANDONED: Validate tools [G15] (by agent)
 - 2026-09-14T14:57:19.356Z **state.changed** — State changed: Every goal closed and verified; the project is complete (by agent)
 - 2026-09-14T14:57:27.368Z **risk.updated** — Risk R5 updated: Propagation overwrites human text [R5] (by agent)
+- 2026-09-14T14:57:28.197Z **risk.updated** — Risk R1 updated: A panel regression ships without review [R1] (by agent)

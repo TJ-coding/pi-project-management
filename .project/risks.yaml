@@ -1,12 +1,12 @@
 - id: R1
   title: A panel regression ships without review
-  description: "Unit tests cannot see layout: only frames and a k3 pass caught the selected-row
-    overflow and the clipped metric column."
-  probability: 0.3
+  description: Panel regressions ship without review unless frames are checked by k3; seven rounds
+    found 12 defects tests could not see.
+  probability: 0.25
   impact: 0.5
-  status: OPEN
-  mitigation: Run the k3 frame review after every panel change; two rounds on the plan view caught a
-    fake tree glyph and a badge that silently hid parents.
+  status: MITIGATING
+  mitigation: Run the k3 frame review after every panel change. It found real defects in 5 of 7
+    rounds, including footers eliding keybindings at 80 columns.
   contingency: ""
   questions: []
   goals:
@@ -14,7 +14,7 @@
   tasks: []
   owner: ""
   created: 2026-09-13T15:59:01.967Z
-  updated: 2026-09-13T17:14:06.203Z
+  updated: 2026-09-14T14:57:28.197Z
 - id: R2
   title: This project is shadowed by $HOME/.project
   description: A session started in $HOME attaches to whichever project owns $HOME/.project, so edits

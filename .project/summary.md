@@ -32,8 +32,8 @@ All goals closed: 14 COMPLETED, and G15 abandoned as the smoke-test fixture it w
 
 ## Major Risks
 
-- R1 A panel regression ships without review — exposure 0.30 x 0.50, status OPEN
 - R3 Budgets block legitimate long content — exposure 0.30 x 0.40, status OPEN
+- R1 A panel regression ships without review — exposure 0.25 x 0.50, status MITIGATING
 - R5 Propagation overwrites human text — exposure 0.20 x 0.40, status MITIGATING
 - R2 This project is shadowed by $HOME/.project — exposure 0.00 x 0.30, status RESOLVED
 - R4 commit:false is ignored by several mutations — exposure 0.80 x 0.20, status RESOLVED
