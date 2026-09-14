@@ -198,3 +198,4 @@
 {"seq":198,"at":"2026-09-14T15:16:58.684Z","kind":"state.changed","summary":"State changed: Completion: every goal closed, verified from a clean clone","by":"agent","refs":[]}
 {"seq":199,"at":"2026-09-14T15:24:52.931Z","kind":"task.updated","summary":"Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work)","by":"agent","refs":["G15"],"details":{"reason":"smoke-test fixture from scripts/rpc-smoke.mjs; never project work"}}
 {"seq":200,"at":"2026-09-14T15:29:27.971Z","kind":"state.changed","summary":"State changed: Completion verified; the field-loss hazard is now guarded","by":"agent","refs":[]}
+{"seq":201,"at":"2026-09-14T15:29:37.084Z","kind":"decision.made","summary":"Decision D10 (SIGNIFICANT): Stamp the schema, refuse regressive saves","by":"agent","refs":["D10"],"details":{"autoAccepted":false}}

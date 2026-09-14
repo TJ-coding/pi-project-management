@@ -62,6 +62,7 @@ Project complete and verified. All 15 goals closed: 14 COMPLETED (G1-G14), G15 A
 - D7 Four k3 rounds before signing off (SIGNIFICANT)
 - D8 A smoke must fail when nothing loaded (SIGNIFICANT)
 - D9 Abandon, do not complete, the fixture (ROUTINE)
+- D10 Stamp the schema, refuse regressive saves (SIGNIFICANT)
 
 ## Plan Evolution
 
