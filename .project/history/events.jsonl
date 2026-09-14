@@ -141,3 +141,4 @@
 {"seq":141,"at":"2026-09-14T10:35:07.375Z","kind":"run.started","summary":"Run RUN3 started: Complete the eight open goals (G1,G2,G5,G9,G11-G14) (node N13)","by":"agent","refs":["RUN3"],"details":{"environment":[{"kind":"local","target":"~/Projects/pi-project-management"}]}}
 {"seq":142,"at":"2026-09-14T10:35:11.032Z","kind":"question.created","summary":"Question Q10 created: What does done mean for G13 and G14?","by":"agent","refs":["Q10"]}
 {"seq":143,"at":"2026-09-14T10:35:25.754Z","kind":"question.answered","summary":"Question Q10 ANSWERED: What does done mean for G13 and G14?","by":"agent","refs":["Q10"],"details":{}}
+{"seq":144,"at":"2026-09-14T10:35:29.150Z","kind":"goal.updated","summary":"Goal G12 updated: Archive anything","by":"agent","refs":["G12"]}

@@ -145,3 +145,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:35:07.375Z **run.started** — Run RUN3 started: Complete the eight open goals (G1,G2,G5,G9,G11-G14) (node N13) [RUN3] (by agent)
 - 2026-09-14T10:35:11.032Z **question.created** — Question Q10 created: What does done mean for G13 and G14? [Q10] (by agent)
 - 2026-09-14T10:35:25.754Z **question.answered** — Question Q10 ANSWERED: What does done mean for G13 and G14? [Q10] (by agent)
+- 2026-09-14T10:35:29.150Z **goal.updated** — Goal G12 updated: Archive anything [G12] (by agent)
