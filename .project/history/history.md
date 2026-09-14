@@ -131,3 +131,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T09:29:55.311Z **goal.created** — Goal G14 created: project like a goal command [G14] (by human)
 - 2026-09-14T09:30:13.453Z **run.finished** — Interrupted runs reconciled: RUN1 [RUN1] (by human)
 - 2026-09-14T09:34:25.574Z **question.created** — Question Q9 created: Do any other lookups resolve an id across plan versions? [Q9] (by agent)
+- 2026-09-14T09:34:28.966Z **decision.made** — Decision D5 (SIGNIFICANT): Verify the uncommitted active-plan fix [D5, G1] (by agent)

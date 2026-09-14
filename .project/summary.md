@@ -55,6 +55,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - D2 Keep project state in the repo, committed with the code (ROUTINE)
 - D3 Absorb the six new goals into the plan (SIGNIFICANT)
 - D4 Remove the other project's name from live state (ROUTINE)
+- D5 Verify the uncommitted active-plan fix (SIGNIFICANT)
 
 ## Plan Evolution
 
