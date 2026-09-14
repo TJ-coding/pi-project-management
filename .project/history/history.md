@@ -155,3 +155,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:36:07.135Z **goal.completed** — Goal G2 COMPLETED: Enforce brevity on every write [G2] (by agent)
 - 2026-09-14T10:36:10.565Z **goal.completed** — Goal G5 COMPLETED: Visual DAG [G5] (by agent)
 - 2026-09-14T10:36:10.747Z **goal.completed** — Goal G9 COMPLETED: Warn when exiting change without saving. [G9] (by agent)
+- 2026-09-14T10:36:23.472Z **task.updated** — Node N13 RUNNING -> COMPLETED: Audit and close the met goals [N13] (by agent)

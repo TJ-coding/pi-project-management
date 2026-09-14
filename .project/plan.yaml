@@ -292,21 +292,27 @@ plans:
       - id: N13
         title: Audit and close the met goals
         type: REVIEW
-        status: RUNNING
+        status: COMPLETED
         description: Confirm G1, G2, G5 and G9 against their success criteria and close the ones already met.
         depends_on: []
         goal: null
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - "G1 closed: width test at 40/80/120 covers all views, reading pane tested, k3 PASS in
+            gate N4"
+          - "G2 closed: over-budget write rejected, grandfathering tested, digest prints the budgets
+            live"
+          - "G5 closed: parents render in the node row and depth in the detail pane"
+          - "G9 closed: dirty form prompts, clean form closes at once, only y/enter discard"
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:35:42.144Z
+        updated: 2026-09-14T10:36:23.472Z
         started: 2026-09-14T10:35:42.144Z
-        finished: null
+        finished: 2026-09-14T10:36:23.472Z
       - id: N14
         title: Add progress percent
         type: TASK
