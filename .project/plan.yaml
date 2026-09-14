@@ -316,7 +316,7 @@ plans:
       - id: N14
         title: Add progress percent
         type: TASK
-        status: PENDING
+        status: RUNNING
         description: Add percent to node and goal, show it in the plan panel, refuse out-of-range values.
         depends_on:
           - N13
@@ -329,8 +329,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:35:38.403Z
-        started: null
+        updated: 2026-09-14T10:36:26.134Z
+        started: 2026-09-14T10:36:26.134Z
         finished: null
       - id: N15
         title: Add archiving

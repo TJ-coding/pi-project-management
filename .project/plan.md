@@ -9,7 +9,7 @@ Rationale: Four goals are already implemented but unclosed; three need building;
 - [COMPLETED] N13 REVIEW — Audit and close the met goals
     Confirm G1, G2, G5 and G9 against their success criteria and close the ones already met.
     outputs: G1 closed: width test at 40/80/120 covers all views, reading pane tested, k3 PASS in gate N4; G2 closed: over-budget write rejected, grandfathering tested, digest prints the budgets live; G5 closed: parents render in the node row and depth in the detail pane; G9 closed: dirty form prompts, clean form closes at once, only y/enter discard
-- [PENDING] N14 TASK — Add progress percent (after N13) {goal:G11}
+- [RUNNING] N14 TASK — Add progress percent (after N13) {goal:G11}
     Add percent to node and goal, show it in the plan panel, refuse out-of-range values.
 - [PENDING] N15 TASK — Add archiving (after N13) {goal:G12}
     Add meta.archived plus archive/unarchive commands; archived items leave active counts but stay readable.

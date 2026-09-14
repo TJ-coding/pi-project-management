@@ -152,3 +152,4 @@
 {"seq":152,"at":"2026-09-14T10:36:10.565Z","kind":"goal.completed","summary":"Goal G5 COMPLETED: Visual DAG","by":"agent","refs":["G5"],"details":{"reason":"Node rows carry parent ids and the detail pane names depth; the same panel holds it; width test covers 80 columns."}}
 {"seq":153,"at":"2026-09-14T10:36:10.747Z","kind":"goal.completed","summary":"Goal G9 COMPLETED: Warn when exiting change without saving.","by":"agent","refs":["G9"],"details":{"reason":"Dirty form prompts before discard, clean form closes at once, only y/enter discard, and the raw editor defers to Pi's own editor confirm."}}
 {"seq":154,"at":"2026-09-14T10:36:23.472Z","kind":"task.updated","summary":"Node N13 RUNNING -> COMPLETED: Audit and close the met goals","by":"agent","refs":["N13"],"details":{}}
+{"seq":155,"at":"2026-09-14T10:36:26.134Z","kind":"task.updated","summary":"Node N14 PENDING -> RUNNING: Add progress percent","by":"agent","refs":["N14"],"details":{}}
