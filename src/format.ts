@@ -127,10 +127,19 @@ export function renderDirectionText(project: Project): string {
  * The number is never dropped: at a small width the bar is unreadable, the
  * digits are not, and a bar with no number invites a wrong guess.
  */
-export function progressBar(percent: number, cells = 6): string {
+/**
+ * `██████░░░░ 60%` — a percent as a bar plus the number, because the bar answers
+ * "roughly how far" at a glance and the number answers "exactly how far".
+ *
+ * One vocabulary (█ and ░) at one width everywhere: k3's review found the
+ * selected-node pane using ▰▱ at 6 cells while the dashboard used █░, so the
+ * same concept had to be re-learned per panel, and a 6-cell bar rounded 60%
+ * to 67%. The number is never dropped - a bar alone invites a wrong guess.
+ */
+export function progressBar(percent: number, cells = 10): string {
   const clamped = Math.min(100, Math.max(0, Math.round(percent)));
   const filled = Math.round((clamped / 100) * cells);
-  const bar = "\u25b0".repeat(filled) + "\u25b1".repeat(Math.max(0, cells - filled));
+  const bar = "█".repeat(filled) + "░".repeat(Math.max(0, cells - filled));
   return `${bar} ${clamped}%`;
 }
 

@@ -554,7 +554,7 @@ export class ProjectManager {
         if (was !== archived) {
           const what = ARCHIVABLE_TITLE[kind](target);
           this.record(
-            archived ? "archived" : "unarchived",
+            archived ? `${kind}.archived` : `${kind}.unarchived`,
             `${label} ${id} ${archived ? "archived" : "restored"}: ${what}${options.reason ? ` (${options.reason})` : ""}`,
             [id],
             { reason: options.reason },

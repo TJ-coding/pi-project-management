@@ -158,7 +158,7 @@ describe("the project objective", () => {
     const project = await manager.read((current) => current);
 
     const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 80).join("\n");
-    assert.match(dashboard, /◆ Finish the bars/);
+    assert.match(dashboard, /◆ OBJECTIVE\s+Finish the bars/, "the objective is labelled, not left as a bare glyph");
     assert.match(dashboard, /A calm project tool/, "the vision is still shown, just after it");
 
     const widget = widgetLines(project, theme).join("\n");

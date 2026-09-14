@@ -359,7 +359,7 @@ const summaryView: ViewDefinition = {
     }
 
     lines.push(...heading(theme, "LESSONS / FINDINGS", width));
-    const findings = [...project.state.discoveries, ...project.questions.filter((question) => question.status === "CONFIRMED").map((question) => question.answer)];
+    const findings = [...project.state.discoveries, ...live(project.questions).filter((question) => question.status === "CONFIRMED").map((question) => question.answer)];
     if (findings.length === 0) lines.push(theme.fg("dim", "none recorded"));
     for (const finding of findings) lines.push(...bulletLines(theme, "• ", theme.fg("muted", finding), width));
     return lines;
@@ -508,7 +508,6 @@ function planNodeContent(theme: Theme, node: PlanNode, bloated = false, parents 
   const type = theme.fg("dim", (NODE_TYPE_ABBREVIATIONS[node.type] ?? node.type).padEnd(5));
 
   const badges: string[] = [];
-  if (node.percent !== null) badges.push(percentBadge(node.percent));
   if (node.question) badges.push(node.question);
   if (node.risk) badges.push(node.risk);
   if (node.goal) badges.push(node.goal);
@@ -516,11 +515,19 @@ function planNodeContent(theme: Theme, node: PlanNode, bloated = false, parents 
   // Fixed columns: identity, then links, then the title; parents live on the
   // right edge and nothing ever displaces them. A shared column that changes
   // meaning per row forces the reader to decode every line.
+  //
+  // The percent gets its own fixed 4-wide column rather than joining the badges:
+  // k3 found `60% G2` crowding two short tokens while unestimated rows shifted
+  // the goal column left. Blank stays blank, so the column is stable either way.
   const head = `${glyph} ${id}${type}`;
-  const links = badges.length > 0 ? ` ${theme.fg("muted", badges.join(" "))}` : "";
+  // Exactly 6 cells either way: 1 + 4 + 1 when there is a percent, 6 blanks when
+  // there is not. Anything else shifts the link column between rows.
+  const percentCell = node.percent === null ? "      " : ` ${percentBadge(node.percent).padStart(4)} `;
+  // The trailing space after the links is what separates them from the title.
+  const links = badges.length > 0 ? `${theme.fg("muted", badges.join(" "))} ` : "";
   const parentText = parents ? ` ${theme.fg("dim", parents)}` : "";
-  const start = `${head}${links} `;
-  const titleRoom = Math.max(8, 68 - visibleWidth(head) - visibleWidth(links));
+  const start = `${head}${theme.fg("accent", percentCell)}${links}`;
+  const titleRoom = Math.max(8, 68 - visibleWidth(head) - visibleWidth(links) - visibleWidth(percentCell));
   const parentRoom = visibleWidth(parentText);
   const available = Math.max(8, titleRoom - (parentRoom > 0 && titleRoom - parentRoom > 20 ? parentRoom : 0));
   const flat = oneLine(node.title);
@@ -708,6 +715,18 @@ export function isArchived(entity: { archived?: boolean }): boolean {
   return entity.archived === true;
 }
 
+/**
+ * The active subset every surface must agree on.
+ *
+ * k3's frame review caught the panels contradicting each other — the goals panel
+ * listed 2 while the widget said 3 and the summary called the third ACTIVE. Each
+ * surface had grown its own filter, so one shared definition is the fix: any
+ * count a reader can compare must come from here.
+ */
+export function live<T extends { archived?: boolean }>(items: readonly T[]): T[] {
+  return items.filter((item) => !isArchived(item));
+}
+
 /** How many archived items exist per kind, for the "N archived" note. */
 export function archivedCounts(project: Project): { goals: number; questions: number; risks: number; nodes: number; total: number } {
   const nodes = (activePlan(project)?.nodes ?? []).filter(isArchived).length;
@@ -756,17 +775,26 @@ const dashboardView: ViewDefinition = {
     const plan = activePlan(project);
     const stats = plan ? dagStats(plan.nodes) : null;
     const next = plan ? nextActionable(plan.nodes) : undefined;
-    const openQuestions = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
-    const openRisks = byRiskPriority(project.risks).filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING");
+    const openQuestions = byQuestionPriority(live(project.questions).filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
+    const openRisks = byRiskPriority(live(project.risks)).filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING");
     const bloatedIds = overBudgetEntityIds(project);
-    const activeGoals = project.goals.filter((goal) => goal.status === "ACTIVE");
-    const doneGoals = project.goals.filter((goal) => goal.status === "COMPLETED");
+    const activeGoals = live(project.goals).filter((goal) => goal.status === "ACTIVE");
+    const doneGoals = live(project.goals).filter((goal) => goal.status === "COMPLETED");
+    // Archived goals are out of the active set, so they are out of the total too.
+    // Counting them here made this line disagree with the goals panel, which is
+    // the panel a reader would check it against.
+    const liveGoals = project.goals.filter((goal) => !isArchived(goal));
     const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED");
 
     // Quiet context first: what this project is. The objective leads the vision
-    // because it is the more specific statement of what we are doing now.
+    // because it is the more specific statement of what we are doing now, and it
+    // is labelled and bold: k3 found an unmarked ◆ line shared the grammar of the
+    // hint lines, so the sentence meant to orient the reader was the easiest to
+    // skip.
     if (project.meta.objective) {
-      lines.push(`  ${theme.fg("accent", "◆ ")}${theme.fg("text", truncateToWidth(project.meta.objective, width - 6, "…"))}`);
+      lines.push(
+        `  ${theme.fg("accent", "◆ OBJECTIVE  ")}${theme.bold(theme.fg("text", truncateToWidth(project.meta.objective, Math.max(10, width - 18), "…")))}`,
+      );
       lines.push("");
     }
     if (project.direction.vision) {
@@ -789,6 +817,8 @@ const dashboardView: ViewDefinition = {
       const rationale = [
         running.length > 0 ? "in progress" : "top-ranked ready work",
         focal.type,
+        // A running item's progress matters most right here.
+        focal.percent !== null ? `${focal.percent}%` : null,
         focal.question ? `answers ${focal.question}` : null,
         focal.risk ? `reduces ${focal.risk}` : null,
         plan ? `${plan.id} v${plan.version}` : null,
@@ -850,7 +880,7 @@ const dashboardView: ViewDefinition = {
         keyValue(
           theme,
           "goals",
-        theme.fg("text", `${doneGoals.length}/${project.goals.length} done`) +
+        theme.fg("text", `${doneGoals.length}/${liveGoals.length} done`) +
           theme.fg("dim", "   ") +
           theme.fg("text", `${openQuestions.length}`) +
           theme.fg("dim", " open questions") +
@@ -1015,31 +1045,43 @@ const goalsView: ViewDefinition = {
     // states how many it is hiding rather than silently showing fewer rows.
     const hidden = project.goals.filter(isArchived).length;
     const visible = options?.showArchived ? project.goals : project.goals.filter((goal) => !isArchived(goal));
-    if (hidden > 0) {
-      lines.push(
-        `  ${theme.fg("dim", `${hidden} archived ${hidden === 1 ? "goal" : "goals"} ${options?.showArchived ? "shown" : "hidden"} · press v to ${options?.showArchived ? "hide" : "show"}`)}`,
-      );
-    }
+    // The archived count rides in the first group header rather than its own line:
+    // k3 found a full line of chrome per panel for state that fits in the header.
+    const archiveNote =
+      hidden > 0
+        ? `${options?.showArchived ? "showing " : ""}${hidden} archived · v`
+        : "";
+    let archiveNoteUsed = false;
     for (const group of GOAL_GROUPS) {
       const goals = visible
         .filter((goal) => group.statuses.includes(goal.status))
         .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id, undefined, { numeric: true }));
       if (goals.length === 0) continue;
-      lines.push(sectionHeader(theme, group.label, `${goals.length}`, width, group.tone));
+      const meta = `${goals.length}${archiveNote && !archiveNoteUsed ? ` · ${archiveNote}` : ""}`;
+      if (archiveNote && !archiveNoteUsed) archiveNoteUsed = true;
+      lines.push(sectionHeader(theme, group.label, meta, width, group.tone));
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
         const head = `${bloatedIds.has(`goal:${goal.id}`) && goal.status === "ACTIVE" ? theme.fg("warning", "⚠ ") : ""}${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
         // An archived row that looked identical to an active one would be a trap.
-        const archivedMark = isArchived(goal) ? theme.fg("dim", "⌫ ") : "";
-        const percent = goal.percent !== null ? `${theme.fg("accent", percentBadge(goal.percent).padStart(4))} ` : "";
+        // The word, not ⌫: that glyph means delete/backspace, and D really does
+        // delete here, so a ⌫ beside a row reads as "marked for deletion".
+        const archivedMark = isArchived(goal) ? theme.fg("dim", "archived ") : "";
+        // A goal at 100% but still ACTIVE would otherwise read as done while the
+        // progress line counts it as open. The tick makes the difference explicit:
+        // the work is finished, the goal is not yet closed (k3 frame review).
+        const percent =
+          goal.percent === null
+            ? ""
+            : `${theme.fg("accent", `${goal.percent === 100 && goal.status === "ACTIVE" ? "✓" : ""}${percentBadge(goal.percent).padStart(goal.percent === 100 && goal.status === "ACTIVE" ? 3 : 4)}`)} `;
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
         const tail = `${percent}${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
-        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2 - visibleWidth(archivedMark));
+        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(goal.title);
         const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
         const selected = goal.id === focus;
         if (selected) focusLine = lines.length;
-        lines.push(containerRow(theme, `${head}${archivedMark}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${archivedMark}${tail}`, width, selected));
         if (goal.supersededBy) lines.push(containerNote(theme, theme.fg("dim", `superseded by ${goal.supersededBy}`), width));
       }
       lines.push(containerClose(theme, width));
@@ -1061,7 +1103,7 @@ const TERMINAL_RISK_STATUSES = new Set(["CLOSED", "RESOLVED", "ACCEPTED"]);
 /** Risks in visual order — the same order the risks view draws and ↑↓ walks. */
 export function orderedRiskIds(project: Project): string[] {
   return riskGroups.flatMap((group) =>
-    byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status))).map((risk) => risk.id),
+    byRiskPriority(live(project.risks).filter((risk) => group.statuses.includes(risk.status))).map((risk) => risk.id),
   );
 }
 
@@ -1114,9 +1156,9 @@ const stateView: ViewDefinition = {
 /** Questions in visual order — open first, then answered, then settled. */
 export function orderedQuestionIds(project: Project): string[] {
   const groups = [
-    project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL"),
-    project.questions.filter((question) => question.status === "ANSWERED"),
-    project.questions.filter((question) => question.status === "CONFIRMED" || question.status === "INVALIDATED"),
+    live(project.questions).filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL"),
+    live(project.questions).filter((question) => question.status === "ANSWERED"),
+    live(project.questions).filter((question) => question.status === "CONFIRMED" || question.status === "INVALIDATED"),
   ];
   return groups.flatMap((questions) => byQuestionPriority(questions).map((question) => question.id));
 }
@@ -1136,9 +1178,9 @@ const intelligenceView: ViewDefinition = {
     const lines: string[] = [];
     let focusLine: number | undefined;
     const bloatedIds = overBudgetEntityIds(project);
-    const open = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
-    const answered = byQuestionPriority(project.questions.filter((q) => q.status === "ANSWERED"));
-    const settled = byQuestionPriority(project.questions.filter((q) => q.status === "CONFIRMED" || q.status === "INVALIDATED"));
+    const open = byQuestionPriority(live(project.questions).filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"));
+    const answered = byQuestionPriority(live(project.questions).filter((q) => q.status === "ANSWERED"));
+    const settled = byQuestionPriority(live(project.questions).filter((q) => q.status === "CONFIRMED" || q.status === "INVALIDATED"));
 
     const group = (label: string, questions: typeof open, tone: "warning" | "success" | "muted"): void => {
       if (questions.length === 0) return;
@@ -1183,27 +1225,26 @@ const risksView: ViewDefinition = {
     const bloatedIds = overBudgetEntityIds(project);
     const hidden = project.risks.filter(isArchived).length;
     const visible = options?.showArchived ? project.risks : project.risks.filter((risk) => !isArchived(risk));
-    if (hidden > 0) {
-      lines.push(
-        `  ${theme.fg("dim", `${hidden} archived ${hidden === 1 ? "risk" : "risks"} ${options?.showArchived ? "shown" : "hidden"} · press v to ${options?.showArchived ? "hide" : "show"}`)}`,
-      );
-    }
+    const archiveNote = hidden > 0 ? `${options?.showArchived ? "showing " : ""}${hidden} archived · v` : "";
+    let archiveNoteUsed = false;
     for (const group of riskGroups) {
       const risks = byRiskPriority(visible.filter((risk) => group.statuses.includes(risk.status)));
       if (risks.length === 0) continue;
-      lines.push(sectionHeader(theme, group.label, `${risks.length}`, width, group.tone));
+      const meta = `${risks.length}${archiveNote && !archiveNoteUsed ? ` · ${archiveNote}` : ""}`;
+      if (archiveNote && !archiveNoteUsed) archiveNoteUsed = true;
+      lines.push(sectionHeader(theme, group.label, meta, width, group.tone));
       for (const risk of risks) {
         const band = scoreBand(riskScore(risk));
         const mark = bloatedIds.has(`risk:${risk.id}`) && !TERMINAL_RISK_STATUSES.has(risk.status) ? theme.fg("warning", "⚠ ") : "";
-        const archivedMark = isArchived(risk) ? theme.fg("dim", "⌫ ") : "";
-        const head = `${archivedMark}${mark}${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
+        const archivedMark = isArchived(risk) ? theme.fg("dim", "archived ") : "";
+        const head = `${mark}${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `${risk.status === "MITIGATING" ? "MITIGATING · " : ""}exp ${riskExposure(risk).toFixed(2)}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(risk.title);
         const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
         const selected = risk.id === focus;
         if (selected) focusLine = lines.length;
-        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
+        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${archivedMark}${tail}`, width, selected));
       }
       lines.push(containerClose(theme, width));
       lines.push("");
@@ -1269,7 +1310,7 @@ function ageText(at: string): string {
 function detailForGoal(goal: Goal): DetailDoc {
   const band = priorityBand(goal.priority);
   const fields: DetailField[] = [{ label: "Description", text: goal.description, kind: "prose" }];
-  if (goal.percent !== null) fields.push({ label: "Progress", text: progressBar(goal.percent, 10), tone: "success" });
+  if (goal.percent !== null) fields.push({ label: "Progress", text: progressBar(goal.percent), tone: "success" });
   if (goal.parent) fields.push({ label: "Parent", text: goal.parent, tone: "dim" });
   const links = linkText([
     ["questions", goal.questions],
@@ -2046,8 +2087,8 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
   const lines: string[] = [];
   const stats = plan ? dagStats(plan.nodes) : null;
   const next = plan ? nextActionable(plan.nodes) : undefined;
-  const goals = project.goals.filter((goal) => goal.status === "ACTIVE").length;
-  const openQuestions = project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL").length;
+  const goals = live(project.goals).filter((goal) => goal.status === "ACTIVE").length;
+  const openQuestions = live(project.questions).filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL").length;
 
   lines.push(
     theme.fg("accent", `◈ ${project.meta.name}`) +
@@ -2058,9 +2099,10 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
     lines.push(theme.fg("warning", "  ⏸ PAUSED") + theme.fg("dim", project.meta.resumeNote ? ` · resume: ${project.meta.resumeNote}` : ""));
     return lines.slice(0, maxLines);
   }
-  // The objective is what the work is for; it earns a line whenever it is set.
+  // The objective is what the work is for; it earns a line whenever it is set,
+  // labelled so it cannot be mistaken for a hint.
   if (project.meta.objective) {
-    lines.push(theme.fg("muted", "  ◆ ") + theme.fg("text", truncateToWidth(project.meta.objective, 120, "…")));
+    lines.push(theme.fg("accent", "  ◆ OBJECTIVE  ") + theme.fg("text", truncateToWidth(project.meta.objective, 120, "…")));
   }
   if (plan && stats) {
     lines.push(
@@ -2080,7 +2122,7 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
 
 /** `2 open risks` — the qualifier matches the rail badge, which also counts open ones. */
 function openRisksText(project: Project): string {
-  const open = project.risks.filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
+  const open = live(project.risks).filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
   return `${open} open risks`;
 }
 

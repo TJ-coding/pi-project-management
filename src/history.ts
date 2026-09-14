@@ -158,7 +158,11 @@ export function renderCompletionSummary(project: Project): string {
   if (project.goals.length === 0) lines.push("_No goals recorded._");
   for (const goal of project.goals) {
     const glyph = GOAL_GLYPH[goal.status] ?? "?";
-    lines.push(`- ${glyph} ${goal.id} ${goal.title} (${goal.status})`);
+    // Archived goals belong in the honest record, but must not read as active
+    // work: an unmarked "(ACTIVE) archived goal" is how a reader concludes the
+    // tool is broken (k3 frame review).
+    const archived = goal.archived ? " [ARCHIVED]" : "";
+    lines.push(`- ${glyph} ${goal.id} ${goal.title} (${goal.status}${archived})`);
     if (goal.supersededBy) lines.push(`    superseded by ${goal.supersededBy}`);
   }
   lines.push("");

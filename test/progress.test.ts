@@ -105,9 +105,9 @@ describe("progress percent", () => {
   });
 
   test("the bar shows a proportion and never hides the number", () => {
-    assert.equal(progressBar(0, 10), "▱▱▱▱▱▱▱▱▱▱ 0%");
-    assert.equal(progressBar(50, 10), "▰▰▰▰▰▱▱▱▱▱ 50%");
-    assert.equal(progressBar(100, 10), "▰▰▰▰▰▰▰▰▰▰ 100%");
+    assert.equal(progressBar(0, 10), "░░░░░░░░░░ 0%");
+    assert.equal(progressBar(50, 10), "█████░░░░░ 50%");
+    assert.equal(progressBar(100, 10), "██████████ 100%");
     // Rounded, so a bar can never show more than the number claims.
     assert.ok(progressBar(37, 10).includes("37%"));
     // Out of range is clamped in rendering, so a hand-edited file cannot break it.

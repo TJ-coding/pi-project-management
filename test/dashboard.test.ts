@@ -135,7 +135,7 @@ describe("dashboard", () => {
 
     const plan = VIEWS.find((view) => view.id === "plan")!.render(project, theme, 80).join("\n");
     assert.match(plan, /Half-done job +\d+%|50% +Half-done job|50%/, "the node row carries its percent");
-    assert.match(plan, /▰▰▰▱▱▱ 50%/, "the reading pane draws the bar for the selected node");
+    assert.match(plan, /█+░+ 50%/, "the reading pane draws the bar for the selected node");
 
     // The bar is readable at every width the panels must support.
     for (const width of [40, 80, 120]) {

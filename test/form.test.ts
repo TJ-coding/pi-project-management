@@ -182,13 +182,13 @@ describe("form editor", () => {
     draft.percent = 40;
     down(editor, 9);
     const row = editor.render(120).find((line) => /Progress/.test(line))!;
-    assert.match(row, /▰▰▰▰▱▱▱▱▱▱ 40%/, "the bar shows the proportion");
+    assert.match(row, /████░░░░░░ 40%/, "the bar shows the proportion");
     assert.ok(visibleWidth(row) <= 120);
 
     draft.percent = null;
     const empty = editor.render(120).find((line) => /Progress/.test(line))!;
     assert.match(empty, /\(no estimate\)/, "empty is labelled, not shown as 0%");
-    assert.doesNotMatch(empty, /▰|▱/, "no bar is drawn without a number");
+    assert.doesNotMatch(empty, /█|░/, "no bar is drawn without a number");
   });
 
   test("enums cycle through their options", () => {

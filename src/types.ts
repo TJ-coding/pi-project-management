@@ -359,6 +359,16 @@ export const HISTORY_KINDS = [
   "run.started",
   "run.finished",
   "task.updated",
+  // Namespaced by kind, matching goal.created / risk.created (k3 review).
+  "goal.archived",
+  "goal.unarchived",
+  "question.archived",
+  "question.unarchived",
+  "risk.archived",
+  "risk.unarchived",
+  "node.archived",
+  "node.unarchived",
+  // Kept so history written before the rename still parses.
   "archived",
   "unarchived",
 ] as const;

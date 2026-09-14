@@ -4,8 +4,9 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 
 import { buildDigest } from "../src/context.ts";
-import { archivedCounts, isArchived, VIEWS, viewCounts } from "../src/dashboard.ts";
-import { renderGoalsText } from "../src/format.ts";
+import { archivedCounts, isArchived, VIEWS, viewCounts, widgetLines } from "../src/dashboard.ts";
+import { progressBar, renderGoalsText } from "../src/format.ts";
+import { renderCompletionSummary } from "../src/history.ts";
 import { ProjectManager } from "../src/project.ts";
 import { activePlan } from "../src/replan.ts";
 import { cleanup, fixedClock, tempDir } from "./helpers.ts";
@@ -173,12 +174,12 @@ describe("archiving", () => {
     const hidden = goalsView.render(project, theme, 100).join("\n");
     assert.match(hidden, /Visible goal/, "active work is still listed");
     assert.doesNotMatch(hidden, /Archived goal/, "archived work is out of the way by default");
-    assert.match(hidden, /1 archived goal hidden · press v to show/, "the panel states what it is hiding");
+    assert.match(hidden, /1 · 1 archived · v/, "the panel states what it is hiding in the group header");
 
     const shown = goalsView.render(project, theme, 100, { showArchived: true }).join("\n");
     assert.match(shown, /Archived goal/, "v brings it back");
-    assert.match(shown, /⌫/, "and marks it as archived so it cannot be mistaken for active");
-    assert.match(shown, /1 archived goal shown · press v to hide/);
+    assert.match(shown, /archived/, "and marks it as archived so it cannot be mistaken for active");
+    assert.match(shown, /showing 1 archived · v/);
 
     // The count line must fit every supported width.
     for (const width of [40, 80, 120]) {
@@ -201,7 +202,7 @@ describe("archiving", () => {
 
     const risks = VIEWS.find((view) => view.id === "risks")!;
     assert.doesNotMatch(risks.render(project, theme, 100).join("\n"), /Dead risk/);
-    assert.match(risks.render(project, theme, 100).join("\n"), /1 archived risk hidden/);
+    assert.match(risks.render(project, theme, 100).join("\n"), /1 archived · v/);
     assert.match(risks.render(project, theme, 100, { showArchived: true }).join("\n"), /Dead risk/);
 
     const plan = VIEWS.find((view) => view.id === "plan")!;
@@ -236,13 +237,147 @@ describe("archiving", () => {
     await manager.createGoal({ title: "Old idea" }, { commit: false });
     await manager.setArchived("goal", "G1", true, { commit: false, reason: "out of scope now" });
 
-    const events = manager.project.history.filter((event) => event.kind === "archived");
+    const events = manager.project.history.filter((event) => event.kind === "goal.archived");
     assert.equal(events.length, 1);
+    assert.match(events[0]!.kind, /goal\.archived/, "the kind is namespaced like goal.created");
     assert.match(events[0]!.summary, /Goal G1 archived: Old idea/);
     assert.match(events[0]!.summary, /out of scope now/);
     assert.deepEqual(events[0]!.refs, ["G1"]);
 
     await manager.setArchived("goal", "G1", false, { commit: false });
-    assert.equal(manager.project.history.filter((event) => event.kind === "unarchived").length, 1);
+    assert.equal(manager.project.history.filter((event) => event.kind === "goal.unarchived").length, 1);
+  });
+
+  test("the dashboard goal metric agrees with the goals panel", async () => {
+    // Regression found by reading frames: the dashboard divided by every goal in
+    // the project while the goals panel counted only live ones, so the two
+    // disagreed about the same number as soon as anything was archived.
+    const { root, manager } = await newProject("Consistent");
+    dirs.push(root);
+    await manager.createGoal({ title: "Done one" }, { commit: false });
+    await manager.createGoal({ title: "Still open" }, { commit: false });
+    await manager.createGoal({ title: "Dropped it" }, { commit: false });
+    await manager.setGoalStatus("G1", "COMPLETED", { commit: false });
+    await manager.setArchived("goal", "G3", true, { commit: false });
+    const project = await manager.read((current) => current);
+
+    const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
+    const metric = /(\d+)\/(\d+) done/.exec(dashboard);
+    assert.ok(metric, "the dashboard shows a goals metric");
+    const [, done, total] = metric!;
+
+    const panelShows = project.goals.filter((goal) => !isArchived(goal)).length;
+    assert.equal(Number(total), panelShows, `dashboard says ${total} goals but the panel lists ${panelShows}`);
+    assert.equal(Number(done), 1, "one live goal is complete");
+  });
+});
+
+describe("archived items across panels (k3 frame review)", () => {
+  const dirs: string[] = [];
+  after(async () => {
+    for (const dir of dirs) await cleanup(dir);
+  });
+
+  test("every surface agrees on how many goals are active", async () => {
+    // k3 ranked this first: the goals panel said 2 while the widget said 3 and
+    // the summary called the third ACTIVE — the counts are why this tool exists,
+    // and two panels disagreeing makes every number untrustworthy.
+    const { root, manager } = await newProject("Agreement");
+    dirs.push(root);
+    await manager.createGoal({ title: "One" }, { commit: false });
+    await manager.createGoal({ title: "Two" }, { commit: false });
+    await manager.createGoal({ title: "Three" }, { commit: false });
+    await manager.setArchived("goal", "G3", true, { commit: false });
+    const project = await manager.read((current) => current);
+
+    const live = project.goals.filter((goal) => !isArchived(goal) && goal.status === "ACTIVE").length;
+    assert.equal(live, 2);
+
+    const widget = widgetLines(project, theme).join("\n");
+    assert.match(widget, new RegExp(`${live} active goals`), "the widget counts live goals");
+
+    const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
+    const metric = /(\d+)\/(\d+) done/.exec(dashboard);
+    assert.ok(metric, "the dashboard shows a goals metric");
+    assert.equal(Number(metric![2]), 2, "and divides by live goals, not every goal");
+
+    // The digest is what an agent reads first, so it must agree too.
+    assert.doesNotMatch(buildDigest(project), /ACTIVE GOALS.*Three/, "the digest does not call it active");
+  });
+
+  test("an archived goal is marked wherever it is still listed", async () => {
+    const { root, manager } = await newProject("Marked");
+    dirs.push(root);
+    await manager.createGoal({ title: "Stowed away" }, { commit: false });
+    await manager.setArchived("goal", "G1", true, { commit: false });
+    const project = await manager.read((current) => current);
+
+    // Kept in the honest record (spec 21 wants goal outcomes preserved), but
+    // never presented as bare ACTIVE.
+    const summary = renderCompletionSummary(project);
+    assert.match(summary, /Stowed away/);
+    assert.match(summary, /\[ARCHIVED\]/, "the completion summary marks it");
+    assert.match(renderGoalsText(project), /\[ARCHIVED\]/, "so does the goals list");
+
+    // The rows view uses the word, not a glyph: the delete key is `D`, so a
+    // backspace glyph would read as "marked for deletion" (k3 issue 5).
+    const shown = VIEWS.find((view) => view.id === "goals")!.render(project, theme, 100, { showArchived: true }).join("\n");
+    assert.match(shown, /archived/);
+    assert.doesNotMatch(shown, /⌫/, "no delete-looking glyph on an archived row");
+  });
+
+  test("a 100% goal that is still open is ticked, not silently counted as done", async () => {
+    // k3 issue 2: `100%` beside `0/2 done` gave opposite answers one line apart.
+    const { root, manager } = await newProject("Hundred");
+    dirs.push(root);
+    await manager.createGoal({ title: "Work finished", percent: 100 }, { commit: false });
+    await manager.createGoal({ title: "Not started" }, { commit: false });
+    const project = await manager.read((current) => current);
+
+    const goals = VIEWS.find((view) => view.id === "goals")!.render(project, theme, 100).join("\n");
+    assert.match(goals, /✓100%/, "the tick says the work is finished");
+    const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
+    assert.match(dashboard, /0\/2 done/, "while the counter still says the goal is not closed");
+  });
+
+  test("progress bars use one vocabulary and one width everywhere", () => {
+    // k3 issue 4: ▰▱ at 6 cells in one pane and █░ elsewhere meant re-learning
+    // the bar per panel, and a 6-cell bar rounded 60% up to 67%.
+    assert.equal(progressBar(60), "██████░░░░ 60%");
+    assert.ok(!progressBar(60).includes("▰"), "no second bar vocabulary");
+    assert.equal(progressBar(60).split(" ")[0]!.length, 10, "one width");
+  });
+
+  test("an archived node keeps a stable percent column in the plan rows", async () => {
+    // k3 issue 7: `60% G2` crowded two tokens and unestimated rows shifted the
+    // goal column left, so the percent needed its own fixed slot.
+    const { root, manager } = await newProject("Columns");
+    dirs.push(root);
+    await manager.applyReplan(
+      {
+        trigger: "t",
+        rationale: "r",
+        title: "P",
+        notes: [],
+        superseded: [],
+        carried: [],
+        nodes: [
+          { title: "Estimated node", type: "TASK", goal: "G1", percent: 65 },
+          { title: "Unestimated node", type: "TASK", goal: "G1" },
+        ],
+      },
+      { commit: false },
+    );
+    await manager.createGoal({ title: "Shared goal" }, { commit: false });
+    const project = await manager.read((current) => current);
+    const lines = VIEWS.find((view) => view.id === "plan")!.render(project, theme, 100);
+    const estimated = lines.find((line) => line.includes("Estimated node"))!;
+    const unestimated = lines.find((line) => line.includes("Unestimated node"))!;
+
+    // The goal badge must sit in the same column whether or not there is a percent.
+    const columnOf = (line: string): number => line.indexOf("G1");
+    assert.equal(columnOf(estimated), columnOf(unestimated), "the link column does not shift");
+    assert.match(estimated, /65% G1/, "the percent is separated from the link by a space");
+    assert.doesNotMatch(estimated, /65%G1/, "and never runs into it");
   });
 });

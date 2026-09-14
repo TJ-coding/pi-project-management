@@ -752,7 +752,7 @@ export class FormEditor {
       value =
         numeric === null
           ? theme.fg("dim", "(no estimate)")
-          : `${theme.fg("text", progressBar(numeric, 10))}${theme.fg("dim", "  ⏎ set · clear it to remove")}`;
+          : `${theme.fg("text", progressBar(numeric))}${theme.fg("dim", "  ⏎ set · clear it to remove")}`;
     } else if (field.kind === "ref") {
       const current = field.get();
       value = current ? theme.fg("text", current) : theme.fg("dim", "none");
