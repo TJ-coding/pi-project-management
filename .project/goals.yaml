@@ -215,3 +215,16 @@
   tasks: []
   created: 2026-09-14T09:28:37.123Z
   updated: 2026-09-14T09:28:37.123Z
+- id: G14
+  title: project like a goal command
+  description: I don't know what the resume pause features are for but I want it to be like a goal command.
+  priority: 3
+  success_criteria: []
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-14T09:29:55.311Z
+  updated: 2026-09-14T09:29:55.311Z
