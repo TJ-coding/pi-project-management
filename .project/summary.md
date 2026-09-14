@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-All 15 goals closed (14 COMPLETED, G15 the smoke artifact archived). R7 resolved: goal links now resolve against the active plan. 167 tests pass, TUI smoke passes, published at 0c9106f and verified from a clean clone. N18 is waiting only on the k3 round-2 frame review.
+All 15 goals closed (14 COMPLETED, G15 archived). R7 resolved. Five k3 review rounds found 11 real defects, all fixed: archived leaking into aggregates, an internally contradictory summary line, a reused done-glyph, and footers eliding keybindings at 80 columns. 169 tests pass, TUI and command smoke pass, published at 44801f4. N18 awaits only the k3 round-5 verdict.
 
 ## Goals
 
