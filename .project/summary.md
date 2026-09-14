@@ -57,6 +57,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - D3 Absorb the six new goals into the plan (SIGNIFICANT)
 - D4 Remove the other project's name from live state (ROUTINE)
 - D5 Verify the uncommitted active-plan fix (SIGNIFICANT)
+- D6 Redact paths, not names (SIGNIFICANT)
 
 ## Plan Evolution
 

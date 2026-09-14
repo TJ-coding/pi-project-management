@@ -135,3 +135,4 @@
 {"seq":135,"at":"2026-09-14T09:48:10.642Z","kind":"task.updated","summary":"Node N10 PENDING -> RUNNING: Publish the repo to GitHub","by":"agent","refs":["N10"],"details":{}}
 {"seq":136,"at":"2026-09-14T10:28:06.011Z","kind":"task.updated","summary":"Node N10 RUNNING -> COMPLETED: Publish the repo to GitHub","by":"agent","refs":["N10"],"details":{}}
 {"seq":137,"at":"2026-09-14T10:28:06.177Z","kind":"goal.completed","summary":"Goal G7 COMPLETED: Upload the project to github repository","by":"agent","refs":["G7"],"details":{"reason":"All three criteria verified from a clean clone of the public repo."}}
+{"seq":138,"at":"2026-09-14T10:28:10.567Z","kind":"decision.made","summary":"Decision D6 (SIGNIFICANT): Redact paths, not names","by":"agent","refs":["D6","G7"],"details":{"autoAccepted":false}}
