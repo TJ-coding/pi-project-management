@@ -162,3 +162,4 @@
 {"seq":162,"at":"2026-09-14T11:22:30.929Z","kind":"goal.created","summary":"Goal G15 created: Validate tools","by":"agent","refs":["G15"],"details":{"status":"ACTIVE","priority":4}}
 {"seq":163,"at":"2026-09-14T11:24:26.502Z","kind":"task.updated","summary":"Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work)","by":"agent","refs":["G15"],"details":{"reason":"smoke-test artifact from scripts/rpc-smoke.mjs, not project work"}}
 {"seq":164,"at":"2026-09-14T11:27:15.986Z","kind":"goal.completed","summary":"Goal G14 COMPLETED: One persistent objective","by":"agent","refs":["G14"],"details":{"reason":"One objective sentence persists in meta, the digest states it with progress and what done means, and a tool plus command set show and clear it."}}
+{"seq":165,"at":"2026-09-14T11:27:16.226Z","kind":"task.updated","summary":"Node N16 RUNNING -> COMPLETED: Add a persistent objective","by":"agent","refs":["N16"],"details":{}}

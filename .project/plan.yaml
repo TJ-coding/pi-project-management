@@ -364,22 +364,27 @@ plans:
       - id: N16
         title: Add a persistent objective
         type: TASK
-        status: RUNNING
+        status: COMPLETED
         description: Add one objective sentence per project, shown in the digest with progress and done-when.
         depends_on:
           - N13
         goal: G14
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - meta.objective plus objectiveSetAt, round-tripping through project.yaml
+          - The digest leads with OBJECTIVE and OBJECTIVE PROGRESS naming what done means
+          - project_objective tool, /project objective command, dashboard and widget
+          - Changing it is recorded in history with the previous value
+          - 146 tests pass (8 new), command smoke and TUI smoke pass
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T11:10:53.295Z
+        updated: 2026-09-14T11:27:16.226Z
         started: 2026-09-14T11:10:53.295Z
-        finished: null
+        finished: 2026-09-14T11:27:16.226Z
       - id: N17
         title: Serve a phone dashboard
         type: TASK
