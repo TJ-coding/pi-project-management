@@ -189,3 +189,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T14:45:35.049Z **run.started** — Run RUN10 started: k3 frame review round 6 [RUN10] (by agent)
 - 2026-09-14T14:51:22.263Z **run.started** — Run RUN11 started: k3 frame review round 7 (final) [RUN11] (by agent)
 - 2026-09-14T14:53:40.739Z **gate.passed** — Gate N18 (GATE) -> PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off, numbers cross-check. [N18] (by agent)
+- 2026-09-14T14:53:46.877Z **run.finished** — Run RUN3 COMPLETED: Complete the eight open goals (G1,G2,G5,G9,G11-G14) [RUN3, N13] (by agent)

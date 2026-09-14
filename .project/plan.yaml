@@ -310,9 +310,9 @@ plans:
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:36:23.472Z
+        updated: 2026-09-14T14:53:46.877Z
         started: 2026-09-14T10:35:42.144Z
-        finished: 2026-09-14T10:36:23.472Z
+        finished: 2026-09-14T14:53:46.877Z
       - id: N14
         title: Add progress percent
         type: TASK
