@@ -31,6 +31,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Major Risks
 
+- R7 Id lookups cross plan versions — exposure 0.35 x 0.60, status OPEN
 - R5 Propagation overwrites human text — exposure 0.40 x 0.40, status OPEN
 - R1 A panel regression ships without review — exposure 0.30 x 0.50, status OPEN
 - R3 Budgets block legitimate long content — exposure 0.30 x 0.40, status OPEN

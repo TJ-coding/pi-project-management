@@ -91,3 +91,18 @@
   owner: ""
   created: 2026-09-13T16:16:11.993Z
   updated: 2026-09-13T16:22:20.877Z
+- id: R7
+  title: Id lookups cross plan versions
+  description: Other id lookups could also resolve across plan versions, silently editing history.
+  probability: 0.35
+  impact: 0.6
+  status: OPEN
+  mitigation: ""
+  contingency: ""
+  questions:
+    - Q9
+  goals: []
+  tasks: []
+  owner: null
+  created: 2026-09-14T09:34:33.360Z
+  updated: 2026-09-14T09:34:33.360Z
