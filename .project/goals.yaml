@@ -206,13 +206,16 @@
   created: 2026-09-14T09:26:40.136Z
   updated: 2026-09-14T10:35:29.150Z
 - id: G13
-  title: I want to interact with it through my phone.
+  title: Phone view of all projects
   description: I want to know which projects are running, what task is being conducted at a glance. I
     don't want to be bothered by different sessions with loze of questions independently. I want the
     decisions to be aggregated, and i get to select from choices simply or something. Something with
     human centered design in mind.
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - One page lists every project with its state and current task.
+    - Pending decisions for all projects are aggregated in one list.
+    - The page is read-only and serves on the local network.
   status: ACTIVE
   parent: null
   superseded_by: null
@@ -220,7 +223,7 @@
   risks: []
   tasks: []
   created: 2026-09-14T09:28:37.123Z
-  updated: 2026-09-14T09:28:37.123Z
+  updated: 2026-09-14T10:35:32.992Z
 - id: G14
   title: project like a goal command
   description: I don't know what the resume pause features are for but I want it to be like a goal command.
