@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-All goals closed: 14 COMPLETED, and G15 abandoned as the smoke-test fixture it was. Plan P2 fully executed (six nodes). R7 resolved. Seven k3 review rounds found 12 defects, all fixed; final verdict was ship it. 171 tests pass locally and from a clean clone at d5e20a9. R1-R7 all closed except R3 and R5.
+Project complete. All 15 goals closed: 14 COMPLETED (G1-G14) and G15 ABANDONED as the smoke-test fixture it was. Plan P2's six nodes all done. Zero validation issues. 171 tests, TUI smoke and command smoke all pass from a clean clone of the public repo at 8f243e5.
 
 ## Goals
 
@@ -71,6 +71,5 @@ All goals closed: 14 COMPLETED, and G15 abandoned as the smoke-test fixture it w
 
 ## Lessons / Findings
 
-- A `git push` can hang forever in git-credential-osxkeychain with no output; push with the gh token to avoid it.
-- k3's frame review finds defects tests cannot see: its first pass found 8, including four panels disagreeing about the same count.
+- Smoke runners that omit --no-extensions load the globally installed copy too, and duplicate tool names make pi exit — which the command smoke reported as PASS until it was fixed.
 - Q9 CONFIRMED: No lookup leaks across plans now. The two that did are fixed: node mutations prefer the active plan, and goal links resolve against it.
