@@ -1,11 +1,11 @@
-active: P1
+active: P2
 plans:
   - id: P1
     version: 1
     title: Draft plan
     rationale: Created implicitly when the first node was added.
     created_at: 2026-09-13T15:59:02.928Z
-    superseded_by: null
+    superseded_by: P2
     nodes:
       - id: N1
         title: Add rename for the project name
@@ -281,4 +281,138 @@ plans:
           not see.
         evaluator: agent
         at: 2026-09-13T18:25:12.040Z
-changes: []
+  - id: P2
+    version: 2
+    title: P2 — close the eight open goals
+    rationale: Four goals are already implemented but unclosed; three need building; G13 depends on the
+      aggregation work in G14.
+    created_at: 2026-09-14T10:35:38.403Z
+    superseded_by: null
+    nodes:
+      - id: N13
+        title: Audit and close the met goals
+        type: REVIEW
+        status: PENDING
+        description: Confirm G1, G2, G5 and G9 against their success criteria and close the ones already met.
+        depends_on: []
+        goal: null
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-14T10:35:38.403Z
+        updated: 2026-09-14T10:35:38.403Z
+        started: null
+        finished: null
+      - id: N14
+        title: Add progress percent
+        type: TASK
+        status: PENDING
+        description: Add percent to node and goal, show it in the plan panel, refuse out-of-range values.
+        depends_on:
+          - N13
+        goal: G11
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-14T10:35:38.403Z
+        updated: 2026-09-14T10:35:38.403Z
+        started: null
+        finished: null
+      - id: N15
+        title: Add archiving
+        type: TASK
+        status: PENDING
+        description: Add meta.archived plus archive/unarchive commands; archived items leave active counts
+          but stay readable.
+        depends_on:
+          - N13
+        goal: G12
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-14T10:35:38.403Z
+        updated: 2026-09-14T10:35:38.403Z
+        started: null
+        finished: null
+      - id: N16
+        title: Add a persistent objective
+        type: TASK
+        status: PENDING
+        description: Add one objective sentence per project, shown in the digest with progress and done-when.
+        depends_on:
+          - N13
+        goal: G14
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-14T10:35:38.403Z
+        updated: 2026-09-14T10:35:38.403Z
+        started: null
+        finished: null
+      - id: N17
+        title: Serve a phone dashboard
+        type: TASK
+        status: PENDING
+        description: Serve a read-only page listing all projects, their current task and aggregated pending
+          decisions.
+        depends_on:
+          - N16
+        goal: G13
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-14T10:35:38.403Z
+        updated: 2026-09-14T10:35:38.403Z
+        started: null
+        finished: null
+      - id: N18
+        title: Verify and publish everything
+        type: REVIEW
+        status: PENDING
+        description: Full check, TUI smoke, k3 frame review, then push and verify from a clean clone.
+        depends_on:
+          - N14
+          - N15
+          - N16
+          - N17
+        goal: null
+        risk: null
+        question: null
+        outputs: []
+        failure_reason: null
+        assignee: agent
+        gate: null
+        run: null
+        created: 2026-09-14T10:35:38.403Z
+        updated: 2026-09-14T10:35:38.403Z
+        started: null
+        finished: null
+    gates: []
+changes:
+  - from: P1
+    to: P2
+    reason: Four goals are already implemented but unclosed; three need building; G13 depends on the
+      aggregation work in G14.
+    trigger: All 12 nodes complete and eight goals open; audit found four satisfied and four unimplemented.
+    at: 2026-09-14T10:35:38.403Z
+    by: agent

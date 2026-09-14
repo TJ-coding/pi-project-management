@@ -149,3 +149,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:35:29.369Z **goal.updated** — Goal G11 updated: Progress percent on tasks and goals [G11] (by agent)
 - 2026-09-14T10:35:32.992Z **goal.updated** — Goal G13 updated: Phone view of all projects [G13] (by agent)
 - 2026-09-14T10:35:33.211Z **goal.updated** — Goal G14 updated: One persistent objective [G14] (by agent)
+- 2026-09-14T10:35:38.403Z **plan.changed** — Plan P1 -> P2: Four goals are already implemented but unclosed; three need building; G13 depends on the aggregation work in G14. [P2, P1] (by agent)

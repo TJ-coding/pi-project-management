@@ -61,7 +61,9 @@ All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at gi
 
 ## Plan Evolution
 
-- P1 (v1) Draft plan
+- P1 (v1) Draft plan → superseded by P2
+- P2 (v2) P2 — close the eight open goals
+    why: Four goals are already implemented but unclosed; three need building; G13 depends on the aggregation work in G14.
 
 ## Lessons / Findings
 
