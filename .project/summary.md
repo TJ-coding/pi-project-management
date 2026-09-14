@@ -32,13 +32,13 @@ All 15 goals closed: 14 COMPLETED (G1-G14) plus the smoke-test artifact G15 arch
 
 ## Major Risks
 
-- R7 Id lookups cross plan versions — exposure 0.35 x 0.60, status OPEN
 - R5 Propagation overwrites human text — exposure 0.40 x 0.40, status OPEN
 - R1 A panel regression ships without review — exposure 0.30 x 0.50, status OPEN
 - R3 Budgets block legitimate long content — exposure 0.30 x 0.40, status OPEN
 - R2 This project is shadowed by $HOME/.project — exposure 0.00 x 0.30, status RESOLVED
 - R4 commit:false is ignored by several mutations — exposure 0.80 x 0.20, status RESOLVED
 - R6 Publishing leaks secrets or private project data — exposure 0.02 x 0.70, status RESOLVED
+- R7 Id lookups cross plan versions — exposure 0.05 x 0.60, status RESOLVED
 
 ## Major Questions
 

@@ -175,3 +175,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T11:49:34.408Z **task.updated** — Node N18 PENDING -> RUNNING: Verify and publish everything [N18] (by agent)
 - 2026-09-14T12:37:15.822Z **state.changed** — State changed: Every goal closed and the work published; N18 verifying (by agent)
 - 2026-09-14T13:44:23.315Z **run.started** — Run RUN4 started: Phone view server (read-only, port 8790) [RUN4] (by agent)
+- 2026-09-14T13:54:52.078Z **risk.resolved** — Risk R7 resolved: Id lookups cross plan versions [R7] (by agent)

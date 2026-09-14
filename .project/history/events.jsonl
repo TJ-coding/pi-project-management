@@ -171,3 +171,4 @@
 {"seq":171,"at":"2026-09-14T11:49:34.408Z","kind":"task.updated","summary":"Node N18 PENDING -> RUNNING: Verify and publish everything","by":"agent","refs":["N18"],"details":{}}
 {"seq":172,"at":"2026-09-14T12:37:15.822Z","kind":"state.changed","summary":"State changed: Every goal closed and the work published; N18 verifying","by":"agent","refs":[]}
 {"seq":173,"at":"2026-09-14T13:44:23.315Z","kind":"run.started","summary":"Run RUN4 started: Phone view server (read-only, port 8790)","by":"agent","refs":["RUN4"],"details":{"environment":[{"kind":"local","target":"192.168.1.41:8790"}]}}
+{"seq":174,"at":"2026-09-14T13:54:52.078Z","kind":"risk.resolved","summary":"Risk R7 resolved: Id lookups cross plan versions","by":"agent","refs":["R7"]}

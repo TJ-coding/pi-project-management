@@ -94,10 +94,11 @@
   updated: 2026-09-14T10:28:10.747Z
 - id: R7
   title: Id lookups cross plan versions
-  description: Other id lookups could also resolve across plan versions, silently editing history.
-  probability: 0.35
+  description: "Fixed: a goal's task links are now resolved against the active plan only, so a node in
+    a superseded plan cannot make a goal look satisfiable."
+  probability: 0.05
   impact: 0.6
-  status: OPEN
+  status: RESOLVED
   mitigation: ""
   contingency: ""
   questions:
@@ -106,4 +107,4 @@
   tasks: []
   owner: ""
   created: 2026-09-14T09:34:33.360Z
-  updated: 2026-09-14T09:34:33.360Z
+  updated: 2026-09-14T13:54:52.078Z
