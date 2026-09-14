@@ -388,7 +388,7 @@ plans:
       - id: N17
         title: Serve a phone dashboard
         type: TASK
-        status: PENDING
+        status: RUNNING
         description: Serve a read-only page listing all projects, their current task and aggregated pending
           decisions.
         depends_on:
@@ -402,8 +402,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:35:38.403Z
-        started: null
+        updated: 2026-09-14T11:27:20.643Z
+        started: 2026-09-14T11:27:20.643Z
         finished: null
       - id: N18
         title: Verify and publish everything

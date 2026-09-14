@@ -167,3 +167,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T11:24:26.502Z **task.updated** — Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work) [G15] (by agent)
 - 2026-09-14T11:27:15.986Z **goal.completed** — Goal G14 COMPLETED: One persistent objective [G14] (by agent)
 - 2026-09-14T11:27:16.226Z **task.updated** — Node N16 RUNNING -> COMPLETED: Add a persistent objective [N16] (by agent)
+- 2026-09-14T11:27:20.643Z **task.updated** — Node N17 PENDING -> RUNNING: Serve a phone dashboard [N17] (by agent)
