@@ -109,7 +109,7 @@
     - The repo is public on GitHub under TJ-coding.
     - npm run check passes after the upload.
     - The README states install and usage.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
@@ -117,7 +117,7 @@
   tasks:
     - N10
   created: 2026-09-13T16:10:16.426Z
-  updated: 2026-09-13T16:16:03.674Z
+  updated: 2026-09-14T10:28:06.177Z
 - id: G8
   title: Reconsider ordering of panels.
   description: The panel order is a bit weird. I want it to either be ordered hierarchicaly or sorted
