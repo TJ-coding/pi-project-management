@@ -10,6 +10,7 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 import { blockedByDependencies, dagStats, nextActionable, readyNodes, runningNodes, topoOrder } from "./dag.ts";
+import { percentBadge, progressBar } from "./format.ts";
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
@@ -492,6 +493,7 @@ function planNodeContent(theme: Theme, node: PlanNode, bloated = false, parents 
   const type = theme.fg("dim", (NODE_TYPE_ABBREVIATIONS[node.type] ?? node.type).padEnd(5));
 
   const badges: string[] = [];
+  if (node.percent !== null) badges.push(percentBadge(node.percent));
   if (node.question) badges.push(node.question);
   if (node.risk) badges.push(node.risk);
   if (node.goal) badges.push(node.goal);
@@ -539,6 +541,9 @@ function renderPlanDetail(theme: Theme, project: Project, node: PlanNode, width:
     lines.push(containerNote(theme, theme.fg("muted", truncateToWidth(node.description.replace(/\s+/g, " "), width - 8, "…")), width));
   }
   const meta: string[] = [];
+  // The full bar belongs here rather than in the row: the row has room for the
+  // number, and this pane is where a reader asks "how far along is it really".
+  if (node.percent !== null) meta.push(progressBar(node.percent));
   if (node.assignee) meta.push(`assignee ${node.assignee}`);
   if (node.dependsOn.length > 0) {
     const plan = activePlan(project);
@@ -981,8 +986,9 @@ const goalsView: ViewDefinition = {
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
         const head = `${bloatedIds.has(`goal:${goal.id}`) && goal.status === "ACTIVE" ? theme.fg("warning", "⚠ ") : ""}${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
+        const percent = goal.percent !== null ? `${theme.fg("accent", percentBadge(goal.percent).padStart(4))} ` : "";
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
-        const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
+        const tail = `${percent}${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(goal.title);
         const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
@@ -1211,6 +1217,7 @@ function ageText(at: string): string {
 function detailForGoal(goal: Goal): DetailDoc {
   const band = priorityBand(goal.priority);
   const fields: DetailField[] = [{ label: "Description", text: goal.description, kind: "prose" }];
+  if (goal.percent !== null) fields.push({ label: "Progress", text: progressBar(goal.percent, 10), tone: "success" });
   if (goal.parent) fields.push({ label: "Parent", text: goal.parent, tone: "dim" });
   const links = linkText([
     ["questions", goal.questions],

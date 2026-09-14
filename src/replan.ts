@@ -12,6 +12,7 @@ import { readyNodes } from "./dag.ts";
 import { appendHistory } from "./history.ts";
 import { nextId } from "./ids.ts";
 import { cleanProse } from "./markdown.ts";
+import { clampPercent } from "./storage.ts";
 import { byQuestionPriority, byRiskPriority, questionScore, riskScore, scoreBand } from "./scoring.ts";
 import type {
   GateSpec,
@@ -52,6 +53,7 @@ export interface ProposedNode {
   started?: string | null;
   finished?: string | null;
   run?: string | null;
+  percent?: number | null;
 }
 
 export interface ReplanRecommendations {
@@ -372,6 +374,7 @@ export function applyReplan(
       assignee: proposed.assignee ?? "agent",
       gate: proposed.gate ?? null,
       run: proposed.run ?? null,
+      percent: proposed.percent !== undefined && proposed.percent !== null ? clampPercent(proposed.percent) : null,
       created: proposed.created ?? options.at,
       updated: options.at,
       started: proposed.started ?? null,

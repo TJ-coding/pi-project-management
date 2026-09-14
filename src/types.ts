@@ -44,6 +44,8 @@ export interface Goal {
   questions: Id[];
   risks: Id[];
   tasks: Id[];
+  /** 0..100, or null when the work cannot be estimated. */
+  percent: number | null;
   supersededBy?: Id | null;
   created: string;
   updated: string;
@@ -213,6 +215,8 @@ export interface PlanNode {
   assignee: "agent" | "human";
   gate: GateSpec | null;
   run: Id | null;
+  /** 0..100, or null when the work cannot be estimated. */
+  percent: number | null;
   created: string;
   updated: string;
   started: string | null;

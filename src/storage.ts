@@ -115,6 +115,33 @@ function asNumber(value: unknown, fallback: number): number {
   return fallback;
 }
 
+/**
+ * A 0..100 percent, or null when absent/unparseable. Reading is deliberately
+ * lenient where writing is strict: a hand-edited file keeps loading, and the
+ * mutation path refuses an out-of-range value before anything is saved.
+ */
+function asPercent(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = asNumber(value, Number.NaN);
+  if (!Number.isFinite(parsed)) return null;
+  return clampPercent(parsed);
+}
+
+/** Shared by parsing and mutations so both agree on what a valid percent is. */
+export function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+/** True when a raw value is a usable percent; used to reject bad writes. */
+export function isPercentInRange(value: unknown): boolean {
+  if (typeof value === "number") return Number.isFinite(value) && value >= 0 && value <= 100;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100;
+  }
+  return false;
+}
+
 function asBoolean(value: unknown, fallback: boolean): boolean {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
@@ -340,6 +367,7 @@ function goalToYaml(goal: Goal): Record<string, unknown> {
     questions: goal.questions,
     risks: goal.risks,
     tasks: goal.tasks,
+    percent: goal.percent,
     created: goal.created,
     updated: goal.updated,
   };
@@ -360,6 +388,7 @@ function goalFromYaml(raw: unknown, clock: Clock): Goal {
     questions: asStringArray(rec.questions),
     risks: asStringArray(rec.risks),
     tasks: asStringArray(rec.tasks),
+    percent: asPercent(rec.percent),
     created: asString(rec.created) || timestamp,
     updated: asString(rec.updated) || timestamp,
   };
@@ -476,6 +505,7 @@ function nodeToYaml(node: PlanNode): Record<string, unknown> {
     assignee: node.assignee,
     gate: node.gate ? { type: node.gate.type, criteria: node.gate.criteria } : null,
     run: node.run,
+    percent: node.percent,
     created: node.created,
     updated: node.updated,
     started: node.started,
@@ -505,6 +535,7 @@ function nodeFromYaml(raw: unknown, clock: Clock): PlanNode {
     assignee: asEnum(rec.assignee, ["agent", "human"] as const, "agent"),
     gate: hasGate ? { type: asEnum(gateRec.type, GATE_TYPES, "VALIDATION"), criteria: asString(gateRec.criteria) } : null,
     run: asNullable(rec.run),
+    percent: asPercent(rec.percent),
     created: asString(rec.created) || timestamp,
     updated: asString(rec.updated) || timestamp,
     started: asNullable(rec.started),

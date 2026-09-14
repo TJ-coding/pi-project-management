@@ -31,6 +31,7 @@ function node(id: string, dependsOn: string[] = [], overrides: Partial<PlanNode>
     assignee: "agent",
     gate: overrides.gate ?? null,
     run: null,
+    percent: overrides.percent ?? null,
     created: `2026-01-01T00:00:${String(counter).padStart(2, "0")}.000Z`,
     updated: "2026-01-01T00:00:00.000Z",
     started: null,

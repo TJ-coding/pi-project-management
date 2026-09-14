@@ -365,6 +365,14 @@ export function registerProjectTools(pi: ExtensionAPI): void {
       title: Type.Optional(Type.String()),
       description: Type.Optional(Type.String()),
       priority: Type.Optional(Type.Integer({ minimum: 1, maximum: 5 })),
+      percent: Type.Optional(
+        Type.Number({
+          description:
+            "How far along this goal is, 0-100. Set only when you can genuinely estimate it; omitting it means no estimate. Out-of-range values are refused.",
+          minimum: 0,
+          maximum: 100,
+        }),
+      ),
       successCriteria: Type.Optional(Type.Array(Type.String())),
       status: Type.Optional(StringEnum(GOAL_STATUS_VALUES)),
       parent: Type.Optional(Type.String()),
@@ -392,6 +400,7 @@ export function registerProjectTools(pi: ExtensionAPI): void {
             risks: params.risks,
             tasks: params.tasks,
             status: params.status,
+            percent: params.percent,
           });
           return ok(`Created goal ${goal.id}: ${goal.title}`, { goal });
         }
@@ -406,6 +415,7 @@ export function registerProjectTools(pi: ExtensionAPI): void {
             questions: params.questions,
             risks: params.risks,
             tasks: params.tasks,
+            percent: params.percent,
             supersededBy: params.supersededBy,
           });
           if (params.status && params.status !== goal.status) {
@@ -722,6 +732,14 @@ export function registerProjectTools(pi: ExtensionAPI): void {
       gateType: Type.Optional(StringEnum(GATE_TYPE_VALUES)),
       gateCriteria: Type.Optional(Type.String()),
       status: Type.Optional(StringEnum(NODE_STATUS_VALUES)),
+      percent: Type.Optional(
+        Type.Number({
+          description:
+            "How far along this node is, 0-100. Set only when you can genuinely estimate it; omitting it means no estimate. Out-of-range values are refused.",
+          minimum: 0,
+          maximum: 100,
+        }),
+      ),
       reason: Type.Optional(Type.String()),
       outputs: Type.Optional(Type.Array(Type.String())),
       run: Type.Optional(Type.String()),
@@ -742,6 +760,7 @@ export function registerProjectTools(pi: ExtensionAPI): void {
             risk: params.risk ?? null,
             question: params.question ?? null,
             assignee: params.assignee,
+            percent: params.percent,
             gate:
               params.gateType && params.gateCriteria
                 ? { type: params.gateType as GateType, criteria: params.gateCriteria }
@@ -760,6 +779,7 @@ export function registerProjectTools(pi: ExtensionAPI): void {
             risk: params.risk,
             question: params.question,
             assignee: params.assignee,
+            percent: params.percent,
             gate:
               params.gateType && params.gateCriteria
                 ? { type: params.gateType as GateType, criteria: params.gateCriteria }

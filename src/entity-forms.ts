@@ -89,6 +89,8 @@ interface GoalDraft {
   title: string;
   description: string;
   priority: number;
+  /** null means "no estimate", which is different from 0%. */
+  percent: number | null;
   status: string;
   parent: string | null;
   successCriteria: string[];
@@ -105,6 +107,7 @@ export function goalForm(project: Project, id?: string): EntityForm {
         title: existing.title,
         description: existing.description,
         priority: existing.priority,
+        percent: existing.percent,
         status: existing.status,
         parent: existing.parent,
         successCriteria: [...existing.successCriteria],
@@ -116,6 +119,7 @@ export function goalForm(project: Project, id?: string): EntityForm {
         title: "",
         description: "",
         priority: 3,
+        percent: null,
         status: "ACTIVE",
         parent: null,
         successCriteria: [],
@@ -158,6 +162,16 @@ export function goalForm(project: Project, id?: string): EntityForm {
       get: () => draft.priority,
       set: (value) => {
         draft.priority = value;
+      },
+    },
+    {
+      kind: "percent",
+      key: "percent",
+      label: "Progress",
+      hint: "0-100%; leave empty for no estimate",
+      get: () => draft.percent,
+      set: (value) => {
+        draft.percent = value;
       },
     },
     {
@@ -231,6 +245,7 @@ export function goalForm(project: Project, id?: string): EntityForm {
         title: draft.title,
         description: draft.description,
         priority: draft.priority,
+        percent: draft.percent,
         successCriteria: draft.successCriteria,
         parent: draft.parent,
         questions: draft.questions,
@@ -734,6 +749,7 @@ interface NodeDraft {
   outputs: string[];
   failureReason: string;
   assignee: string;
+  percent: number | null;
 }
 
 /** Nodes of the active plan, excluding one id (used for dependency pickers). */
@@ -776,6 +792,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
         outputs: [...existing.outputs],
         failureReason: existing.failureReason ?? "",
         assignee: existing.assignee,
+        percent: existing.percent,
       }
     : {
         title: "",
@@ -791,6 +808,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
         outputs: [],
         failureReason: "",
         assignee: "agent",
+        percent: null,
       };
 
   const fields: FormField[] = [
@@ -824,6 +842,16 @@ export function nodeForm(project: Project, id?: string): EntityForm {
       get: () => draft.status,
       set: (value) => {
         draft.status = value;
+      },
+    },
+    {
+      kind: "percent",
+      key: "percent",
+      label: "Progress",
+      hint: "0-100%; leave empty for no estimate",
+      get: () => draft.percent,
+      set: (value) => {
+        draft.percent = value;
       },
     },
     {
@@ -953,6 +981,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
           question: draft.question,
           assignee: draft.assignee as PlanNode["assignee"],
           gate,
+          percent: draft.percent,
         });
         if (original && original.status !== draft.status) {
           await manager.setNodeStatus(draft.id, draft.status as PlanNode["status"], {
@@ -976,6 +1005,7 @@ export function nodeForm(project: Project, id?: string): EntityForm {
         assignee: draft.assignee as PlanNode["assignee"],
         gate,
         status: draft.status as PlanNode["status"],
+        percent: draft.percent,
       });
       return `Node ${created.id} created`;
     },

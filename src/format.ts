@@ -72,6 +72,25 @@ export function renderDirectionText(project: Project): string {
   return lines.join("\n");
 }
 
+/**
+ * `▰▰▰▱▱▱ 50%` — a percent as a bar plus the number, because the bar answers
+ * "roughly how far" at a glance and the number answers "exactly how far".
+ * The number is never dropped: at a small width the bar is unreadable, the
+ * digits are not, and a bar with no number invites a wrong guess.
+ */
+export function progressBar(percent: number, cells = 6): string {
+  const clamped = Math.min(100, Math.max(0, Math.round(percent)));
+  const filled = Math.round((clamped / 100) * cells);
+  const bar = "\u25b0".repeat(filled) + "\u25b1".repeat(Math.max(0, cells - filled));
+  return `${bar} ${clamped}%`;
+}
+
+/** The badge form used in list rows: percent only, so columns stay aligned. */
+export function percentBadge(percent: number | null): string {
+  if (percent === null) return "";
+  return `${Math.min(100, Math.max(0, Math.round(percent)))}%`;
+}
+
 export function renderGoalsText(project: Project, statuses?: readonly string[]): string {
   const goals = statuses && statuses.length > 0
     ? project.goals.filter((goal) => statuses.includes(goal.status))
@@ -79,7 +98,7 @@ export function renderGoalsText(project: Project, statuses?: readonly string[]):
   if (goals.length === 0) return "# Goals\n\n_none_";
   const lines = ["# Goals", ""];
   for (const goal of [...goals].sort(byGoalPriority)) {
-    lines.push(`## ${glyph(goal.status)} ${goal.id} [${goal.status}] P${goal.priority} — ${goal.title}`);
+    lines.push(`## ${glyph(goal.status)} ${goal.id} [${goal.status}] P${goal.priority}${goal.percent !== null ? ` ${goal.percent}%` : ""} — ${goal.title}`);
     if (goal.description) lines.push(goal.description);
     if (goal.parent) lines.push(`parent: ${goal.parent}`);
     if (goal.successCriteria.length > 0) {
@@ -200,7 +219,7 @@ export function renderPlanText(project: Project, planId?: string): string {
   const byId = new Map(active.nodes.map((node) => [node.id, node]));
   for (const node of topoOrder(active.nodes)) {
     const deps = node.dependsOn.map((dep) => `${dep}(${byId.get(dep)?.status ?? "?"})`).join(", ");
-    lines.push(`- [${node.status}] ${node.id} ${node.type}: ${node.title}${deps ? `  <- ${deps}` : ""}`);
+    lines.push(`- [${node.status}] ${node.id} ${node.type}: ${node.title}${node.percent !== null ? ` (${node.percent}%)` : ""}${deps ? `  <- ${deps}` : ""}`);
     const links = [
       node.goal ? `goal:${node.goal}` : null,
       node.question ? `question:${node.question}` : null,

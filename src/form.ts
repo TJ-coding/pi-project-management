@@ -14,6 +14,7 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { BUDGETS, countWords, type TextKind } from "./limits.ts";
+import { progressBar } from "./format.ts";
 
 /** Full-width selection bar: the focused row is the focal point of the form. */
 function paintRow(theme: Theme, lines: string[], selected: boolean, width: number): string[] {
@@ -65,6 +66,17 @@ export interface IntField extends FormFieldBase {
   describe?: (value: number) => string;
 }
 
+/**
+ * A 0..100 percent that can also be empty. Empty is a real state, not 0: "we
+ * have not estimated this" and "we have done none of it" are different answers,
+ * and collapsing them would make an unestimated task look stalled.
+ */
+export interface PercentField extends FormFieldBase {
+  kind: "percent";
+  get: () => number | null;
+  set: (value: number | null) => void;
+}
+
 export interface FloatField extends FormFieldBase {
   kind: "float";
   get: () => number;
@@ -109,6 +121,7 @@ export type FormField =
   | ProseField
   | IntField
   | FloatField
+  | PercentField
   | EnumField
   | ListField
   | RefsField
@@ -198,6 +211,8 @@ export class FormEditor {
         case "int":
         case "float":
           return field.get();
+        case "percent":
+          return field.get();
         case "ref":
           return field.get() ?? null;
         default:
@@ -240,6 +255,9 @@ export class FormEditor {
       case "int":
       case "float":
         return formatNumber(field.get());
+      case "percent":
+        // An empty buffer is how the user says "no estimate".
+        return field.get() === null ? "" : formatNumber(field.get()!);
       case "enum":
         return field.get();
       case "list":
@@ -439,7 +457,9 @@ export class FormEditor {
       buffer: value,
       cursor: value.length,
       original: value,
-      replaceOnType: field.kind === "int" || field.kind === "float",
+      // Numeric fields replace on the first keystroke: aiming a cursor at "75"
+      // to type "0" is fiddly, and a percent is typed the same way as an int.
+      replaceOnType: field.kind === "int" || field.kind === "float" || field.kind === "percent",
     };
     this.onChange?.();
   }
@@ -520,6 +540,16 @@ export class FormEditor {
       const parsed = Number.parseInt(value.trim(), 10);
       if (Number.isFinite(parsed)) field.set(Math.round(clamp(parsed, field.min, field.max)));
       else this.error = `${field.label} must be a number`;
+    } else if (field.kind === "percent") {
+      const trimmed = value.trim().replace(/%$/, "");
+      if (trimmed === "") {
+        field.set(null); // cleared on purpose: back to "no estimate"
+      } else {
+        const parsed = Number.parseFloat(trimmed);
+        if (!Number.isFinite(parsed)) this.error = `${field.label} must be a number`;
+        else if (parsed < 0 || parsed > 100) this.error = `${field.label} must be between 0 and 100`;
+        else field.set(Math.round(parsed));
+      }
     } else if (field.kind === "float") {
       const parsed = Number.parseFloat(value.trim());
       if (Number.isFinite(parsed)) field.set(Math.round(clamp(parsed, field.min ?? 0, field.max ?? 1) * 1000) / 1000);
@@ -715,6 +745,14 @@ export class FormEditor {
       value =
         theme.fg("text", formatNumber(numeric)) +
         (description ? theme.fg("dim", `  ${description}`) : "");
+    } else if (field.kind === "percent") {
+      const numeric = field.get();
+      // Show the bar here too: a form is where the human decides the number, so
+      // seeing what it will look like in the panel removes a guess.
+      value =
+        numeric === null
+          ? theme.fg("dim", "(no estimate)")
+          : `${theme.fg("text", progressBar(numeric, 10))}${theme.fg("dim", "  ⏎ set · clear it to remove")}`;
     } else if (field.kind === "ref") {
       const current = field.get();
       value = current ? theme.fg("text", current) : theme.fg("dim", "none");
@@ -726,7 +764,7 @@ export class FormEditor {
       return paintRow(theme, previewLines, focused && !this.picker, width);
     } else {
       const text = field.get();
-      value = text ? theme.fg("text", text) : theme.fg("dim", field.placeholder ?? "(empty)");
+      value = text ? theme.fg("text", text) : theme.fg("dim", (field.kind === "text" ? field.placeholder : undefined) ?? "(empty)");
     }
 
     const hintText = typeof field.hint === "function" ? field.hint() : field.hint;
@@ -767,6 +805,8 @@ export class FormEditor {
       case "int":
       case "float":
         return formatNumber(field.get());
+      case "percent":
+        return field.get() === null ? "" : formatNumber(field.get()!);
       default:
         return field.get();
     }

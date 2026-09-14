@@ -21,10 +21,11 @@ interface Draft {
   links: string[];
   parent: string | null;
   vision: string;
+  percent: number | null;
 }
 
 function makeDraft(): Draft {
-  return { title: "Original", priority: 3, probability: 0.5, status: "ACTIVE", criteria: [], links: ["G1"], parent: null, vision: "Original vision" };
+  return { title: "Original", priority: 3, probability: 0.5, status: "ACTIVE", criteria: [], links: ["G1"], parent: null, vision: "Original vision", percent: null };
 }
 
 function makeEditor(draft: Draft, actions: FormAction[] = []): FormEditor {
@@ -54,6 +55,9 @@ function makeEditor(draft: Draft, actions: FormAction[] = []): FormEditor {
       set: (v) => (draft.parent = v),
       available: () => [{ id: "G1", label: "Goal one" }, { id: "G2", label: "Goal two" }],
     },
+    // Kept last on purpose: the other tests address rows by position, so adding a
+    // field in the middle would silently retarget them.
+    { kind: "percent", key: "percent", label: "Progress", get: () => draft.percent, set: (v) => (draft.percent = v) },
   ];
   return new FormEditor({
     title: "Test form",
@@ -126,6 +130,65 @@ describe("form editor", () => {
     type(editor, "nonsense");
     enter(editor);
     assert.match(editor.render(100).join("\n"), /must be a number/);
+  });
+
+  test("a percent accepts 0-100, refuses the rest, and clears to empty", () => {
+    const draft = makeDraft();
+    const editor = makeEditor(draft);
+    down(editor, 9); // progress (links occupies two rows)
+
+    enter(editor);
+    type(editor, "75");
+    enter(editor);
+    assert.equal(draft.percent, 75, "a normal percent is stored");
+
+    // 0 is a real estimate and must not be mistaken for "empty".
+    enter(editor);
+    type(editor, "0");
+    enter(editor);
+    assert.equal(draft.percent, 0, "0% is kept, not treated as no estimate");
+
+    // Out of range is refused with a message and the old value survives.
+    for (const bad of ["101", "-1", "999"]) {
+      enter(editor);
+      type(editor, bad);
+      enter(editor);
+      assert.match(editor.render(100).join("\n"), /between 0 and 100/);
+      assert.equal(draft.percent, 0, `${bad} must not change the value`);
+    }
+
+    // Non-numeric text is refused rather than silently becoming 0.
+    enter(editor);
+    type(editor, "half");
+    enter(editor);
+    assert.match(editor.render(100).join("\n"), /must be a number/);
+    assert.equal(draft.percent, 0);
+
+    // Clearing the field means "no estimate" again.
+    enter(editor);
+    type(editor, "60");
+    enter(editor);
+    assert.equal(draft.percent, 60);
+    enter(editor);
+    editor.handleInput("\x7f"); // backspace
+    editor.handleInput("\x7f");
+    enter(editor);
+    assert.equal(draft.percent, null, "an emptied field returns to no-estimate");
+  });
+
+  test("a percent row shows the bar, and says so when there is no estimate", () => {
+    const draft = makeDraft();
+    const editor = makeEditor(draft);
+    draft.percent = 40;
+    down(editor, 9);
+    const row = editor.render(120).find((line) => /Progress/.test(line))!;
+    assert.match(row, /▰▰▰▰▱▱▱▱▱▱ 40%/, "the bar shows the proportion");
+    assert.ok(visibleWidth(row) <= 120);
+
+    draft.percent = null;
+    const empty = editor.render(120).find((line) => /Progress/.test(line))!;
+    assert.match(empty, /\(no estimate\)/, "empty is labelled, not shown as 0%");
+    assert.doesNotMatch(empty, /▰|▱/, "no bar is drawn without a number");
   });
 
   test("enums cycle through their options", () => {

@@ -106,6 +106,45 @@ describe("dashboard", () => {
     }
   });
 
+  test("a percent shows in the row, the bar in the reading pane, and nothing when unestimated", async () => {
+    const root = await tempDir();
+    dirs.push(root);
+    const manager = await ProjectManager.init(root, { name: "Percent panel", clock: fixedClock(), by: "test" });
+    await manager.createGoal({ title: "Half the goal", percent: 65 }, { commit: false });
+    await manager.createGoal({ title: "Nobody estimated this" }, { commit: false });
+    await manager.applyReplan(
+      {
+        trigger: "t",
+        rationale: "r",
+        title: "P",
+        notes: [],
+        superseded: [],
+        carried: [],
+        nodes: [
+          { title: "Half-done job", type: "TASK", percent: 50 },
+          { title: "Unestimated job", type: "TASK" },
+        ],
+      },
+      { commit: false },
+    );
+    const project = await manager.read((current) => current);
+
+    const goals = VIEWS.find((view) => view.id === "goals")!.render(project, theme, 80).join("\n");
+    assert.match(goals, /Half the goal +65%/, "the goal row carries its percent");
+    assert.doesNotMatch(goals, /Nobody estimated this +\d+%/, "an unestimated goal shows no percent");
+
+    const plan = VIEWS.find((view) => view.id === "plan")!.render(project, theme, 80).join("\n");
+    assert.match(plan, /Half-done job +\d+%|50% +Half-done job|50%/, "the node row carries its percent");
+    assert.match(plan, /▰▰▰▱▱▱ 50%/, "the reading pane draws the bar for the selected node");
+
+    // The bar is readable at every width the panels must support.
+    for (const width of [40, 80, 120]) {
+      for (const line of VIEWS.find((view) => view.id === "plan")!.render(project, theme, width)) {
+        assert.ok(visibleWidth(line) <= width, `a percent row exceeds width ${width}: ${JSON.stringify(line)}`);
+      }
+    }
+  });
+
   test("dashboard shows the core project facts", async () => {
     const { root, manager } = await richProject();
     dirs.push(root);

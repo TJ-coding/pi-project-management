@@ -140,6 +140,23 @@ export interface GoalInput {
   risks?: string[];
   tasks?: string[];
   status?: GoalStatus;
+  percent?: number | null;
+}
+
+/**
+ * Percent as given by a caller: absent means "no estimate", which is null.
+ * Anything present but outside 0..100 throws, so a bad value never reaches
+ * disk — G11 asks for a number the human can trust, not a silently clamped one.
+ */
+function newPercent(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`percent must be a number between 0 and 100, got ${JSON.stringify(value)}`);
+  }
+  if (value < 0 || value > 100) {
+    throw new Error(`percent must be between 0 and 100, got ${value}`);
+  }
+  return clampInt(value, 0, 100, 0);
 }
 
 export interface QuestionInput {
@@ -182,6 +199,7 @@ export interface NodeInput {
   assignee?: "agent" | "human";
   id?: string;
   status?: NodeStatus;
+  percent?: number | null;
 }
 
 export interface DecisionInput {
@@ -401,6 +419,7 @@ export class ProjectManager {
           questions: input.questions ?? [],
           risks: input.risks ?? [],
           tasks: input.tasks ?? [],
+          percent: newPercent(input.percent),
           created: timestamp,
           updated: timestamp,
         };
@@ -432,6 +451,7 @@ export class ProjectManager {
         if (patch.questions !== undefined) goal.questions = patch.questions;
         if (patch.risks !== undefined) goal.risks = patch.risks;
         if (patch.tasks !== undefined) goal.tasks = patch.tasks;
+        if (patch.percent !== undefined) goal.percent = newPercent(patch.percent);
         if (patch.supersededBy !== undefined) goal.supersededBy = patch.supersededBy;
         goal.updated = this.clock.now();
         this.record("goal.updated", `Goal ${id} updated: ${goal.title}`, [id]);
@@ -766,6 +786,7 @@ export class ProjectManager {
           assignee: input.assignee ?? "agent",
           gate: input.gate ?? null,
           run: null,
+          percent: newPercent(input.percent),
           created: this.clock.now(),
           updated: this.clock.now(),
           started: null,
@@ -815,6 +836,7 @@ export class ProjectManager {
         if (patch.question !== undefined) node.question = patch.question;
         if (patch.gate !== undefined) node.gate = patch.gate;
         if (patch.assignee !== undefined) node.assignee = patch.assignee;
+        if (patch.percent !== undefined) node.percent = newPercent(patch.percent);
         node.updated = this.clock.now();
         assertNoNewErrors(project, preexisting, "plan node");
         this.record("task.updated", `Node ${node.id} updated in ${plan.id}`, [node.id]);
