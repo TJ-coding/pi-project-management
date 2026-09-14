@@ -216,14 +216,14 @@
     - One page lists every project with its state and current task.
     - Pending decisions for all projects are aggregated in one list.
     - The page is read-only and serves on the local network.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
   risks: []
   tasks: []
   created: 2026-09-14T09:28:37.123Z
-  updated: 2026-09-14T10:35:32.992Z
+  updated: 2026-09-14T11:42:59.835Z
 - id: G14
   title: One persistent objective
   description: I don't know what the resume pause features are for but I want it to be like a goal command.
