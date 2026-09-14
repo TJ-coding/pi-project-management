@@ -273,7 +273,7 @@
   description: "Smoke test: verify project_goal create works."
   priority: 4
   success_criteria: []
-  status: ACTIVE
+  status: ABANDONED
   parent: null
   superseded_by: null
   questions: []
@@ -282,4 +282,4 @@
   percent: null
   archived: true
   created: 2026-09-14T11:22:30.929Z
-  updated: 2026-09-14T14:54:12.145Z
+  updated: 2026-09-14T14:56:13.116Z

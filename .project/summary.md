@@ -28,7 +28,7 @@ All 15 goals closed (14 COMPLETED, G15 archived). R7 resolved. Five k3 review ro
 - ✓ G12 Archive anything (COMPLETED)
 - ✓ G13 Phone view of all projects (COMPLETED)
 - ✓ G14 One persistent objective (COMPLETED)
-- → G15 Validate tools (ACTIVE [ARCHIVED])
+- ⊘ G15 Validate tools (ABANDONED [ARCHIVED])
 
 ## Major Risks
 
