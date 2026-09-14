@@ -171,4 +171,5 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T11:42:59.611Z **task.updated** — Node N17 RUNNING -> COMPLETED: Serve a phone dashboard [N17] (by agent)
 - 2026-09-14T11:42:59.835Z **goal.completed** — Goal G13 COMPLETED: Phone view of all projects [G13] (by agent)
 - 2026-09-14T11:45:53.613Z **goal.updated** — Goals edited by hand: 15 total (+0/-0) [G1, G2, G3, G4, G5, G6, G7, G8, G9, G10, G11, G12, G13, G14, G15] (by agent)
-- 2026-09-14T11:46:19.630Z **archived** — Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work) [G15] (by agent)
+- 2026-09-14T11:46:19.630Z **task.updated** — Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work) [G15] (by agent)
+- 2026-09-14T11:49:34.408Z **task.updated** — Node N18 PENDING -> RUNNING: Verify and publish everything [N18] (by agent)
