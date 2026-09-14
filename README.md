@@ -127,7 +127,7 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 | `/project complete` | mark the project complete and render the summary |
 | `/project watch [on\|off]` | toggle the editor widget |
 | `/project objective [<sentence>\|clear]` | what this stretch of work is for, with progress and what "done" means |
-| `/project phone [port]` | serve a read-only page for your phone |
+| `/project phone [port]` | serve a read-only page for your phone (`scripts/serve-phone.ts` to keep it running detached) |
 | `/project projects` | list projects in the local workspace |
 | `/project tools` | list the `project_*` tools the agent can call |
 | `/project help [sub]` | full reference, or details for one subcommand |
@@ -157,6 +157,16 @@ It prints the LAN address to open on your phone. Two deliberate limits:
 Only real decisions are surfaced: a gate awaiting an outcome, a goal whose work
 is all done, a task assigned to `human`, and a high-impact open question. An
 ordinary backlog would be unusable as a phone page.
+
+Endpoints: `/` (the page), `/status` (JSON) and `/text` (plain, handy for `curl`).
+
+To keep it running after the pi session ends — the command stops with the
+session, so a detached run needs the script directly:
+
+```bash
+# survives the session; logs go to .project/runs/RUN<id>.log
+PHONE_PORT=8790 node --experimental-strip-types scripts/serve-phone.ts
+```
 
 ## Reading long content in the dashboard
 
