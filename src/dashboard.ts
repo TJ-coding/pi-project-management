@@ -936,14 +936,18 @@ const dashboardView: ViewDefinition = {
 
     const full: string[] = [];
     // These counts say how many rows the full views hold, so an archived item
-    // still counts — but it is named, or the number contradicts the live count
-    // three lines above (k3 round 2).
-    const withArchived = (total: number, shown: number): string =>
-      total === shown ? `${total}` : `${total} (${total - shown} archived)`;
-    if (project.goals.length > 0) full.push(`${withArchived(project.goals.length, live(project.goals).length)} goal(s)`);
-    if (project.questions.length > 0) full.push(`${withArchived(project.questions.length, live(project.questions).length)} question(s)`);
-    if (project.risks.length > 0) full.push(`${withArchived(project.risks.length, live(project.risks).length)} risk(s)`);
-    if (plan) full.push(`${withArchived(plan.nodes.length, live(plan.nodes).length)} node(s)`);
+    // still counts — but it is named, and the noun is singularised, or the line
+    // contradicts the corrected text two lines above it (k3 rounds 2 and 6).
+    // "3 goals (1 archived)" is also shorter than "3 (1 archived) goal(s)".
+    const countOf = (total: number, shown: number, singular: string, pluralForm: string): string => {
+      const noun = total === 1 ? singular : pluralForm;
+      const archived = total === shown ? "" : ` (${total - shown} archived)`;
+      return `${total} ${noun}${archived}`;
+    };
+    if (project.goals.length > 0) full.push(countOf(project.goals.length, live(project.goals).length, "goal", "goals"));
+    if (project.questions.length > 0) full.push(countOf(project.questions.length, live(project.questions).length, "question", "questions"));
+    if (project.risks.length > 0) full.push(countOf(project.risks.length, live(project.risks).length, "risk", "risks"));
+    if (plan) full.push(countOf(plan.nodes.length, live(plan.nodes).length, "node", "nodes"));
     if (full.length > 0) lines.push(`  ${theme.fg("dim", `full lists: ${full.join(" · ")}`)}`);
     // One number, not a wall of warnings: the exact list is in /project review.
     const bloated = overBudgetByView(project);

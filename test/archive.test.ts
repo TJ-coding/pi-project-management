@@ -268,7 +268,7 @@ describe("archiving", () => {
 
     const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
     const footer = dashboard.split("\n").find((line) => line.includes("full lists"))!;
-    assert.match(footer, /2 \(1 archived\) goal\(s\)/, "the footer names how many of its count are archived");
+    assert.match(footer, /2 goals \(1 archived\)/, "the footer names how many of its count are archived");
     // And that count agrees with the live metric shown further up the same view.
     assert.match(dashboard, /0\/1 done/, "the metric counts live goals only");
   });

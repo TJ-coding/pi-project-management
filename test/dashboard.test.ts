@@ -486,6 +486,13 @@ describe("dashboard", () => {
       assert.match(text, /1 (active goal|open question|open risk)/, `${name} should read singular`);
     }
 
+    // The full-lists line was missed on the first pass: it used "goal(s)" style
+    // while the corrected text sat two lines above it (k3 round 6).
+    const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
+    const full = dashboard.split("\n").find((line) => line.includes("full lists"))!;
+    assert.doesNotMatch(full, /\(s\)/, `the full-lists line still uses parenthetical plurals: ${full}`);
+    assert.match(full, /1 question/, "and reads singular at one");
+
     // Many is still plural.
     await manager.createGoal({ title: "Second goal" }, { commit: false });
     await manager.createRisk({ title: "Second risk", probability: 0.5, impact: 0.2 }, { commit: false });
