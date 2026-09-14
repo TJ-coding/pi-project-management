@@ -210,7 +210,7 @@ plans:
       - id: N10
         title: Publish the repo to GitHub
         type: TASK
-        status: PENDING
+        status: RUNNING
         description: Create a public GitHub repo, push, and confirm the checks pass from a clean clone.
         depends_on:
           - N4
@@ -223,8 +223,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-13T16:15:56.369Z
-        updated: 2026-09-13T16:16:15.638Z
-        started: null
+        updated: 2026-09-14T09:48:10.642Z
+        started: 2026-09-14T09:48:10.642Z
         finished: null
       - id: N11
         title: Confirm before discarding a dirty form
