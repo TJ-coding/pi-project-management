@@ -182,3 +182,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T14:06:50.068Z **run.started** — Run RUN6 started: k3 frame review round 3 [RUN6] (by agent)
 - 2026-09-14T14:07:12.923Z **run.finished** — Interrupted runs reconciled: RUN3, RUN5 [RUN3, RUN5] (by agent)
 - 2026-09-14T14:14:21.640Z **run.started** — Run RUN7 started: k3 frame review round 4 [RUN7] (by agent)
+- 2026-09-14T14:16:51.701Z **decision.made** — Decision D7 (SIGNIFICANT): Four k3 rounds before signing off [D7, G1] (by agent)

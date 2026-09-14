@@ -59,6 +59,7 @@ All 15 goals closed (14 COMPLETED, G15 the smoke artifact archived). R7 resolved
 - D4 Remove the other project's name from live state (ROUTINE)
 - D5 Verify the uncommitted active-plan fix (SIGNIFICANT)
 - D6 Redact paths, not names (SIGNIFICANT)
+- D7 Four k3 rounds before signing off (SIGNIFICANT)
 
 ## Plan Evolution
 
