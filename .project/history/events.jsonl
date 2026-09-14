@@ -177,3 +177,4 @@
 {"seq":177,"at":"2026-09-14T13:59:09.592Z","kind":"state.changed","summary":"State changed: R7 fixed and published; N18 waiting on the k3 re-review","by":"agent","refs":[]}
 {"seq":178,"at":"2026-09-14T14:06:50.068Z","kind":"run.started","summary":"Run RUN6 started: k3 frame review round 3","by":"agent","refs":["RUN6"],"details":{"environment":[]}}
 {"seq":179,"at":"2026-09-14T14:07:12.923Z","kind":"run.finished","summary":"Interrupted runs reconciled: RUN3, RUN5","by":"agent","refs":["RUN3","RUN5"],"details":{"status":"INTERRUPTED"}}
+{"seq":180,"at":"2026-09-14T14:14:21.640Z","kind":"run.started","summary":"Run RUN7 started: k3 frame review round 4","by":"agent","refs":["RUN7"],"details":{"environment":[]}}
