@@ -248,6 +248,31 @@ describe("archiving", () => {
     assert.equal(manager.project.history.filter((event) => event.kind === "goal.unarchived").length, 1);
   });
 
+  test("the summary and the dashboard footer do not present archived work as live", async () => {
+    // k3's second review found the archived filter had not reached these two
+    // surfaces: the summary printed an archived goal as bare ACTIVE, and the
+    // footer counted it while the widget said otherwise. A test that only checked
+    // the panel and the widget could not see either.
+    const { root, manager } = await newProject("Surfaces");
+    dirs.push(root);
+    await manager.createGoal({ title: "Still live" }, { commit: false });
+    await manager.createGoal({ title: "Put away" }, { commit: false });
+    await manager.setArchived("goal", "G2", true, { commit: false });
+    const project = await manager.read((current) => current);
+
+    const summary = VIEWS.find((view) => view.id === "summary")!.render(project, theme, 100).join("\n");
+    const row = summary.split("\n").find((line) => line.includes("Put away"))!;
+    assert.ok(row, "the archived goal stays in the honest record");
+    assert.match(row, /archived/, "but it is labelled where it is listed");
+    assert.doesNotMatch(row, /ACTIVE\s*$/, "and never printed as a bare status");
+
+    const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
+    const footer = dashboard.split("\n").find((line) => line.includes("full lists"))!;
+    assert.match(footer, /2 \(1 archived\) goals/, "the footer names how many of its count are archived");
+    // And that count agrees with the live metric shown further up the same view.
+    assert.match(dashboard, /0\/1 done/, "the metric counts live goals only");
+  });
+
   test("the dashboard goal metric agrees with the goals panel", async () => {
     // Regression found by reading frames: the dashboard divided by every goal in
     // the project while the goals panel counted only live ones, so the two

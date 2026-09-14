@@ -10,7 +10,7 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 import { blockedByDependencies, dagStats, nextActionable, readyNodes, runningNodes, topoOrder } from "./dag.ts";
-import { percentBadge, progressBar } from "./format.ts";
+import { percentBadge, planBar, progressBar } from "./format.ts";
 import { planEvolution } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, questionScore, riskExposure, scoreBand, riskScore } from "./scoring.ts";
 import { PROJECT_DIR } from "./storage.ts";
@@ -321,7 +321,10 @@ const summaryView: ViewDefinition = {
     for (const goal of project.goals) {
       const glyph = statusGlyph(goal.status);
       const color = goal.status === "COMPLETED" ? "success" : goal.status === "FAILED" ? "error" : "muted";
-      lines.push(...bulletLines(theme, "• ", `${theme.fg(color, glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", goal.status)}`, width));
+      // An archived goal keeps its status but is not active work, and printing a
+      // bare ACTIVE here was a factual error (k3 round 2).
+      const state = goal.archived ? `${goal.status} · archived` : goal.status;
+      lines.push(...bulletLines(theme, "• ", `${theme.fg(color, glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", state)}`, width));
     }
 
     lines.push(...heading(theme, "PLAN EVOLUTION", width));
@@ -463,12 +466,13 @@ export function renderPlanInteractive(
   const lines: string[] = [];
   const done = stats.byStatus.COMPLETED;
   const barWidth = Math.max(8, Math.min(24, width - 34));
-  const filled = stats.total === 0 ? 0 : Math.round((done / stats.total) * barWidth);
+  // Same glyphs as an entity's own bar, but this one measures the whole plan, so
+  // it fills the width it is given (see planBar in format.ts).
   lines.push(
     theme.fg("accent", theme.bold(`${plan.id} v${plan.version}`)) +
       theme.fg("muted", `  ${plan.title}`) +
-      theme.fg("success", `  ${"█".repeat(filled)}`) +
-      theme.fg("dim", `${"░".repeat(barWidth - filled)} ${done}/${stats.total}`),
+      theme.fg("success", `  ${planBar(done, stats.total, barWidth)}`) +
+      theme.fg("dim", ` ${done}/${stats.total}`),
   );
   lines.push(theme.fg("dim", `${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked · ${stats.byStatus.COMPLETED} done · ${stats.byStatus.FAILED} failed`));
   // An archived node is hidden from the groups, so the view must say how many,
@@ -856,15 +860,13 @@ const dashboardView: ViewDefinition = {
     lines.push(sectionHeader(theme, "PROGRESS", "", width, "muted"));
     if (plan && stats) {
       const barWidth = Math.max(8, Math.min(18, width - 48));
-      const filled = stats.total === 0 ? 0 : Math.round((stats.byStatus.COMPLETED / stats.total) * barWidth);
       lines.push(
         containerRow(
           theme,
           keyValue(
             theme,
             "plan",
-          theme.fg("success", "█".repeat(filled)) +
-            theme.fg("dim", "░".repeat(barWidth - filled)) +
+          theme.fg("success", planBar(stats.byStatus.COMPLETED, stats.total, barWidth)) +
             theme.fg("muted", `  ${stats.byStatus.COMPLETED}/${stats.total}`) +
             theme.fg("dim", `   ${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked`),
             width - 4,
@@ -918,10 +920,15 @@ const dashboardView: ViewDefinition = {
     lines.push(containerClose(theme, width));
 
     const full: string[] = [];
-    if (project.goals.length > 0) full.push(`${project.goals.length} goals`);
-    if (project.questions.length > 0) full.push(`${project.questions.length} questions`);
-    if (project.risks.length > 0) full.push(`${project.risks.length} risks`);
-    if (plan) full.push(`${plan.nodes.length} nodes`);
+    // These counts say how many rows the full views hold, so an archived item
+    // still counts — but it is named, or the number contradicts the live count
+    // three lines above (k3 round 2).
+    const withArchived = (total: number, shown: number): string =>
+      total === shown ? `${total}` : `${total} (${total - shown} archived)`;
+    if (project.goals.length > 0) full.push(`${withArchived(project.goals.length, live(project.goals).length)} goals`);
+    if (project.questions.length > 0) full.push(`${withArchived(project.questions.length, live(project.questions).length)} questions`);
+    if (project.risks.length > 0) full.push(`${withArchived(project.risks.length, live(project.risks).length)} risks`);
+    if (plan) full.push(`${withArchived(plan.nodes.length, live(plan.nodes).length)} nodes`);
     if (full.length > 0) lines.push(`  ${theme.fg("dim", `full lists: ${full.join(" · ")}`)}`);
     // One number, not a wall of warnings: the exact list is in /project review.
     const bloated = overBudgetByView(project);
@@ -2060,7 +2067,7 @@ export class ProjectBrowser {
       : this.detailOpen
         ? "esc back to the list · j/k scroll · g/G ends · q close"
         : this.currentView === "plan"
-          ? `↑↓ select · enter read in full · e edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
+          ? `↑↓ select · enter read in full · e edit · a new · D delete · E raw · tab views${this.archivedHint()}${this.helpText ? " · ? help" : ""} · q close`
           : rows.length > 0
             ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9/0 jump${this.archivedHint()}${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
             : `tab views · 1-9/0 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${this.archivedHint()}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;

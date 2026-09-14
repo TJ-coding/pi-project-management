@@ -136,11 +136,31 @@ export function renderDirectionText(project: Project): string {
  * same concept had to be re-learned per panel, and a 6-cell bar rounded 60%
  * to 67%. The number is never dropped - a bar alone invites a wrong guess.
  */
+/**
+ * `██████░░░░ 60%` - an entity's own percent, as a bar plus the number.
+ *
+ * Fixed 10 cells on purpose: these bars sit in rows and panes beside each other,
+ * so a shared width is what makes them comparable at a glance. Overall plan
+ * completion is a different kind of measure and uses `planBar` instead, which
+ * fills the width it is given. k3's second review caught the code claiming "one
+ * width everywhere" while the plan bar scales; the rule is one vocabulary (█/░)
+ * and one width *per kind of bar*, which is what these two functions are.
+ */
 export function progressBar(percent: number, cells = 10): string {
   const clamped = Math.min(100, Math.max(0, Math.round(percent)));
   const filled = Math.round((clamped / 100) * cells);
   const bar = "█".repeat(filled) + "░".repeat(Math.max(0, cells - filled));
   return `${bar} ${clamped}%`;
+}
+
+/**
+ * Plan completion, filling the width given. Dashboards have room for a longer
+ * bar and read it as a proportion of the whole plan, not as an entity's percent.
+ * Same glyphs as `progressBar`, so the reader learns one bar vocabulary.
+ */
+export function planBar(done: number, total: number, cells: number): string {
+  const filled = total === 0 ? 0 : Math.round((done / total) * cells);
+  return `█`.repeat(Math.max(0, Math.min(cells, filled))) + `░`.repeat(Math.max(0, cells - Math.max(0, Math.min(cells, filled))));
 }
 
 /** The badge form used in list rows: percent only, so columns stay aligned. */
