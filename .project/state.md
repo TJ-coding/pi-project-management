@@ -28,7 +28,8 @@ _None yet._
 
 - project_plan add_node ignores an explicit id, so node ids are assigned in insertion order.
 - No credentials anywhere in the tracked tree or git history, so G7 is safe to publish.
+- A node id can exist in several plans at once: applyReplan reuses gap ids, so mutations must resolve the active plan first.
 
 ## Last Updated
 
-2026-09-13T18:26:01.295Z
+2026-09-14T09:34:41.333Z
