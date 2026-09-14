@@ -1,0 +1,17 @@
+id: RUN10
+title: k3 frame review round 6
+node: null
+status: STARTED
+environment: []
+command: sh scripts/run-k3-review.sh /tmp/k3-full6.txt /tmp/k3-reply6.txt
+cwd: /Users/tomoyuki-j/Projects/pi-project-management
+pid: 90961
+host: null
+session: /Users/tomoyuki-j/.pi/agent/sessions/--Users-tomoyuki-j-Projects-pi-project-management--/2026-09-14T09-25-08-297Z_01a09f3c-0e48-70ec-a0ce-72d04b3b97b6.jsonl
+log: /Users/tomoyuki-j/Projects/pi-project-management/.project/runs/RUN10.log
+exit_code: null
+started: 2026-09-14T14:45:35.049Z
+finished: null
+updated: 2026-09-14T14:45:35.049Z
+entries: []
+outputs: []
