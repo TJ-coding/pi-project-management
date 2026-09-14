@@ -1,0 +1,19 @@
+id: RUN4
+title: Phone view server (read-only, port 8790)
+node: null
+status: STARTED
+environment:
+  - kind: local
+    target: 192.168.1.41:8790
+command: PHONE_PORT=8790 node --experimental-strip-types scripts/serve-phone.ts
+cwd: /Users/tomoyuki-j/Projects/pi-project-management
+pid: 45722
+host: null
+session: /Users/tomoyuki-j/.pi/agent/sessions/--Users-tomoyuki-j-Projects-pi-project-management--/2026-09-14T09-25-08-297Z_01a09f3c-0e48-70ec-a0ce-72d04b3b97b6.jsonl
+log: /Users/tomoyuki-j/Projects/pi-project-management/.project/runs/RUN4.log
+exit_code: null
+started: 2026-09-14T13:44:23.315Z
+finished: null
+updated: 2026-09-14T13:44:23.315Z
+entries: []
+outputs: []

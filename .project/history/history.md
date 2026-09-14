@@ -174,3 +174,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T11:46:19.630Z **task.updated** — Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work) [G15] (by agent)
 - 2026-09-14T11:49:34.408Z **task.updated** — Node N18 PENDING -> RUNNING: Verify and publish everything [N18] (by agent)
 - 2026-09-14T12:37:15.822Z **state.changed** — State changed: Every goal closed and the work published; N18 verifying (by agent)
+- 2026-09-14T13:44:23.315Z **run.started** — Run RUN4 started: Phone view server (read-only, port 8790) [RUN4] (by agent)
