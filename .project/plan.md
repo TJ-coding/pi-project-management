@@ -12,8 +12,9 @@ Rationale: Four goals are already implemented but unclosed; three need building;
 - [COMPLETED] N14 TASK — Add progress percent (after N13) {goal:G11}
     Add percent to node and goal, show it in the plan panel, refuse out-of-range values.
     outputs: percent is number|null on both Goal and PlanNode, round-tripping through the YAML; Out-of-range writes throw before anything is saved and the old value survives; Row shows a percent badge, reading pane and forms show the bar; 129 tests pass (10 new), TUI smoke passes
-- [RUNNING] N15 TASK — Add archiving (after N13) {goal:G12}
+- [COMPLETED] N15 TASK — Add archiving (after N13) {goal:G12}
     Add meta.archived plus archive/unarchive commands; archived items leave active counts but stay readable.
+    outputs: archived is a boolean on goals, questions, risks and nodes; never a status; Archived items leave active counts but keep their record and links; Panels state how many are hidden and v toggles them back without writing; Archiving a node does not rewire the DAG for its dependants; 138 tests pass (9 new), TUI smoke passes
 - [PENDING] N16 TASK — Add a persistent objective (after N13) {goal:G14}
     Add one objective sentence per project, shown in the digest with progress and done-when.
 - [PENDING] N17 TASK — Serve a phone dashboard (after N16) {goal:G13}

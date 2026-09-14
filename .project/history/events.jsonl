@@ -156,3 +156,4 @@
 {"seq":156,"at":"2026-09-14T10:55:08.982Z","kind":"goal.completed","summary":"Goal G11 COMPLETED: Progress percent on tasks and goals","by":"agent","refs":["G11"],"details":{"reason":"Percent round-trips on goals and nodes, shows in the row and reading pane, and out-of-range writes are refused with nothing written."}}
 {"seq":157,"at":"2026-09-14T10:55:09.173Z","kind":"task.updated","summary":"Node N14 RUNNING -> COMPLETED: Add progress percent","by":"agent","refs":["N14"],"details":{}}
 {"seq":158,"at":"2026-09-14T10:55:21.517Z","kind":"task.updated","summary":"Node N15 PENDING -> RUNNING: Add archiving","by":"agent","refs":["N15"],"details":{}}
+{"seq":159,"at":"2026-09-14T11:10:41.255Z","kind":"task.updated","summary":"Node N15 RUNNING -> COMPLETED: Add archiving","by":"agent","refs":["N15"],"details":{}}

@@ -339,7 +339,7 @@ plans:
       - id: N15
         title: Add archiving
         type: TASK
-        status: RUNNING
+        status: COMPLETED
         description: Add meta.archived plus archive/unarchive commands; archived items leave active counts
           but stay readable.
         depends_on:
@@ -347,15 +347,20 @@ plans:
         goal: G12
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - archived is a boolean on goals, questions, risks and nodes; never a status
+          - Archived items leave active counts but keep their record and links
+          - Panels state how many are hidden and v toggles them back without writing
+          - Archiving a node does not rewire the DAG for its dependants
+          - 138 tests pass (9 new), TUI smoke passes
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:55:21.517Z
+        updated: 2026-09-14T11:10:41.255Z
         started: 2026-09-14T10:55:21.517Z
-        finished: null
+        finished: 2026-09-14T11:10:41.255Z
       - id: N16
         title: Add a persistent objective
         type: TASK
