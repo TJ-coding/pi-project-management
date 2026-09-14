@@ -186,3 +186,16 @@
   tasks: []
   created: 2026-09-14T09:26:06.826Z
   updated: 2026-09-14T09:26:06.826Z
+- id: G12
+  title: Archive
+  description: I want a mechanism that archives things that are no longer relevent to the project.
+  priority: 3
+  success_criteria: []
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-14T09:26:40.136Z
+  updated: 2026-09-14T09:26:40.136Z

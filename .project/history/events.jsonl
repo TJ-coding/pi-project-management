@@ -122,3 +122,4 @@
 {"seq":122,"at":"2026-09-13T18:26:01.295Z","kind":"state.changed","summary":"State changed: state updated","by":"agent","refs":[]}
 {"seq":123,"at":"2026-09-13T18:26:14.757Z","kind":"run.finished","summary":"Run RUN2 COMPLETED: Execute the ready plan nodes (N1, N2, N5, N6, N11, N12)","by":"agent","refs":["RUN2","N12"],"details":{"exitCode":null}}
 {"seq":124,"at":"2026-09-14T09:26:06.826Z","kind":"goal.created","summary":"Goal G11 created: Add a mechanism to add progress bar to task / goal","by":"human","refs":["G11"],"details":{"status":"ACTIVE","priority":3}}
+{"seq":125,"at":"2026-09-14T09:26:40.136Z","kind":"goal.created","summary":"Goal G12 created: Archive","by":"human","refs":["G12"],"details":{"status":"ACTIVE","priority":3}}
