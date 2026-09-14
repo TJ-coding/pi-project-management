@@ -187,3 +187,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T14:27:09.921Z **state.changed** — State changed: Five k3 rounds, 11 defects fixed; only the final verdict is outstanding (by agent)
 - 2026-09-14T14:36:07.754Z **run.started** — Run RUN9 started: k3 frame review round 5 (retry) [RUN9] (by agent)
 - 2026-09-14T14:45:35.049Z **run.started** — Run RUN10 started: k3 frame review round 6 [RUN10] (by agent)
+- 2026-09-14T14:51:22.263Z **run.started** — Run RUN11 started: k3 frame review round 7 (final) [RUN11] (by agent)
