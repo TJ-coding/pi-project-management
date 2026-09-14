@@ -179,3 +179,4 @@
 {"seq":179,"at":"2026-09-14T14:07:12.923Z","kind":"run.finished","summary":"Interrupted runs reconciled: RUN3, RUN5","by":"agent","refs":["RUN3","RUN5"],"details":{"status":"INTERRUPTED"}}
 {"seq":180,"at":"2026-09-14T14:14:21.640Z","kind":"run.started","summary":"Run RUN7 started: k3 frame review round 4","by":"agent","refs":["RUN7"],"details":{"environment":[]}}
 {"seq":181,"at":"2026-09-14T14:16:51.701Z","kind":"decision.made","summary":"Decision D7 (SIGNIFICANT): Four k3 rounds before signing off","by":"agent","refs":["D7","G1"],"details":{"autoAccepted":false}}
+{"seq":182,"at":"2026-09-14T14:27:03.881Z","kind":"run.started","summary":"Run RUN8 started: k3 frame review round 5","by":"agent","refs":["RUN8"],"details":{"environment":[]}}
