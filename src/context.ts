@@ -31,9 +31,10 @@ const DEFAULT_MAX_CHARS = 6000;
 /** Short orientation digest. Cheap enough to inject on every turn. */
 export function buildDigest(project: Project): string {
   const active = activePlan(project);
-  const topQuestion = byQuestionPriority(project.questions.filter((q) => q.status === "UNKNOWN" || q.status === "PARTIAL"))[0];
-  const topRisk = byRiskPriority(project.risks)[0];
-  const goals = project.goals.filter((goal) => goal.status === "ACTIVE");
+  const topQuestion = byQuestionPriority(project.questions.filter((q) => (q.status === "UNKNOWN" || q.status === "PARTIAL") && q.archived !== true))[0];
+  const topRisk = byRiskPriority(project.risks.filter((risk) => risk.archived !== true))[0];
+  // Archived goals are not active work, so they are not listed as such.
+  const goals = project.goals.filter((goal) => goal.status === "ACTIVE" && goal.archived !== true);
   const lines: string[] = [];
 
   lines.push(`PROJECT: ${project.meta.name} (${project.meta.workspace ?? project.root})`);

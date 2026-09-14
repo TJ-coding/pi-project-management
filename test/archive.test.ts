@@ -3,7 +3,9 @@ import { after, describe, test } from "node:test";
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
 
+import { buildDigest } from "../src/context.ts";
 import { archivedCounts, isArchived, VIEWS, viewCounts } from "../src/dashboard.ts";
+import { renderGoalsText } from "../src/format.ts";
 import { ProjectManager } from "../src/project.ts";
 import { activePlan } from "../src/replan.ts";
 import { cleanup, fixedClock, tempDir } from "./helpers.ts";
@@ -93,6 +95,38 @@ describe("archiving", () => {
     dirs.push(root);
     await assert.rejects(() => manager.setArchived("goal", "G99", true, { commit: false }), /goal G99/i);
     await assert.rejects(() => manager.setArchived("risk", "R42", true, { commit: false }), /risk R42/i);
+  });
+
+  test("an archived item is excluded from the digest and the text renderers", async () => {
+    // Regression: the panels stopped counting archived goals but the digest and
+    // `project_goal list` still presented them as ACTIVE GOALS, which is exactly
+    // the "stops counting as active" promise G12 makes.
+    const { root, manager } = await newProject("Digest");
+    dirs.push(root);
+    await manager.createGoal({ title: "Live goal", priority: 3 }, { commit: false });
+    await manager.createGoal({ title: "Done with it", priority: 4 }, { commit: false });
+    await manager.createRisk({ title: "Live risk" }, { commit: false });
+    await manager.createRisk({ title: "Archived risk" }, { commit: false });
+    await manager.createQuestion({ question: "Live question?", importance: 1, uncertainty: 1, decisionImpact: 1 }, { commit: false });
+    await manager.createQuestion({ question: "Archived question?", importance: 1, uncertainty: 1, decisionImpact: 1 }, { commit: false });
+
+    await manager.setArchived("goal", "G2", true, { commit: false });
+    await manager.setArchived("risk", "R2", true, { commit: false });
+    await manager.setArchived("question", "Q2", true, { commit: false });
+    const project = await manager.read((current) => current);
+
+    const digest = buildDigest(project);
+    const activeLine = digest.split("\n").find((line) => line.startsWith("ACTIVE GOALS"))!;
+    assert.match(activeLine, /Live goal/);
+    assert.doesNotMatch(activeLine, /Done with it/, "an archived goal is not listed as active");
+    assert.doesNotMatch(digest, /TOP RISK: R2/, "an archived risk is not the top risk");
+    assert.doesNotMatch(digest, /TOP UNKNOWN: Q2/, "nor is an archived question the top unknown");
+
+    // The list still shows it, but marked, so the record is not hidden either.
+    const text = renderGoalsText(project);
+    assert.match(text, /Done with it/);
+    assert.match(text, /\[ARCHIVED\]/, "an archived goal is labelled where it is listed");
+    assert.match(text, /1 archived \(marked/, "and the count is stated once");
   });
 
   test("archived items stop counting as active work", async () => {

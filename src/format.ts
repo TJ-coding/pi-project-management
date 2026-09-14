@@ -141,13 +141,17 @@ export function percentBadge(percent: number | null): string {
 }
 
 export function renderGoalsText(project: Project, statuses?: readonly string[]): string {
+  // Archived goals stay readable but are marked, so they cannot be mistaken for
+  // active work when the list is read.
   const goals = statuses && statuses.length > 0
     ? project.goals.filter((goal) => statuses.includes(goal.status))
     : project.goals;
-  if (goals.length === 0) return "# Goals\n\n_none_";
+  if (goals.length === 0) return "# Goals\n\n_none_" ;
+  const archived = goals.filter((goal) => goal.archived === true).length;
   const lines = ["# Goals", ""];
+  if (archived > 0) lines.push(`_${archived} archived (marked ⌫ below)_`, "");
   for (const goal of [...goals].sort(byGoalPriority)) {
-    lines.push(`## ${glyph(goal.status)} ${goal.id} [${goal.status}] P${goal.priority}${goal.percent !== null ? ` ${goal.percent}%` : ""} — ${goal.title}`);
+    lines.push(`## ${glyph(goal.status)} ${goal.id} [${goal.status}]${goal.archived ? " [ARCHIVED]" : ""} P${goal.priority}${goal.percent !== null ? ` ${goal.percent}%` : ""} — ${goal.title}`);
     if (goal.description) lines.push(goal.description);
     if (goal.parent) lines.push(`parent: ${goal.parent}`);
     if (goal.successCriteria.length > 0) {
