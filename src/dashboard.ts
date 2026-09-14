@@ -30,7 +30,7 @@ export interface ViewDefinition {
    * `focusLine` reports which line it landed on, so the browser can keep the
    * selection on screen.
    */
-  render: (project: Project, theme: Theme, width: number, focus?: string | null) => string[] | ViewRender;
+  render: (project: Project, theme: Theme, width: number, focus?: string | null, options?: ViewOptions) => string[] | ViewRender;
   /** Everything there is to know about the focused row (or the whole section). */
   detail?: (project: Project, focus: string | null) => DetailDoc;
 }
@@ -389,9 +389,11 @@ export interface PlanGroup {
 }
 
 /** Group the active plan's nodes by what the user can do with them (spec 12). */
-export function planGroups(project: Project, cap = 6): PlanGroup[] {
+export function planGroups(project: Project, cap = 6, showArchived = false): PlanGroup[] {
   const plan = activePlan(project);
   if (!plan) return [];
+  // Ready/blocked are computed from the full node set so an archived node still
+  // satisfies its dependants: archiving hides work, it does not rewire the DAG.
   const readyIds = new Set(readyNodes(plan.nodes).map((node) => node.id));
   const blocked = blockedByDependencies(plan.nodes);
 
@@ -404,6 +406,10 @@ export function planGroups(project: Project, cap = 6): PlanGroup[] {
   const byKey = new Map(groups.map((group) => [group.key, group]));
 
   for (const node of topoOrder(plan.nodes)) {
+    // Archived nodes leave the DAG's working groups: an archived task is not
+    // ready, not blocked and not running, whatever its status still says. It is
+    // not dropped either, so the DAG still validates against its dependencies.
+    if (isArchived(node) && !showArchived) continue;
     if (node.status === "RUNNING") byKey.get("running")!.nodes.push(node);
     else if (readyIds.has(node.id)) byKey.get("ready")!.nodes.push(node);
     else if (node.status === "PENDING" || node.status === "BLOCKED" || node.status === "INTERRUPTED") {
@@ -443,11 +449,12 @@ export function renderPlanInteractive(
   theme: Theme,
   width: number,
   cursor: string | null,
+  showArchived = false,
 ): PlanRender {  const plan = activePlan(project);
   if (!plan) {
     return { lines: [theme.fg("dim", "no active plan yet"), "", theme.fg("dim", "the agent can create one when you ask for a plan")], ids: [] };
   }
-  const groups = planGroups(project);
+  const groups = planGroups(project, 6, showArchived);
   const ids = groups.flatMap((group) => group.nodes.map((node) => node.id));
   const activeId = cursor && ids.includes(cursor) ? cursor : ids[0] ?? null;
   const stats = dagStats(plan.nodes);
@@ -464,6 +471,14 @@ export function renderPlanInteractive(
       theme.fg("dim", `${"░".repeat(barWidth - filled)} ${done}/${stats.total}`),
   );
   lines.push(theme.fg("dim", `${stats.ready} ready · ${stats.byStatus.RUNNING} running · ${stats.blocked} blocked · ${stats.byStatus.COMPLETED} done · ${stats.byStatus.FAILED} failed`));
+  // An archived node is hidden from the groups, so the view must say how many,
+  // or the DAG silently looks smaller than it is.
+  const hiddenNodes = plan.nodes.filter(isArchived).length;
+  if (hiddenNodes > 0) {
+    lines.push(
+      theme.fg("dim", `${hiddenNodes} archived ${hiddenNodes === 1 ? "node" : "nodes"} ${showArchived ? "shown" : "hidden"} · press v to ${showArchived ? "hide" : "show"}`),
+    );
+  }
   lines.push("");
 
   for (const group of groups) {
@@ -688,19 +703,33 @@ function heading(theme: Theme, title: string, width: number): string[] {
  * that want attention", which is why risks counts open ones and history counts
  * days with activity.
  */
+/** Archived things stay readable but never count as active work. */
+export function isArchived(entity: { archived?: boolean }): boolean {
+  return entity.archived === true;
+}
+
+/** How many archived items exist per kind, for the "N archived" note. */
+export function archivedCounts(project: Project): { goals: number; questions: number; risks: number; nodes: number; total: number } {
+  const nodes = (activePlan(project)?.nodes ?? []).filter(isArchived).length;
+  const goals = project.goals.filter(isArchived).length;
+  const questions = project.questions.filter(isArchived).length;
+  const risks = project.risks.filter(isArchived).length;
+  return { goals, questions, risks, nodes, total: goals + questions + risks + nodes };
+}
+
 export function viewCounts(project: Project): Map<string, number> {
-  const openQuestions = project.questions.filter((question) => question.status === "UNKNOWN" || question.status === "PARTIAL").length;
-  const openRisks = project.risks.filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
+  const openQuestions = project.questions.filter((question) => !isArchived(question) && (question.status === "UNKNOWN" || question.status === "PARTIAL")).length;
+  const openRisks = project.risks.filter((risk) => !isArchived(risk) && (risk.status === "OPEN" || risk.status === "MITIGATING")).length;
   const plan = activePlan(project);
   const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED").length;
-  const activeGoals = project.goals.filter((goal) => goal.status === "ACTIVE").length;
+  const activeGoals = project.goals.filter((goal) => !isArchived(goal) && goal.status === "ACTIVE").length;
   const problems = project.state.problems.length;
   const counts = new Map<string, number>([
     ["goals", activeGoals],
     ["state", problems],
     ["intelligence", openQuestions],
     ["risks", openRisks],
-    ["plan", plan ? plan.nodes.length : 0],
+    ["plan", plan ? plan.nodes.filter((node) => !isArchived(node)).length : 0],
     ["history", project.history.length],
     ["runs", runningRuns || project.runs.length],
   ]);
@@ -970,15 +999,24 @@ const goalsView: ViewDefinition = {
     const goal = project.goals.find((candidate) => candidate.id === focus);
     return goal ? detailForGoal(goal) : emptyDetail("Goals", "no goal selected");
   },
-  render(project, theme, width, focus) {
+  render(project, theme, width, focus, options) {
     if (project.goals.length === 0) {
       return [`  ${theme.fg("dim", "no goals yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent")}`];
     }
     const lines: string[] = [];
     let focusLine: number | undefined;
     const bloatedIds = overBudgetEntityIds(project);
+    // Archived goals leave the active groups but are never deleted, so the view
+    // states how many it is hiding rather than silently showing fewer rows.
+    const hidden = project.goals.filter(isArchived).length;
+    const visible = options?.showArchived ? project.goals : project.goals.filter((goal) => !isArchived(goal));
+    if (hidden > 0) {
+      lines.push(
+        `  ${theme.fg("dim", `${hidden} archived ${hidden === 1 ? "goal" : "goals"} ${options?.showArchived ? "shown" : "hidden"} · press v to ${options?.showArchived ? "hide" : "show"}`)}`,
+      );
+    }
     for (const group of GOAL_GROUPS) {
-      const goals = project.goals
+      const goals = visible
         .filter((goal) => group.statuses.includes(goal.status))
         .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id, undefined, { numeric: true }));
       if (goals.length === 0) continue;
@@ -986,15 +1024,17 @@ const goalsView: ViewDefinition = {
       for (const goal of goals) {
         const band = priorityBand(goal.priority);
         const head = `${bloatedIds.has(`goal:${goal.id}`) && goal.status === "ACTIVE" ? theme.fg("warning", "⚠ ") : ""}${theme.fg(group.tone === "muted" ? "dim" : group.tone, statusGlyph(goal.status))} ${theme.fg("muted", goal.id.padEnd(4))}`;
+        // An archived row that looked identical to an active one would be a trap.
+        const archivedMark = isArchived(goal) ? theme.fg("dim", "⌫ ") : "";
         const percent = goal.percent !== null ? `${theme.fg("accent", percentBadge(goal.percent).padStart(4))} ` : "";
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
         const tail = `${percent}${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
-        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
+        const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2 - visibleWidth(archivedMark));
         const flat = oneLine(goal.title);
         const title = flat.length > available ? `${flat.slice(0, available - 1)}…` : flat;
         const selected = goal.id === focus;
         if (selected) focusLine = lines.length;
-        lines.push(containerRow(theme, `${head}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
+        lines.push(containerRow(theme, `${head}${archivedMark}${theme.fg("text", title)}${" ".repeat(Math.max(1, available - visibleWidth(title) + 1))}${tail}`, width, selected));
         if (goal.supersededBy) lines.push(containerNote(theme, theme.fg("dim", `superseded by ${goal.supersededBy}`), width));
       }
       lines.push(containerClose(theme, width));
@@ -1004,7 +1044,6 @@ const goalsView: ViewDefinition = {
     return { lines, focusLine };
   },
 };
-
 const riskGroups: Array<{ label: string; statuses: string[]; tone: "warning" | "success" | "muted" }> = [
   { label: "OPEN", statuses: ["OPEN", "MITIGATING"], tone: "warning" },
   { label: "OCCURRED", statuses: ["OCCURRED"], tone: "warning" },
@@ -1130,21 +1169,29 @@ const risksView: ViewDefinition = {
     const risk = project.risks.find((candidate) => candidate.id === focus);
     return risk ? detailForRisk(risk) : emptyDetail("Risks", "no risk selected");
   },
-  render(project, theme, width, focus) {
+  render(project, theme, width, focus, options) {
     if (project.risks.length === 0) {
       return [`  ${theme.fg("dim", "no risks yet")}`, `  ${theme.fg("dim", "press e to add one, or ask the agent how this could fail")}`];
     }
     const lines: string[] = [];
     let focusLine: number | undefined;
     const bloatedIds = overBudgetEntityIds(project);
+    const hidden = project.risks.filter(isArchived).length;
+    const visible = options?.showArchived ? project.risks : project.risks.filter((risk) => !isArchived(risk));
+    if (hidden > 0) {
+      lines.push(
+        `  ${theme.fg("dim", `${hidden} archived ${hidden === 1 ? "risk" : "risks"} ${options?.showArchived ? "shown" : "hidden"} · press v to ${options?.showArchived ? "hide" : "show"}`)}`,
+      );
+    }
     for (const group of riskGroups) {
-      const risks = byRiskPriority(project.risks.filter((risk) => group.statuses.includes(risk.status)));
+      const risks = byRiskPriority(visible.filter((risk) => group.statuses.includes(risk.status)));
       if (risks.length === 0) continue;
       lines.push(sectionHeader(theme, group.label, `${risks.length}`, width, group.tone));
       for (const risk of risks) {
         const band = scoreBand(riskScore(risk));
         const mark = bloatedIds.has(`risk:${risk.id}`) && !TERMINAL_RISK_STATUSES.has(risk.status) ? theme.fg("warning", "⚠ ") : "";
-        const head = `${mark}${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
+        const archivedMark = isArchived(risk) ? theme.fg("dim", "⌫ ") : "";
+        const head = `${archivedMark}${mark}${group.tone === "warning" ? bandColor(theme, band)("!") : theme.fg("dim", "·")} ${theme.fg("muted", risk.id.padEnd(4))}`;
         const tail = `${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", `${risk.status === "MITIGATING" ? "MITIGATING · " : ""}exp ${riskExposure(risk).toFixed(2)}`)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);
         const flat = oneLine(risk.title);
@@ -1466,7 +1513,8 @@ const planView: ViewDefinition = {
     const node = activePlan(project)?.nodes.find((candidate) => candidate.id === focus);
     return node ? detailForNode(project, node) : emptyDetail("Plan", "no node selected");
   },
-  render: (project, theme, width) => renderPlanInteractive(project, theme, width, null).lines,
+  render: (project, theme, width, _focus, options) =>
+    renderPlanInteractive(project, theme, width, null, options?.showArchived ?? false).lines,
 };
 
 /**
@@ -1492,6 +1540,15 @@ const RAW_VIEWS: ViewDefinition[] = [
 ];
 
 /**
+ * Display options that change what a view shows without changing the project.
+ * `showArchived` is per-render rather than per-project: archived items are
+ * hidden by default but one keypress brings them back, and nothing is written.
+ */
+export interface ViewOptions {
+  showArchived?: boolean;
+}
+
+/**
  * Render a view to width-safe lines and, when the view reports one, the line its
  * focused row landed on. Wrapping happens before the index is resolved, so the
  * browser can scroll the selection into view.
@@ -1502,8 +1559,9 @@ export function renderViewLines(
   theme: Theme,
   width: number,
   focus: string | null,
+  options?: ViewOptions,
 ): ViewRender {
-  const raw = view.render(project, theme, width, focus);
+  const raw = view.render(project, theme, width, focus, options);
   const rawLines = Array.isArray(raw) ? raw : raw.lines;
   const rawFocus = Array.isArray(raw) ? undefined : raw.focusLine;
   const safeWidth = Math.max(1, Math.floor(width));
@@ -1526,12 +1584,13 @@ export const VIEW_DEFS: ViewDefinition[] = RAW_VIEWS;
 export interface PublicView {
   id: string;
   title: string;
-  render: (project: Project, theme: Theme, width: number) => string[];
+  render: (project: Project, theme: Theme, width: number, options?: ViewOptions) => string[];
 }
 
 export const VIEWS: PublicView[] = RAW_VIEWS.map((view) => ({
   ...view,
-  render: (project: Project, theme: Theme, width: number) => renderViewLines(view, project, theme, width, null).lines,
+  render: (project: Project, theme: Theme, width: number, options?: ViewOptions) =>
+    renderViewLines(view, project, theme, width, null, options).lines,
 }));
 
 /* ------------------------------------------------------------------ */
@@ -1588,6 +1647,8 @@ export class ProjectBrowser {
   private scroll = 0;
   private cachedWidth = -1;
   private notice: string | null = null;
+  /** Archived entities are hidden by default; `v` shows them without saving. */
+  private showArchived = false;
 
   constructor(options: ProjectBrowserOptions) {
     this.project = options.project;
@@ -1817,6 +1878,14 @@ export class ProjectBrowser {
       this.openDetail();
       return;
     }
+    // `v` toggles archived rows. It is a view toggle, not a write: showing an
+    // archived goal must never change the project.
+    if (data === "v" && !this.helpVisible) {
+      this.showArchived = !this.showArchived;
+      this.notice = this.showArchived ? "showing archived · v to hide" : null;
+      this.onChange?.();
+      return;
+    }
     if (this.scrollBy(data, 10)) return;
     if (matchesKey(data, "r") && !this.helpVisible && this.reload) {
       void this.reload()
@@ -1869,6 +1938,16 @@ export class ProjectBrowser {
     return truncateToWidth(active, width, "…");
   }
 
+  /**
+   * Advertises `v` only when the project actually has archived items on a view
+   * that can show them: a key that does nothing is worse than no hint.
+   */
+  private archivedHint(): string {
+    if (!["goals", "risks", "plan"].includes(this.currentView)) return "";
+    if (archivedCounts(this.project).total === 0) return "";
+    return ` · v ${this.showArchived ? "hide" : "show"} archived`;
+  }
+
   render(width: number): string[] {
     const theme = this.theme;
     if (this.cachedWidth !== width) this.cachedWidth = width;
@@ -1903,9 +1982,9 @@ export class ProjectBrowser {
       const doc = view.detail?.(this.project, this.focusId()) ?? { title: view.title, fields: [] };
       content = renderDetailDoc(theme, doc, width);
     } else if (view.id === "plan") {
-      content = renderPlanInteractive(this.project, theme, width, this.planCursor).lines;
+      content = renderPlanInteractive(this.project, theme, width, this.planCursor, this.showArchived).lines;
     } else {
-      const rendered = renderViewLines(view, this.project, theme, width, this.focusId());
+      const rendered = renderViewLines(view, this.project, theme, width, this.focusId(), { showArchived: this.showArchived });
       content = rendered.lines;
       focusLine = rendered.focusLine;
     }
@@ -1937,8 +2016,8 @@ export class ProjectBrowser {
         : this.currentView === "plan"
           ? `↑↓ select · enter read in full · e edit · a new · D delete · E raw · tab views${this.helpText ? " · ? help" : ""} · q close`
           : rows.length > 0
-            ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9/0 jump${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
-            : `tab views · 1-9/0 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
+            ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9/0 jump${this.archivedHint()}${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
+            : `tab views · 1-9/0 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${this.archivedHint()}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
     const left = theme.fg("dim", ` ${keys}`);
     const right = theme.fg("dim", `${scrollable ? "↕ " : ""}${range} `);
     const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));

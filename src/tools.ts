@@ -30,7 +30,9 @@ import {
   renderStatusText,
   renderStrategyText,
 } from "./format.ts";
-import { ProjectManager, type StrategicOutcome } from "./project.ts";
+import { ProjectManager, ARCHIVABLE_KINDS, type ArchivableKind, type StrategicOutcome } from "./project.ts";
+import { activePlan } from "./replan.ts";
+import { archivedCounts, isArchived } from "./dashboard.ts";
 import { isRunning, spawnDetached, stopProcess, tailLog } from "./runs.ts";
 import { PROJECT_DIR } from "./storage.ts";
 import { validateProject } from "./validate.ts";
@@ -1391,6 +1393,55 @@ export function registerProjectTools(pi: ExtensionAPI): void {
       }
       const report = await manager.read((project) => buildResumeReport(project));
       return ok(`${report}\n\n(reconcile: ${reconciled})`);
+    },
+  });
+
+  /* ---------------- archiving ---------------- */
+
+  pi.registerTool({
+    name: "project_archive",
+    label: "Project: archive",
+    description:
+      "Take a goal, question, risk or plan node out of the way without deleting it, or restore it. " +
+      "Archived items stay readable and keep their links, but stop counting as active work. " +
+      "Archiving is not a status: something can be COMPLETED and archived at once. Prefer archiving over deleting, " +
+      "because the record is what explains how the project got here.",
+    promptSnippet: "Archive or restore a goal, question, risk or node without deleting it",
+    promptGuidelines: [
+      "Use project_archive instead of deleting when something is no longer relevant but worth keeping in the record.",
+    ],
+    parameters: Type.Object({
+      action: StringEnum(["archive", "restore", "list"] as const),
+      kind: Type.Optional(StringEnum(ARCHIVABLE_KINDS)),
+      id: Type.Optional(Type.String({ description: "Entity id, e.g. G4, Q2, R3 or N7" })),
+      reason: Type.Optional(Type.String({ description: "Why it is being archived (recorded in history)" })),
+    }),
+    async execute(_id, params, _signal, _update, ctx) {
+      const manager = await requireManager(ctx);
+      if (params.action === "list") {
+        return ok(
+          await manager.read((project) => {
+            const counts = archivedCounts(project);
+            if (counts.total === 0) return "No archived items.";
+            const lines = [
+              `${counts.total} archived: ${counts.goals} goal(s), ${counts.questions} question(s), ${counts.risks} risk(s), ${counts.nodes} node(s)`,
+              "",
+            ];
+            for (const goal of project.goals.filter(isArchived)) lines.push(`G ${goal.id}: ${goal.title}`);
+            for (const question of project.questions.filter(isArchived)) lines.push(`Q ${question.id}: ${question.question}`);
+            for (const risk of project.risks.filter(isArchived)) lines.push(`R ${risk.id}: ${risk.title}`);
+            const plan = activePlan(project);
+            for (const node of (plan?.nodes ?? []).filter(isArchived)) lines.push(`N ${node.id}: ${node.title}`);
+            return lines.join("\n");
+          }),
+        );
+      }
+      if (!params.kind || !params.id) throw new Error("kind and id are required");
+      const archived = params.action === "archive";
+      const outcome = await manager.setArchived(params.kind as ArchivableKind, params.id, archived, { reason: params.reason });
+      const verb = archived ? "archived" : "restored";
+      if (!outcome.changed) return ok(`${outcome.kind} ${outcome.id} was already ${archived ? "archived" : "active"}.`);
+      return ok(`${outcome.kind} ${outcome.id} ${verb}.${archived ? " It stays readable and keeps its links." : ""}`);
     },
   });
 }

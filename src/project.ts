@@ -159,6 +159,35 @@ function newPercent(value: number | null | undefined): number | null {
   return clampInt(value, 0, 100, 0);
 }
 
+/** Everything that can be taken out of the way without being deleted. */
+export const ARCHIVABLE_KINDS = ["goal", "question", "risk", "node"] as const;
+export type ArchivableKind = (typeof ARCHIVABLE_KINDS)[number];
+
+const ARCHIVABLE_LABEL: Record<ArchivableKind, string> = {
+  goal: "Goal",
+  question: "Question",
+  risk: "Risk",
+  node: "Node",
+};
+
+/** The one-line human name of an archived thing, for the history entry. */
+const ARCHIVABLE_TITLE: Record<ArchivableKind, (entity: ArchivableEntity) => string> = {
+  goal: (entity) => (entity as Goal).title,
+  question: (entity) => (entity as Question).question,
+  risk: (entity) => (entity as Risk).title,
+  node: (entity) => (entity as PlanNode).title,
+};
+
+type ArchivableEntity = Goal | Question | Risk | PlanNode;
+
+export interface ArchiveOutcome {
+  id: string;
+  kind: ArchivableKind;
+  archived: boolean;
+  /** False when it was already in the requested state, so nothing changed. */
+  changed: boolean;
+}
+
 export interface QuestionInput {
   question: string;
   answer?: string;
@@ -500,6 +529,56 @@ export class ProjectManager {
     }, options);
 
     return { status: "applied", value, autoAccepted, note: autoAccepted ? `Pi automatically accepted: goal ${id} ${status}` : "" };
+  }
+
+  /* ---------------- archiving ---------------- */
+
+  /**
+   * Take something out of the way without deleting it. Archiving is deliberately
+   * not a status: a goal can be COMPLETED *and* archived, and a resolved risk
+   * that is archived must still be readable. Only the counts change.
+   */
+  async setArchived(
+    kind: ArchivableKind,
+    id: string,
+    archived: boolean,
+    options: MutateOptions & { reason?: string } = {},
+  ): Promise<ArchiveOutcome> {
+    const label = ARCHIVABLE_LABEL[kind];
+    return (
+      await this.mutate(`project: ${archived ? "archive" : "unarchive"} ${kind} ${id}`, (project) => {
+        const target = this.findArchivable(project, kind, id);
+        const was = target.archived === true;
+        target.archived = archived;
+        target.updated = this.clock.now();
+        if (was !== archived) {
+          const what = ARCHIVABLE_TITLE[kind](target);
+          this.record(
+            archived ? "archived" : "unarchived",
+            `${label} ${id} ${archived ? "archived" : "restored"}: ${what}${options.reason ? ` (${options.reason})` : ""}`,
+            [id],
+            { reason: options.reason },
+          );
+        }
+        return { id, kind, archived, changed: was !== archived };
+      }, options)
+    ).value;
+  }
+
+  /** One lookup for every archivable kind, so the tool stays a single action. */
+  private findArchivable(project: Project, kind: ArchivableKind, id: string): ArchivableEntity {
+    switch (kind) {
+      case "goal":
+        return mustFind(project.goals, id, "goal");
+      case "question":
+        return mustFind(project.questions, id, "question");
+      case "risk":
+        return mustFind(project.risks, id, "risk");
+      case "node": {
+        const { node } = locateNode(project, id);
+        return node;
+      }
+    }
   }
 
   /* ---------------- state ---------------- */

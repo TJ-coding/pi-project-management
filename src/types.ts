@@ -46,6 +46,8 @@ export interface Goal {
   tasks: Id[];
   /** 0..100, or null when the work cannot be estimated. */
   percent: number | null;
+  /** Out of the way but not deleted: still readable, never counted as active. */
+  archived?: boolean;
   supersededBy?: Id | null;
   created: string;
   updated: string;
@@ -105,6 +107,8 @@ export interface Question {
   created: string;
   updated: string;
   answered?: string | null;
+  /** Out of the way but not deleted: still readable, never counted as open. */
+  archived?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -128,6 +132,8 @@ export interface Risk {
   questions: Id[];
   goals: Id[];
   tasks: Id[];
+  /** Out of the way but not deleted: still readable, never counted as open. */
+  archived?: boolean;
   owner?: string;
   created: string;
   updated: string;
@@ -217,6 +223,8 @@ export interface PlanNode {
   run: Id | null;
   /** 0..100, or null when the work cannot be estimated. */
   percent: number | null;
+  /** Out of the way but not deleted: still readable, never counted as active. */
+  archived?: boolean;
   created: string;
   updated: string;
   started: string | null;
@@ -350,6 +358,8 @@ export const HISTORY_KINDS = [
   "run.started",
   "run.finished",
   "task.updated",
+  "archived",
+  "unarchived",
 ] as const;
 export type HistoryKind = (typeof HISTORY_KINDS)[number];
 
