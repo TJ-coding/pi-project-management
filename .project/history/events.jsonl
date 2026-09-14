@@ -174,3 +174,4 @@
 {"seq":174,"at":"2026-09-14T13:54:52.078Z","kind":"risk.resolved","summary":"Risk R7 resolved: Id lookups cross plan versions","by":"agent","refs":["R7"]}
 {"seq":175,"at":"2026-09-14T13:57:15.688Z","kind":"run.started","summary":"Run RUN5 started: k3 frame review round 2","by":"agent","refs":["RUN5"],"details":{"environment":[]}}
 {"seq":176,"at":"2026-09-14T13:59:09.329Z","kind":"question.answered","summary":"Question Q9 CONFIRMED: Do any other lookups resolve an id across plan versions?","by":"agent","refs":["Q9"],"details":{}}
+{"seq":177,"at":"2026-09-14T13:59:09.592Z","kind":"state.changed","summary":"State changed: R7 fixed and published; N18 waiting on the k3 re-review","by":"agent","refs":[]}

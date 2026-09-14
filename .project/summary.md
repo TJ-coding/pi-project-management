@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-All 15 goals closed: 14 COMPLETED (G1-G14) plus the smoke-test artifact G15 archived. Plan P2's six nodes are done except N18, which is verifying. 166 tests pass, TUI/command smoke pass, and the published repo at commit 3b7e4df passes the full check from a clean clone.
+All 15 goals closed (14 COMPLETED, G15 the smoke artifact archived). R7 resolved: goal links now resolve against the active plan. 167 tests pass, TUI smoke passes, published at 0c9106f and verified from a clean clone. N18 is waiting only on the k3 round-2 frame review.
 
 ## Goals
 
