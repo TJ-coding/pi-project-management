@@ -179,3 +179,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T13:57:15.688Z **run.started** — Run RUN5 started: k3 frame review round 2 [RUN5] (by agent)
 - 2026-09-14T13:59:09.329Z **question.answered** — Question Q9 CONFIRMED: Do any other lookups resolve an id across plan versions? [Q9] (by agent)
 - 2026-09-14T13:59:09.592Z **state.changed** — State changed: R7 fixed and published; N18 waiting on the k3 re-review (by agent)
+- 2026-09-14T14:06:50.068Z **run.started** — Run RUN6 started: k3 frame review round 3 [RUN6] (by agent)
