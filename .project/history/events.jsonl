@@ -144,3 +144,4 @@
 {"seq":144,"at":"2026-09-14T10:35:29.150Z","kind":"goal.updated","summary":"Goal G12 updated: Archive anything","by":"agent","refs":["G12"]}
 {"seq":145,"at":"2026-09-14T10:35:29.369Z","kind":"goal.updated","summary":"Goal G11 updated: Progress percent on tasks and goals","by":"agent","refs":["G11"]}
 {"seq":146,"at":"2026-09-14T10:35:32.992Z","kind":"goal.updated","summary":"Goal G13 updated: Phone view of all projects","by":"agent","refs":["G13"]}
+{"seq":147,"at":"2026-09-14T10:35:33.211Z","kind":"goal.updated","summary":"Goal G14 updated: One persistent objective","by":"agent","refs":["G14"]}

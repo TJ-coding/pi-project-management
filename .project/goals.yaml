@@ -225,10 +225,13 @@
   created: 2026-09-14T09:28:37.123Z
   updated: 2026-09-14T10:35:32.992Z
 - id: G14
-  title: project like a goal command
+  title: One persistent objective
   description: I don't know what the resume pause features are for but I want it to be like a goal command.
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - A project can hold one persistent objective sentence.
+    - The digest states the objective, progress and what done means.
+    - A command sets, shows and clears the objective.
   status: ACTIVE
   parent: null
   superseded_by: null
@@ -236,4 +239,4 @@
   risks: []
   tasks: []
   created: 2026-09-14T09:29:55.311Z
-  updated: 2026-09-14T09:29:55.311Z
+  updated: 2026-09-14T10:35:33.211Z
