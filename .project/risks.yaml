@@ -77,10 +77,11 @@
   updated: 2026-09-13T16:16:11.805Z
 - id: R6
   title: Publishing leaks secrets or private project data
-  description: A public repo push could carry credentials or local paths in .project history.
-  probability: 0.1
+  description: "Publishing leaked nothing: no credentials in tree or history, and the four
+    machine-local paths were redacted before the first push."
+  probability: 0.02
   impact: 0.7
-  status: MITIGATING
+  status: RESOLVED
   mitigation: "Checked: 64 tracked files and the full git history hold no credentials. Add a licence
     and .gitignore before going public."
   contingency: Make the repo private again and rotate anything exposed.
@@ -90,7 +91,7 @@
   tasks: []
   owner: ""
   created: 2026-09-13T16:16:11.993Z
-  updated: 2026-09-13T16:22:20.877Z
+  updated: 2026-09-14T10:28:10.747Z
 - id: R7
   title: Id lookups cross plan versions
   description: Other id lookups could also resolve across plan versions, silently editing history.

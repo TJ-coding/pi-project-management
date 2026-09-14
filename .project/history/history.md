@@ -140,3 +140,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:28:06.011Z **task.updated** — Node N10 RUNNING -> COMPLETED: Publish the repo to GitHub [N10] (by agent)
 - 2026-09-14T10:28:06.177Z **goal.completed** — Goal G7 COMPLETED: Upload the project to github repository [G7] (by agent)
 - 2026-09-14T10:28:10.567Z **decision.made** — Decision D6 (SIGNIFICANT): Redact paths, not names [D6, G7] (by agent)
+- 2026-09-14T10:28:10.747Z **risk.resolved** — Risk R6 resolved: Publishing leaks secrets or private project data [R6] (by agent)
