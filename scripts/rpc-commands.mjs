@@ -24,7 +24,7 @@ const commands = getArg("commands", "/project status")
   .filter(Boolean);
 const timeoutMs = Number(getArg("timeout", "120000"));
 
-const child = spawn("pi", ["--mode", "rpc", "--no-session", "-e", ext], {
+const child = spawn("pi", ["--mode", "rpc", "--no-session", "--no-extensions", "-e", ext], {
   cwd,
   stdio: ["pipe", "pipe", "pipe"],
   env: { ...process.env },
@@ -94,7 +94,12 @@ child.stdout.on("data", (chunk) => {
 });
 child.stderr.on("data", (chunk) => {
   const text = chunk.toString("utf8").trim();
-  if (text && !text.includes("pix-bench-prefetch")) console.error(`[pi stderr] ${text}`);
+  if (!text || text.includes("pix-bench-prefetch")) return;
+  console.error(`[pi stderr] ${text}`);
+  // An extension that fails to load used to be printed and then ignored, so the
+  // smoke reported PASS while nothing under test was actually loaded. A smoke
+  // that passes when its subject is absent is worse than no smoke.
+  if (/Failed to load extension|conflicts with/i.test(text)) failures.push(`extension did not load: ${text.split("\n")[0]}`);
 });
 
 const timer = setTimeout(() => {

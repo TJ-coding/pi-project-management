@@ -46,7 +46,7 @@ const expectText = getArg("expect-text", "")
   .filter(Boolean);
 const skipFsChecks = getArg("skip-fs-checks", "false") === "true";
 
-const child = spawn(process.execPath === "" ? "pi" : "pi", ["--mode", "rpc", "--no-session", "-e", ext], {
+const child = spawn(process.execPath === "" ? "pi" : "pi", ["--mode", "rpc", "--no-session", "--no-extensions", "-e", ext], {
   cwd,
   stdio: ["pipe", "pipe", "pipe"],
   env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },

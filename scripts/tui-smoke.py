@@ -50,7 +50,12 @@ class PiSession:
             fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
             os.chdir(cwd)
             os.environ["TERM"] = "xterm-256color"
-            os.execvp("pi", ["pi", "--no-session", "-e", ext])
+            # --no-extensions matters: this smoke loads one explicit copy of the
+            # extension with -e, and a globally installed copy would load too.
+            # Both register project_* tools, the duplicate names make pi exit, and
+            # the failure surfaced as an opaque EIO on the pty write instead of
+            # "tool conflicts" — so the smoke could not run from a second checkout.
+            os.execvp("pi", ["pi", "--no-session", "--no-extensions", "-e", ext])
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         time.sleep(0.3)
         try:
