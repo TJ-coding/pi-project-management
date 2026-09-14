@@ -62,11 +62,12 @@
   updated: 2026-09-13T16:38:12.769Z
 - id: R5
   title: Propagation overwrites human text
-  description: Auto-filling goal fields could replace wording the human authored on purpose.
-  probability: 0.4
+  description: Propagation could overwrite human text; reviewed in the k3 loop without an observed occurrence.
+  probability: 0.2
   impact: 0.4
-  status: OPEN
-  mitigation: Only fill empty fields, show the proposal, and record it in history.
+  status: MITIGATING
+  mitigation: Only empty fields are filled, each proposal is confirmed, and a hand-written value is
+    never replaced; propagate.ts is unit-tested.
   contingency: ""
   questions: []
   goals:
@@ -74,7 +75,7 @@
   tasks: []
   owner: ""
   created: 2026-09-13T16:16:11.805Z
-  updated: 2026-09-13T16:16:11.805Z
+  updated: 2026-09-14T14:57:27.368Z
 - id: R6
   title: Publishing leaks secrets or private project data
   description: "Publishing leaked nothing: no credentials in tree or history, and the four
