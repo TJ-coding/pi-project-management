@@ -196,13 +196,13 @@
   answered: 2026-09-13T17:30:24.907Z
 - id: Q9
   question: Do any other lookups resolve an id across plan versions?
-  answer: Mostly no. DAG validation is already per plan; the one real leak is a goal satisfiability
-    hint reading any plan's nodes, so a stale id can make a goal look done.
-  status: ANSWERED
+  answer: "No lookup leaks across plans now. The two that did are fixed: node mutations prefer the
+    active plan, and goal links resolve against it."
+  status: CONFIRMED
   importance: 0.6
-  uncertainty: 0.3
+  uncertainty: 0
   decision_impact: 0.6
-  confidence: 0.7
+  confidence: 0.85
   evidence:
     - description: validateDag runs per plan inside a loop over plans, so node-level checks stay scoped
         correctly (src/validate.ts:75)
@@ -215,14 +215,25 @@
     - description: propagate.ts matches nodes by goal, not by id, so it is unaffected (src/propagate.ts:65)
       kind: doc
       ref: src/propagate.ts:65
+    - description: "Reproduced the goal-link leak: with P1 owning N1/N2 and P2 owning N1/N3, marking P1's
+        N2 done made the linked goal report as satisfiable (test/project.test.ts)"
+      kind: experiment
+      ref: test/project.test.ts
+    - description: locateNode now searches the active plan first, covered by a reproduction of
+        superseded-plan mutation
+      kind: measurement
+      ref: src/project.ts
+    - description: 167 tests pass, TUI smoke passes, and the fix is published at 0c9106f
+      kind: measurement
+      ref: npm run check
   goals:
     - G1
   risks: []
   tasks: []
   decisions: []
   created: 2026-09-14T09:34:25.574Z
-  updated: 2026-09-14T09:34:41.130Z
-  answered: 2026-09-14T09:34:41.130Z
+  updated: 2026-09-14T13:59:09.329Z
+  answered: 2026-09-14T13:59:09.329Z
 - id: Q10
   question: What does done mean for G13 and G14?
   answer: G14 = one persistent objective per project that drives turns, like the harness /goal. G13 =
