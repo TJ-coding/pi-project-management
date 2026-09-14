@@ -162,3 +162,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:55:21.517Z **task.updated** — Node N15 PENDING -> RUNNING: Add archiving [N15] (by agent)
 - 2026-09-14T11:10:41.255Z **task.updated** — Node N15 RUNNING -> COMPLETED: Add archiving [N15] (by agent)
 - 2026-09-14T11:10:41.466Z **goal.completed** — Goal G12 COMPLETED: Archive anything [G12] (by agent)
+- 2026-09-14T11:10:53.295Z **task.updated** — Node N16 PENDING -> RUNNING: Add a persistent objective [N16] (by agent)

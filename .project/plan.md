@@ -15,7 +15,7 @@ Rationale: Four goals are already implemented but unclosed; three need building;
 - [COMPLETED] N15 TASK — Add archiving (after N13) {goal:G12}
     Add meta.archived plus archive/unarchive commands; archived items leave active counts but stay readable.
     outputs: archived is a boolean on goals, questions, risks and nodes; never a status; Archived items leave active counts but keep their record and links; Panels state how many are hidden and v toggles them back without writing; Archiving a node does not rewire the DAG for its dependants; 138 tests pass (9 new), TUI smoke passes
-- [PENDING] N16 TASK — Add a persistent objective (after N13) {goal:G14}
+- [RUNNING] N16 TASK — Add a persistent objective (after N13) {goal:G14}
     Add one objective sentence per project, shown in the digest with progress and done-when.
 - [PENDING] N17 TASK — Serve a phone dashboard (after N16) {goal:G13}
     Serve a read-only page listing all projects, their current task and aggregated pending decisions.

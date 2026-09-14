@@ -158,3 +158,4 @@
 {"seq":158,"at":"2026-09-14T10:55:21.517Z","kind":"task.updated","summary":"Node N15 PENDING -> RUNNING: Add archiving","by":"agent","refs":["N15"],"details":{}}
 {"seq":159,"at":"2026-09-14T11:10:41.255Z","kind":"task.updated","summary":"Node N15 RUNNING -> COMPLETED: Add archiving","by":"agent","refs":["N15"],"details":{}}
 {"seq":160,"at":"2026-09-14T11:10:41.466Z","kind":"goal.completed","summary":"Goal G12 COMPLETED: Archive anything","by":"agent","refs":["G12"],"details":{"reason":"Four kinds can be archived and restored, archived items stay readable and stop counting, and the panels state the hidden count with a v toggle."}}
+{"seq":161,"at":"2026-09-14T11:10:53.295Z","kind":"task.updated","summary":"Node N16 PENDING -> RUNNING: Add a persistent objective","by":"agent","refs":["N16"],"details":{}}

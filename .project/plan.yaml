@@ -364,7 +364,7 @@ plans:
       - id: N16
         title: Add a persistent objective
         type: TASK
-        status: PENDING
+        status: RUNNING
         description: Add one objective sentence per project, shown in the digest with progress and done-when.
         depends_on:
           - N13
@@ -377,8 +377,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:35:38.403Z
-        started: null
+        updated: 2026-09-14T11:10:53.295Z
+        started: 2026-09-14T11:10:53.295Z
         finished: null
       - id: N17
         title: Serve a phone dashboard
