@@ -126,3 +126,4 @@
 {"seq":126,"at":"2026-09-14T09:28:37.123Z","kind":"goal.created","summary":"Goal G13 created: I want to interact with it through my phone.","by":"human","refs":["G13"],"details":{"status":"ACTIVE","priority":3}}
 {"seq":127,"at":"2026-09-14T09:29:55.311Z","kind":"goal.created","summary":"Goal G14 created: project like a goal command","by":"human","refs":["G14"],"details":{"status":"ACTIVE","priority":3}}
 {"seq":128,"at":"2026-09-14T09:30:13.453Z","kind":"run.finished","summary":"Interrupted runs reconciled: RUN1","by":"human","refs":["RUN1"],"details":{"status":"INTERRUPTED"}}
+{"seq":129,"at":"2026-09-14T09:34:25.574Z","kind":"question.created","summary":"Question Q9 created: Do any other lookups resolve an id across plan versions?","by":"agent","refs":["Q9"]}

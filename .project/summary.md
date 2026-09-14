@@ -41,13 +41,13 @@ Improve project maangement capability, and better utilize idle time, and allow a
 ## Major Questions
 
 - Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
+- Q9 Do any other lookups resolve an id across plan versions? — UNKNOWN (HIGH)
 - Q6 Is pause a new status or a view of existing state? — ANSWERED (LOW)
 - Q4 Which panels can go without losing a spec requirement? — ANSWERED (LOW)
 - Q2 Should rename touch only meta.name, or ids and paths too? — ANSWERED (LOW)
 - Q5 Does the tree or git history hold anything unfit to publish? — ANSWERED (LOW)
 - Q7 Hierarchy or frequency for the panel rail order? — ANSWERED (LOW)
 - Q8 Should the rail drop to ten views so every key works? — ANSWERED (LOW)
-- Q3 Do budgets need per-project overrides in project.yaml? — ANSWERED (LOW)
 
 ## Major Decisions
 

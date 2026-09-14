@@ -194,3 +194,20 @@
   created: 2026-09-13T17:30:20.514Z
   updated: 2026-09-13T17:30:24.907Z
   answered: 2026-09-13T17:30:24.907Z
+- id: Q9
+  question: Do any other lookups resolve an id across plan versions?
+  answer: ""
+  status: UNKNOWN
+  importance: 0.6
+  uncertainty: 0.5
+  decision_impact: 0.6
+  confidence: 0
+  evidence: []
+  goals:
+    - G1
+  risks: []
+  tasks: []
+  decisions: []
+  created: 2026-09-14T09:34:25.574Z
+  updated: 2026-09-14T09:34:25.574Z
+  answered: null
