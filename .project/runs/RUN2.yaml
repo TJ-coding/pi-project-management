@@ -7,10 +7,10 @@ environment:
     target: ~/Projects/pi-project-management
     note: repo with npm check and TUI smoke
 command: null
-cwd: /Users/tomoyuki-j/Projects/pi-project-management
+cwd: <repo>
 pid: null
 host: null
-session: /Users/tomoyuki-j/.pi/agent/sessions/--Users-tomoyuki-j-Projects-pi-project-management--/2026-09-13T15-59-32-069Z_01a09b7e-c6e4-72a2-bbd9-e3e298304301.jsonl
+session: <pi session file>
 log: null
 exit_code: null
 started: 2026-09-13T16:35:34.684Z
