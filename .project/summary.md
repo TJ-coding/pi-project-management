@@ -26,6 +26,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - ✓ G10 Start / Pause Project (COMPLETED)
 - → G11 Add a mechanism to add progress bar to task / goal (ACTIVE)
 - → G12 Archive (ACTIVE)
+- → G13 I want to interact with it through my phone. (ACTIVE)
 
 ## Major Risks
 

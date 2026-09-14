@@ -199,3 +199,19 @@
   tasks: []
   created: 2026-09-14T09:26:40.136Z
   updated: 2026-09-14T09:26:40.136Z
+- id: G13
+  title: I want to interact with it through my phone.
+  description: I want to know which projects are running, what task is being conducted at a glance. I
+    don't want to be bothered by different sessions with loze of questions independently. I want the
+    decisions to be aggregated, and i get to select from choices simply or something. Something with
+    human centered design in mind.
+  priority: 3
+  success_criteria: []
+  status: ACTIVE
+  parent: null
+  superseded_by: null
+  questions: []
+  risks: []
+  tasks: []
+  created: 2026-09-14T09:28:37.123Z
+  updated: 2026-09-14T09:28:37.123Z
