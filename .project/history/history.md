@@ -200,4 +200,5 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T15:16:22.689Z **task.updated** — Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work) [G15] (by agent)
 - 2026-09-14T15:16:52.488Z **decision.made** — Decision D9 (ROUTINE): Abandon, do not complete, the fixture [D9] (by agent)
 - 2026-09-14T15:16:58.684Z **state.changed** — State changed: Completion: every goal closed, verified from a clean clone (by agent)
-- 2026-09-14T15:24:52.931Z **goal.archived** — Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work) [G15] (by agent)
+- 2026-09-14T15:24:52.931Z **task.updated** — Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work) [G15] (by agent)
+- 2026-09-14T15:29:27.971Z **state.changed** — State changed: Completion verified; the field-loss hazard is now guarded (by agent)

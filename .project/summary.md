@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-Project complete. All 15 goals closed: 14 COMPLETED (G1-G14) and G15 ABANDONED as the smoke-test fixture it was. Plan P2's six nodes all done. Zero validation issues. 171 tests, TUI smoke and command smoke all pass from a clean clone of the public repo at 8f243e5.
+Project complete and verified. All 15 goals closed: 14 COMPLETED (G1-G14), G15 ABANDONED as the smoke-test fixture it was. Schema stamp added (v3) so a stale session can no longer strip new fields. 173 tests, TUI smoke and command smoke all pass from a clean clone of the public repo at c4865c9.
 
 ## Goals
 
@@ -28,7 +28,7 @@ Project complete. All 15 goals closed: 14 COMPLETED (G1-G14) and G15 ABANDONED a
 - ✓ G12 Archive anything (COMPLETED)
 - ✓ G13 Phone view of all projects (COMPLETED)
 - ✓ G14 One persistent objective (COMPLETED)
-- ⊘ G15 Validate tools (ABANDONED [ARCHIVED])
+- ⊘ G15 Validate tools (ABANDONED)
 
 ## Major Risks
 
@@ -71,5 +71,5 @@ Project complete. All 15 goals closed: 14 COMPLETED (G1-G14) and G15 ABANDONED a
 
 ## Lessons / Findings
 
-- Smoke runners that omit --no-extensions load the globally installed copy too, and duplicate tool names make pi exit — which the command smoke reported as PASS until it was fixed.
+- A stale session stripped the archived flag four times; project.yaml now carries a schema stamp and mutate() refuses a save that would lose newer fields.
 - Q9 CONFIRMED: No lookup leaks across plans now. The two that did are fixed: node mutations prefer the active plan, and goal links resolve against it.
