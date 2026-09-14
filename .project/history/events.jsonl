@@ -181,3 +181,4 @@
 {"seq":181,"at":"2026-09-14T14:16:51.701Z","kind":"decision.made","summary":"Decision D7 (SIGNIFICANT): Four k3 rounds before signing off","by":"agent","refs":["D7","G1"],"details":{"autoAccepted":false}}
 {"seq":182,"at":"2026-09-14T14:27:03.881Z","kind":"run.started","summary":"Run RUN8 started: k3 frame review round 5","by":"agent","refs":["RUN8"],"details":{"environment":[]}}
 {"seq":183,"at":"2026-09-14T14:27:09.921Z","kind":"state.changed","summary":"State changed: Five k3 rounds, 11 defects fixed; only the final verdict is outstanding","by":"agent","refs":[]}
+{"seq":184,"at":"2026-09-14T14:36:07.754Z","kind":"run.started","summary":"Run RUN9 started: k3 frame review round 5 (retry)","by":"agent","refs":["RUN9"],"details":{"environment":[]}}
