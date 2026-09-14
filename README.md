@@ -14,7 +14,36 @@ Gates, History, YOLO, long-running runs, workspace, completion) is implemented
 and tested — see [`docs/SPEC-MAPPING.md`](docs/SPEC-MAPPING.md) for the
 requirement-by-requirement traceability.
 
-![Dashboard in a real Pi terminal](docs/dashboard-tui.txt)
+The dashboard as it renders in a real Pi terminal:
+
+```
+Autonomous Research Agent — Dashboard (1/11)
+[1]· 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 11    Dashboard
+Autonomous Research Agent
+─── VISION ─────────────────────────────────────────────────────────────────────────────────────────
+Build an autonomous research environment capable of conducting multi-day research investigations
+with minimal human intervention.
+intent: Develop infrastructure for autonomous scientific research while reducing the amount of
+manual experimentation required from researchers.
+─── GOALS ──────────────────────────────────────────────────────────────────────────────────────────
+✓ Build prototype [COMPLETED] P5
+→ Autonomous experiment selection [ACTIVE] P4
+→ Demonstrate useful research output [ACTIVE] P4
+✗ Original architecture [FAILED] P2
+─── STATE ──────────────────────────────────────────────────────────────────────────────────────────
+Prototype operational; evaluator remains uncertain.
+problems: Evaluator agreement with humans is unmeasured
+─── RISKS ──────────────────────────────────────────────────────────────────────────────────────────
+! Original architecture fails at scale CRITICAL exposure 0.64
+! Evaluation reliability HIGH     exposure 0.36
+! Compute cost MEDIUM   exposure 0.25
+! Reproducibility drift MEDIUM   exposure 0.21
+─── INTELLIGENCE ───────────────────────────────────────────────────────────────────────────────────
+? Does the evaluator correlate with human judgement? CRITICAL UNKNOWN
+? Can the loop converge reliably? HIGH     UNKNOWN
+ ↓ Dashboard  Lines 1-23/33 · j/k ↑↓ scroll · space page · g/G top/bottom
+tab/←→ switch · 1-9 jump · r reload · q close
+```
 
 ## Install
 
