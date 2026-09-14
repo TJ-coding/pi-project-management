@@ -41,8 +41,8 @@ All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at gi
 
 ## Major Questions
 
-- Q10 What does done mean for G13 and G14? — UNKNOWN (CRITICAL)
 - Q1 What belongs in the digest when long values cannot fit? — UNKNOWN (HIGH)
+- Q10 What does done mean for G13 and G14? — ANSWERED (MEDIUM)
 - Q6 Is pause a new status or a view of existing state? — ANSWERED (LOW)
 - Q9 Do any other lookups resolve an id across plan versions? — ANSWERED (LOW)
 - Q4 Which panels can go without losing a spec requirement? — ANSWERED (LOW)

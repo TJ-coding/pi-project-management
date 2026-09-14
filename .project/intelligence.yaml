@@ -225,17 +225,32 @@
   answered: 2026-09-14T09:34:41.130Z
 - id: Q10
   question: What does done mean for G13 and G14?
-  answer: ""
-  status: UNKNOWN
+  answer: G14 = one persistent objective per project that drives turns, like the harness /goal. G13 =
+    a read-only phone view of all projects plus aggregated pending decisions.
+  status: ANSWERED
   importance: 0.8
-  uncertainty: 0.6
+  uncertainty: 0.3
   decision_impact: 0.8
-  confidence: 0
-  evidence: []
+  confidence: 0.7
+  evidence:
+    - description: The harness /goal works by injecting a contract each turn, waiting, and completing
+        against a goal_id; a project-level equivalent needs an objective record plus progress and a
+        done condition
+      kind: measurement
+      ref: active /goal prompt this session
+    - description: G13 asks for at-a-glance status, aggregated decisions and simple selection; the project
+        already stores runs, next nodes and gates, so aggregation is a reporting problem, not new
+        state
+      kind: doc
+      ref: .project/goals.yaml G13
+    - description: There is no HTTP surface anywhere in src/, so the phone view needs a small read-only
+        server plus a single HTML page
+      kind: measurement
+      ref: grep -rn 'createServer' src/
   goals: []
   risks: []
   tasks: []
   decisions: []
   created: 2026-09-14T10:35:11.032Z
-  updated: 2026-09-14T10:35:11.032Z
-  answered: null
+  updated: 2026-09-14T10:35:25.754Z
+  answered: 2026-09-14T10:35:25.754Z
