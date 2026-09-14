@@ -24,6 +24,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T15:59:02.928Z
         updated: 2026-09-13T16:41:40.858Z
         started: null
@@ -45,6 +47,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T15:59:03.093Z
         updated: 2026-09-13T17:20:55.694Z
         started: null
@@ -65,6 +69,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T15:59:03.265Z
         updated: 2026-09-13T16:19:51.013Z
         started: null
@@ -92,6 +98,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T15:59:03.439Z
         updated: 2026-09-13T18:25:25.102Z
         started: null
@@ -114,6 +122,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T15:59:43.537Z
         updated: 2026-09-13T16:38:12.583Z
         started: null
@@ -136,6 +146,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T16:15:39.108Z
         updated: 2026-09-13T17:14:06.378Z
         started: null
@@ -158,6 +170,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T16:15:46.939Z
         updated: 2026-09-13T17:24:48.419Z
         started: 2026-09-13T17:21:20.789Z
@@ -180,6 +194,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T16:15:50.142Z
         updated: 2026-09-13T17:38:40.426Z
         started: null
@@ -203,6 +219,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T16:15:53.158Z
         updated: 2026-09-13T17:44:46.601Z
         started: 2026-09-13T17:39:00.158Z
@@ -228,6 +246,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T16:15:56.369Z
         updated: 2026-09-14T10:28:06.011Z
         started: 2026-09-14T09:48:10.642Z
@@ -249,6 +269,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-13T16:15:59.003Z
         updated: 2026-09-13T16:45:56.142Z
         started: null
@@ -270,6 +292,8 @@ plans:
         assignee: agent
         gate: null
         run: RUN2
+        percent: null
+        archived: false
         created: 2026-09-13T16:35:27.480Z
         updated: 2026-09-13T18:26:14.757Z
         started: 2026-09-13T16:35:34.684Z
@@ -309,6 +333,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-14T10:35:38.403Z
         updated: 2026-09-14T10:36:23.472Z
         started: 2026-09-14T10:35:42.144Z
@@ -332,6 +358,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-14T10:35:38.403Z
         updated: 2026-09-14T10:55:09.173Z
         started: 2026-09-14T10:36:26.134Z
@@ -357,6 +385,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-14T10:35:38.403Z
         updated: 2026-09-14T11:10:41.255Z
         started: 2026-09-14T10:55:21.517Z
@@ -376,6 +406,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-14T10:35:38.403Z
         updated: 2026-09-14T11:10:53.295Z
         started: 2026-09-14T11:10:53.295Z
@@ -396,6 +428,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-14T10:35:38.403Z
         updated: 2026-09-14T10:35:38.403Z
         started: null
@@ -418,6 +452,8 @@ plans:
         assignee: agent
         gate: null
         run: null
+        percent: null
+        archived: false
         created: 2026-09-14T10:35:38.403Z
         updated: 2026-09-14T10:35:38.403Z
         started: null
