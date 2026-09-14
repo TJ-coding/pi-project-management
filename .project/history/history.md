@@ -125,3 +125,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-13T18:25:25.102Z **task.updated** — Node N4 COMPLETED -> COMPLETED: k3 sign-off on the frames [N4] (by agent)
 - 2026-09-13T18:26:01.295Z **state.changed** — State changed: state updated (by agent)
 - 2026-09-13T18:26:14.757Z **run.finished** — Run RUN2 COMPLETED: Execute the ready plan nodes (N1, N2, N5, N6, N11, N12) [RUN2, N12] (by agent)
+- 2026-09-14T09:26:06.826Z **goal.created** — Goal G11 created: Add a mechanism to add progress bar to task / goal [G11] (by human)

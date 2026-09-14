@@ -24,6 +24,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 - ✓ G8 Reconsider ordering of panels. (COMPLETED)
 - → G9 Warn when exiting change without saving. (ACTIVE)
 - ✓ G10 Start / Pause Project (COMPLETED)
+- → G11 Add a mechanism to add progress bar to task / goal (ACTIVE)
 
 ## Major Risks
 
