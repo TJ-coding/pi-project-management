@@ -129,3 +129,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T09:26:40.136Z **goal.created** — Goal G12 created: Archive [G12] (by human)
 - 2026-09-14T09:28:37.123Z **goal.created** — Goal G13 created: I want to interact with it through my phone. [G13] (by human)
 - 2026-09-14T09:29:55.311Z **goal.created** — Goal G14 created: project like a goal command [G14] (by human)
+- 2026-09-14T09:30:13.453Z **run.finished** — Interrupted runs reconciled: RUN1 [RUN1] (by human)
