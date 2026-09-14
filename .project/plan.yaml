@@ -292,7 +292,7 @@ plans:
       - id: N13
         title: Audit and close the met goals
         type: REVIEW
-        status: PENDING
+        status: RUNNING
         description: Confirm G1, G2, G5 and G9 against their success criteria and close the ones already met.
         depends_on: []
         goal: null
@@ -304,8 +304,8 @@ plans:
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:35:38.403Z
-        started: null
+        updated: 2026-09-14T10:35:42.144Z
+        started: 2026-09-14T10:35:42.144Z
         finished: null
       - id: N14
         title: Add progress percent

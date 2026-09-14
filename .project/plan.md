@@ -6,7 +6,7 @@ Rationale: Four goals are already implemented but unclosed; three need building;
 
 ## Nodes
 
-- [PENDING] N13 REVIEW — Audit and close the met goals
+- [RUNNING] N13 REVIEW — Audit and close the met goals
     Confirm G1, G2, G5 and G9 against their success criteria and close the ones already met.
 - [PENDING] N14 TASK — Add progress percent (after N13) {goal:G11}
     Add percent to node and goal, show it in the plan panel, refuse out-of-range values.
