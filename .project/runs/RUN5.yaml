@@ -1,7 +1,7 @@
 id: RUN5
 title: k3 frame review round 2
 node: null
-status: STARTED
+status: INTERRUPTED
 environment: []
 command: sh scripts/run-k3-review.sh /tmp/k3-full2.txt /tmp/k3-reply2.txt
 cwd: /Users/tomoyuki-j/Projects/pi-project-management
@@ -12,6 +12,9 @@ log: /Users/tomoyuki-j/Projects/pi-project-management/.project/runs/RUN5.log
 exit_code: null
 started: 2026-09-14T13:57:15.688Z
 finished: null
-updated: 2026-09-14T13:57:15.688Z
-entries: []
+updated: 2026-09-14T14:07:12.923Z
+entries:
+  - at: 2026-09-14T14:07:12.923Z
+    kind: note
+    text: "Marked INTERRUPTED: no live process found for this run."
 outputs: []
