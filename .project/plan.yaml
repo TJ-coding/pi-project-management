@@ -316,22 +316,26 @@ plans:
       - id: N14
         title: Add progress percent
         type: TASK
-        status: RUNNING
+        status: COMPLETED
         description: Add percent to node and goal, show it in the plan panel, refuse out-of-range values.
         depends_on:
           - N13
         goal: G11
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - percent is number|null on both Goal and PlanNode, round-tripping through the YAML
+          - Out-of-range writes throw before anything is saved and the old value survives
+          - Row shows a percent badge, reading pane and forms show the bar
+          - 129 tests pass (10 new), TUI smoke passes
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T10:36:26.134Z
+        updated: 2026-09-14T10:55:09.173Z
         started: 2026-09-14T10:36:26.134Z
-        finished: null
+        finished: 2026-09-14T10:55:09.173Z
       - id: N15
         title: Add archiving
         type: TASK
