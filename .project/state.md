@@ -6,7 +6,7 @@ Seeded 2026-09-14: direction, three goals, three questions, three risks, a four-
 
 ## Current State
 
-All 15 goals closed (14 COMPLETED, G15 archived). R7 resolved. Five k3 review rounds found 11 real defects, all fixed: archived leaking into aggregates, an internally contradictory summary line, a reused done-glyph, and footers eliding keybindings at 80 columns. 169 tests pass, TUI and command smoke pass, published at 44801f4. N18 awaits only the k3 round-5 verdict.
+All goals closed: 14 COMPLETED, and G15 abandoned as the smoke-test fixture it was. Plan P2 fully executed (six nodes). R7 resolved. Seven k3 review rounds found 12 defects, all fixed; final verdict was ship it. 171 tests pass locally and from a clean clone at d5e20a9. R1-R7 all closed except R3 and R5.
 
 ## Capabilities
 
@@ -31,4 +31,4 @@ _None yet._
 
 ## Last Updated
 
-2026-09-14T14:27:09.921Z
+2026-09-14T14:57:19.356Z

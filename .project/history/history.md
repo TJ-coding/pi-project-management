@@ -191,5 +191,6 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T14:53:40.739Z **gate.passed** — Gate N18 (GATE) -> PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off, numbers cross-check. [N18] (by agent)
 - 2026-09-14T14:53:46.877Z **run.finished** — Run RUN3 COMPLETED: Complete the eight open goals (G1,G2,G5,G9,G11-G14) [RUN3, N13] (by agent)
 - 2026-09-14T14:53:47.241Z **task.updated** — Node N18 COMPLETED -> COMPLETED: Verify and publish everything [N18] (by agent)
-- 2026-09-14T14:54:12.145Z **goal.archived** — Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work) [G15] (by agent)
+- 2026-09-14T14:54:12.145Z **task.updated** — Goal G15 archived: Validate tools (smoke-test artifact from scripts/rpc-smoke.mjs, not project work) [G15] (by agent)
 - 2026-09-14T14:56:13.116Z **goal.abandoned** — Goal G15 ABANDONED: Validate tools [G15] (by agent)
+- 2026-09-14T14:57:19.356Z **state.changed** — State changed: Every goal closed and verified; the project is complete (by agent)
