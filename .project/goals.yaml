@@ -22,14 +22,14 @@
     - Over-budget new or changed text is refused and nothing is written.
     - Legacy text is grandfathered and may only shrink.
     - The agent digest prints the budgets each session.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
   risks: []
   tasks: []
   created: 2026-09-13T15:59:01.296Z
-  updated: 2026-09-13T15:59:01.296Z
+  updated: 2026-09-14T10:36:07.135Z
 - id: G3
   title: Close the two known gaps
   description: Rename and digest length are the remaining rough edges reported by the human.

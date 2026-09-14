@@ -15,7 +15,7 @@ All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at gi
 ## Goals
 
 - ✓ G1 Keep every panel readable at 80 columns (COMPLETED)
-- → G2 Enforce brevity on every write (ACTIVE)
+- ✓ G2 Enforce brevity on every write (COMPLETED)
 - ✓ G3 Close the two known gaps (COMPLETED)
 - ✓ G4 Minimalism (COMPLETED)
 - → G5 Visual DAG (ACTIVE)
