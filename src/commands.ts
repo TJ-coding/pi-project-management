@@ -38,6 +38,7 @@ import {
   renderStrategyText,
 } from "./format.ts";
 import { renderCompletionSummary } from "./history.ts";
+import { gatherWorkspace, lanAddresses, startPhoneServer, type PhoneServerHandle } from "./phone.ts";
 import { ProjectManager } from "./project.ts";
 import { EDITABLE_SECTIONS, editableSection, editableSectionIds, type EditableSection } from "./editing.ts";
 import { renderReplanAnalysis, renderReviewReport } from "./reports.ts";
@@ -69,6 +70,7 @@ export const PROJECT_SUBCOMMANDS = [
   "complete",
   "watch",
   "projects",
+  "phone",
   "tools",
   "help",
 ] as const;
@@ -137,6 +139,14 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
   complete: { usage: "/project complete", summary: "mark the project complete and show the summary" },
   watch: { usage: "/project watch [on|off]", summary: "toggle the editor widget" },
   projects: { usage: "/project projects", summary: "list projects in the local workspace" },
+  phone: {
+    usage: "/project phone [port]",
+    summary: "serve a read-only page for your phone",
+    details:
+      "Starts a read-only server listing every workspace project, the task each is conducting, and every decision " +
+      "waiting on a human. Open the printed LAN URL on your phone. Nothing on the page writes to a project; " +
+      "decide in the project itself. Stop it with Ctrl+C.",
+  },
   tools: {
     usage: "/project tools",
     summary: "list the project_* tools the agent can call",
@@ -154,7 +164,7 @@ export function renderHelp(pi?: ExtensionAPI): string {
   const groups: Array<[string, Subcommand[]]> = [
     ["View", ["dashboard", "status", "direction", "goals", "state", "intelligence", "risks", "strategy", "plan", "history", "evolution", "runs", "summary"]],
     ["Act", ["init", "edit", "review", "replan", "resume", "rename", "pause", "start", "objective", "yolo", "complete", "watch"]],
-    ["Discover", ["tools", "projects", "help"]],
+    ["Discover", ["tools", "projects", "phone", "help"]],
   ];
   for (const [title, names] of groups) {
     lines.push(`${title}:`);
@@ -301,6 +311,11 @@ async function handleProjectCommand(
           .map((entry) => `- ${entry.name}: ${entry.path}${workspace.active === entry.name ? " (active)" : ""}`)
           .join("\n");
     await showText(pi, ctx, `Workspace projects (${workspace.projects.length}):\n${lines}`);
+    return;
+  }
+
+  if (sub === "phone") {
+    await runPhone(pi, ctx, rest);
     return;
   }
 
@@ -565,6 +580,71 @@ async function runPause(
  * `/project objective [<sentence>|clear]`. With no argument it shows the
  * objective with its progress and finish line; with text it sets one.
  */
+/**
+ * `/project phone [port]` — serve the read-only workspace view.
+ *
+ * Runs until interrupted, so it prints what it exposed and where to reach it
+ * before it blocks. A server nobody can find is worse than no server.
+ */
+async function runPhone(pi: ExtensionAPI, ctx: ExtensionCommandContext, rest: string): Promise<void> {
+  const portArg = rest.trim().match(/^(\d+)$/)?.[1];
+  const port = portArg ? Number.parseInt(portArg, 10) : 8787;
+
+  let handle: PhoneServerHandle;
+  try {
+    handle = await startPhoneServer({ port });
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    // A fixed port is a guess. If something else already owns it, take a free one
+    // rather than failing: the human asked to see their projects, not to pick a port.
+    if (code === "EADDRINUSE" && !portArg) {
+      try {
+        handle = await startPhoneServer({ port: 0 });
+      } catch (retry) {
+        await showText(pi, ctx, `Could not start the phone view: ${(retry as Error).message}`);
+        return;
+      }
+    } else {
+      await showText(
+        pi,
+        ctx,
+        code === "EADDRINUSE"
+          ? `Port ${port} is already in use. Try another: /project phone 8890`
+          : `Could not start the phone view: ${(error as Error).message}`,
+      );
+      return;
+    }
+  }
+
+  const addresses = await lanAddresses();
+  const data = await gatherWorkspace();
+  const reachable = addresses.map((address) => `  http://${address}:${handle.port}/`);
+  await showText(
+    pi,
+    ctx,
+    [
+      `Serving a read-only project view on port ${handle.port}.`,
+      "",
+      addresses.length > 0 ? "Open this on your phone (same network):" : "No LAN address found; reach it from this machine:",
+      ...(addresses.length > 0 ? reachable : [`  http://localhost:${handle.port}/`]),
+      "",
+      `${data.projects.length} project(s), ${data.pending.length} decision(s) waiting on you.`,
+      "Read-only: nothing on the page writes to a project.",
+      "Press Ctrl+C to stop.",
+    ].join("\n"),
+  );
+
+  // Block until interrupted. Without a UI (print/RPC) we still must not leak a
+  // listening socket, so the same signal path closes it.
+  await new Promise<void>((resolve) => {
+    const stop = (): void => {
+      void handle.close().finally(() => resolve());
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+  });
+}
+
 async function runObjective(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,

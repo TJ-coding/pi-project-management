@@ -126,6 +126,8 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 | `/project yolo [on\|off]` | auto-accept strategic decisions (still recorded) |
 | `/project complete` | mark the project complete and render the summary |
 | `/project watch [on\|off]` | toggle the editor widget |
+| `/project objective [<sentence>\|clear]` | what this stretch of work is for, with progress and what "done" means |
+| `/project phone [port]` | serve a read-only page for your phone |
 | `/project projects` | list projects in the local workspace |
 | `/project tools` | list the `project_*` tools the agent can call |
 | `/project help [sub]` | full reference, or details for one subcommand |
@@ -133,6 +135,28 @@ auto-commits `.project/` changes (disable via `autoCommit` in `project.yaml`).
 
 Discovery, without leaving the TUI: press `?` inside the dashboard for the same
 reference, and type `/project ` then Tab for subcommands with descriptions.
+
+## Watching several projects from your phone
+
+`/project phone` serves one read-only page listing every project in the local
+workspace: what each one is doing right now, its objective, and — the point —
+**every decision currently waiting on a human, gathered in one place**, each with
+the choices you can pick between.
+
+```
+/project phone          # serves on 8787, or a free port if that is taken
+```
+
+It prints the LAN address to open on your phone. Two deliberate limits:
+
+- **Read-only.** No request can change a project, and non-`GET` methods are
+  refused. The page gathers decisions; you answer them in the project itself.
+- **No dependencies.** A node `http` server and one self-contained HTML string,
+  because a project tool should not drag in a web framework.
+
+Only real decisions are surfaced: a gate awaiting an outcome, a goal whose work
+is all done, a task assigned to `human`, and a high-impact open question. An
+ordinary backlog would be unusable as a phone page.
 
 ## Reading long content in the dashboard
 
