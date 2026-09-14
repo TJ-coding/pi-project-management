@@ -6,7 +6,7 @@ Seeded 2026-09-14: direction, three goals, three questions, three risks, a four-
 
 ## Current State
 
-11 of 12 nodes done. Closed: G3 (rename, digest), G10 (pause/start), G4 (panel audit), G6 (goal fill-in), G8 (rail order), plus G1 via the k3 gate. 116 tests, TUI smoke and five k3 review rounds pass. Only N10 (publish) remains and it needs human approval.
+11 of 12 nodes done. Closed: G3 (rename, digest), G10 (pause/start), G4 (panel audit), G6 (goal fill-in), G8 (rail order), plus G1 via the k3 gate. 119 tests, TUI smoke and five k3 review rounds pass. N10 (publish) is queued and waiting on human approval. R7 (id lookups across plan versions) is the open correctness issue.
 
 ## Capabilities
 
@@ -32,4 +32,4 @@ _None yet._
 
 ## Last Updated
 
-2026-09-14T09:34:41.333Z
+2026-09-14T09:34:44.251Z

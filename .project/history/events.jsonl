@@ -131,3 +131,4 @@
 {"seq":131,"at":"2026-09-14T09:34:33.360Z","kind":"risk.created","summary":"Risk R7 created: Id lookups cross plan versions","by":"agent","refs":["R7"],"details":{"probability":0.35,"impact":0.6}}
 {"seq":132,"at":"2026-09-14T09:34:41.130Z","kind":"question.answered","summary":"Question Q9 ANSWERED: Do any other lookups resolve an id across plan versions?","by":"agent","refs":["Q9"],"details":{}}
 {"seq":133,"at":"2026-09-14T09:34:41.333Z","kind":"state.changed","summary":"State changed: Uncommitted active-plan fix verified, committed and given a regression test","by":"agent","refs":[]}
+{"seq":134,"at":"2026-09-14T09:34:44.251Z","kind":"state.changed","summary":"State changed: State refreshed: 119 tests, publish is the remaining node","by":"agent","refs":[]}
