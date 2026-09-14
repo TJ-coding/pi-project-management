@@ -142,3 +142,4 @@
 {"seq":142,"at":"2026-09-14T10:35:11.032Z","kind":"question.created","summary":"Question Q10 created: What does done mean for G13 and G14?","by":"agent","refs":["Q10"]}
 {"seq":143,"at":"2026-09-14T10:35:25.754Z","kind":"question.answered","summary":"Question Q10 ANSWERED: What does done mean for G13 and G14?","by":"agent","refs":["Q10"],"details":{}}
 {"seq":144,"at":"2026-09-14T10:35:29.150Z","kind":"goal.updated","summary":"Goal G12 updated: Archive anything","by":"agent","refs":["G12"]}
+{"seq":145,"at":"2026-09-14T10:35:29.369Z","kind":"goal.updated","summary":"Goal G11 updated: Progress percent on tasks and goals","by":"agent","refs":["G11"]}

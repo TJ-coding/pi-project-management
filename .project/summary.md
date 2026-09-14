@@ -24,7 +24,7 @@ All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at gi
 - ✓ G8 Reconsider ordering of panels. (COMPLETED)
 - → G9 Warn when exiting change without saving. (ACTIVE)
 - ✓ G10 Start / Pause Project (COMPLETED)
-- → G11 Add a mechanism to add progress bar to task / goal (ACTIVE)
+- → G11 Progress percent on tasks and goals (ACTIVE)
 - → G12 Archive anything (ACTIVE)
 - → G13 I want to interact with it through my phone. (ACTIVE)
 - → G14 project like a goal command (ACTIVE)

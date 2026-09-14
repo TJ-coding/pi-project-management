@@ -173,11 +173,14 @@
   created: 2026-09-13T16:24:48.622Z
   updated: 2026-09-13T16:52:50.183Z
 - id: G11
-  title: Add a mechanism to add progress bar to task / goal
+  title: Progress percent on tasks and goals
   description: Quite often task takes a long time but you can still tell progress, I want a mechanism
     that gives me how many % is done and theta.
   priority: 3
-  success_criteria: []
+  success_criteria:
+    - A task or goal can carry a percent complete between 0 and 100.
+    - The plan panel shows a percent for any node that has one.
+    - An out-of-range percent is refused and nothing is written.
   status: ACTIVE
   parent: null
   superseded_by: null
@@ -185,7 +188,7 @@
   risks: []
   tasks: []
   created: 2026-09-14T09:26:06.826Z
-  updated: 2026-09-14T09:26:06.826Z
+  updated: 2026-09-14T10:35:29.369Z
 - id: G12
   title: Archive anything
   description: I want a mechanism that archives things that are no longer relevent to the project.
