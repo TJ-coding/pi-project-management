@@ -26,6 +26,12 @@ export interface ViewDefinition {
    */
   rows?: (project: Project) => string[];
   /**
+   * True when the view already prints its own key hints at the bottom, so the
+   * browser footer should not repeat them. Repeating wasted the width that the
+   * quit key, the scroll position and the archived hint needed at 80 columns.
+   */
+  statesKeys?: boolean;
+  /**
    * Render the view. With `focus` set, the matching row is highlighted and
    * `focusLine` reports which line it landed on, so the browser can keep the
    * selection on screen.
@@ -1036,6 +1042,7 @@ export function orderedGoalIds(project: Project): string[] {
 
 const goalsView: ViewDefinition = {
   id: "goals",
+  statesKeys: true,
   title: "Goals",
   rows: (project) => orderedGoalIds(project),
   detail: (project, focus) => {
@@ -1174,6 +1181,7 @@ export function orderedQuestionIds(project: Project): string[] {
 
 const intelligenceView: ViewDefinition = {
   id: "intelligence",
+  statesKeys: true,
   title: "Intelligence",
   rows: (project) => orderedQuestionIds(project),
   detail: (project, focus) => {
@@ -1219,6 +1227,7 @@ const intelligenceView: ViewDefinition = {
 
 const risksView: ViewDefinition = {
   id: "risks",
+  statesKeys: true,
   title: "Risks",
   rows: (project) => orderedRiskIds(project),
   detail: (project, focus) => {
@@ -1995,12 +2004,15 @@ export class ProjectBrowser {
 
   /**
    * Advertises `v` only when the project actually has archived items on a view
-   * that can show them: a key that does nothing is worse than no hint.
+   * that can show them: a key that does nothing is worse than no hint. `compact`
+   * is used when the footer is tight, because the hint must not push `q` off the
+   * edge — a hidden key is worse than a terse one.
    */
-  private archivedHint(): string {
+  private archivedHint(compact = false): string {
     if (!["goals", "risks", "plan"].includes(this.currentView)) return "";
     if (archivedCounts(this.project).total === 0) return "";
-    return ` · v ${this.showArchived ? "hide" : "show"} archived`;
+    const verb = this.showArchived ? "hide" : "show";
+    return compact ? ` · v ${verb}` : ` · v ${verb} archived`;
   }
 
   render(width: number): string[] {
@@ -2064,15 +2076,42 @@ export class ProjectBrowser {
     const range = content.length === 0 ? "0 lines" : scrollable ? `${this.scroll + 1}-${end}/${content.length} lines` : `all ${content.length} lines`;
     const scrollHint = scrollable && !showingHelp && this.currentView !== "plan" ? " · j/k scroll" : "";
     const rows = this.rowIds();
-    const keys = showingHelp
-      ? "? or esc close help · j/k scroll · q close"
-      : this.detailOpen
-        ? "esc back to the list · j/k scroll · g/G ends · q close"
-        : this.currentView === "plan"
-          ? `↑↓ select · enter read in full · e edit · a new · D delete · E raw · tab views${this.archivedHint()}${this.helpText ? " · ? help" : ""} · q close`
-          : rows.length > 0
-            ? `↑↓ select · enter read in full${this.editableViews.has(this.currentView) ? " · e edit list" : ""} · tab views · 1-9/0 jump${this.archivedHint()}${scrollHint}${this.helpText ? " · ? help" : ""} · q close`
-            : `tab views · 1-9/0 jump${this.editableViews.has(this.currentView) ? " · e edit · E raw" : ""}${this.viewDef().detail ? " · enter read in full" : ""}${this.archivedHint()}${scrollHint}${this.helpText ? " · ? help" : ""} · r reload · q close`;
+    // Views with their own hint line state the select/read keys themselves, so the
+    // footer drops them — but only when that line is actually on screen. On a short
+    // terminal it scrolls away, and a key you cannot see is a key you do not have.
+    const ownHintVisible = this.viewDef().statesKeys === true && this.viewportHeight() > 12;
+    // A footer that overflows silently elides real keys — k3 found `q close` and
+    // the archived hint disappearing at 80 columns, which is how a fix went
+    // missing from the frames a reviewer was given. So the footer is built at
+    // three densities and the widest that fits wins: the keys a user needs are
+    // never the thing that gets cut.
+    const plain = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, "");
+    const build = (density: "full" | "tight" | "minimal"): string => {
+      const hint = this.archivedHint(density !== "full");
+      const help = this.helpText && density === "full" ? " · ? help" : "";
+      const scroll = density === "full" ? scrollHint : "";
+      if (showingHelp) return "? or esc close help · j/k scroll · q close";
+      if (this.detailOpen) return "esc back to the list · j/k scroll · g/G ends · q close";
+      const quit = density === "minimal" ? " · q" : " · q close";
+      if (this.currentView === "plan") {
+        const sel = density === "minimal" ? "↑↓" : "↑↓ · enter read";
+        const edit = density === "minimal" ? "e · a · D" : "e · a new · D del · E raw";
+        return `${sel} · ${edit}${density === "minimal" ? "" : " · tab"}${hint}${help}${quit}`;
+      }
+      if (rows.length > 0) {
+        const sel = ownHintVisible ? "" : density === "minimal" ? "↑↓ · " : "↑↓ select · enter read in full · ";
+        const edit = this.editableViews.has(this.currentView) ? (density === "minimal" ? "e · " : "e edit · ") : "";
+        const tabs = density === "minimal" ? "tab" : "tab · 1-9/0 jump";
+        return `${sel}${edit}${tabs}${hint}${scroll}${help}${quit}`;
+      }
+      const edit = this.editableViews.has(this.currentView) ? " · e edit · E raw" : "";
+      return `tab · 1-9/0 jump${edit}${this.viewDef().detail ? " · enter read in full" : ""}${hint}${scroll}${help} · r reload${quit}`;
+    };
+    // The scroll counter sits on the right, so leave it room when there is one.
+    const budget = (): number => width - (scrollable ? 14 : 1);
+    let keys = build("full");
+    if (visibleWidth(` ${plain(keys)}`) > budget()) keys = build("tight");
+    if (visibleWidth(` ${plain(keys)}`) > budget()) keys = build("minimal");
     const left = theme.fg("dim", ` ${keys}`);
     const right = theme.fg("dim", `${scrollable ? "↕ " : ""}${range} `);
     const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));

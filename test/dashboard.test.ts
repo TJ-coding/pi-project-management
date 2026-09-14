@@ -400,7 +400,7 @@ describe("dashboard", () => {
     assert.match(pane, /esc back to the list/);
     assert.match(pane, /KIND/);
     browser.handleInput("\x1b");
-    assert.match(browser.render(120).join("\n"), /enter read in full · e edit/);
+    assert.match(browser.render(120).join("\n"), /enter read · e edit/, "the plan footer still names the read and edit keys");
 
     for (const width of [60, 100, 140]) {
       for (const line of browser.render(width)) {
@@ -463,6 +463,41 @@ describe("dashboard", () => {
     const status = statusText(project);
     assert.match(status, /Dashboard Demo: /);
     assert.match(status, /ready/);
+  });
+
+  test("the footer never elides the quit key, at any width or view", async () => {
+    // k3 round 4 found the footer overflowing 80 columns and silently dropping
+    // keybindings — including the archived hint it had asked for, which is how the
+    // round-3 miscommunication happened. A key you cannot see is a key you do not
+    // have, so this walks every view at the sizes the panels must support.
+    const { root, manager } = await richProject();
+    dirs.push(root);
+    await manager.setArchived("goal", "G1", true, { commit: false });
+    const project = await manager.read((current) => current);
+
+    for (const view of VIEWS) {
+      for (const rows of [10, 24, 40]) {
+        const browser = new ProjectBrowser({
+          project,
+          theme,
+          onClose: () => undefined,
+          initialView: view.id,
+          getTerminalRows: () => rows,
+        });
+        for (const width of [60, 80, 100]) {
+          const lines = browser.render(width);
+          const footer = lines[lines.length - 1] ?? "";
+          assert.match(
+            footer,
+            /q/,
+            `${view.id}@${rows}x${width}: the footer lost the quit key entirely: ${JSON.stringify(footer)}`,
+          );
+          for (const line of lines) {
+            assert.ok(visibleWidth(line) <= width, `${view.id}@${rows}x${width} overflows: ${JSON.stringify(line)}`);
+          }
+        }
+      }
+    }
   });
 
   test("chrome stays one line per row and never clips the dock", async () => {
