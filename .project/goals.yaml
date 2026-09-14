@@ -181,14 +181,14 @@
     - A task or goal can carry a percent complete between 0 and 100.
     - The plan panel shows a percent for any node that has one.
     - An out-of-range percent is refused and nothing is written.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
   risks: []
   tasks: []
   created: 2026-09-14T09:26:06.826Z
-  updated: 2026-09-14T10:35:29.369Z
+  updated: 2026-09-14T10:55:08.982Z
 - id: G12
   title: Archive anything
   description: I want a mechanism that archives things that are no longer relevent to the project.

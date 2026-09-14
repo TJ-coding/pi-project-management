@@ -157,3 +157,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:36:10.747Z **goal.completed** — Goal G9 COMPLETED: Warn when exiting change without saving. [G9] (by agent)
 - 2026-09-14T10:36:23.472Z **task.updated** — Node N13 RUNNING -> COMPLETED: Audit and close the met goals [N13] (by agent)
 - 2026-09-14T10:36:26.134Z **task.updated** — Node N14 PENDING -> RUNNING: Add progress percent [N14] (by agent)
+- 2026-09-14T10:55:08.982Z **goal.completed** — Goal G11 COMPLETED: Progress percent on tasks and goals [G11] (by agent)
