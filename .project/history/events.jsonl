@@ -184,3 +184,4 @@
 {"seq":184,"at":"2026-09-14T14:36:07.754Z","kind":"run.started","summary":"Run RUN9 started: k3 frame review round 5 (retry)","by":"agent","refs":["RUN9"],"details":{"environment":[]}}
 {"seq":185,"at":"2026-09-14T14:45:35.049Z","kind":"run.started","summary":"Run RUN10 started: k3 frame review round 6","by":"agent","refs":["RUN10"],"details":{"environment":[]}}
 {"seq":186,"at":"2026-09-14T14:51:22.263Z","kind":"run.started","summary":"Run RUN11 started: k3 frame review round 7 (final)","by":"agent","refs":["RUN11"],"details":{"environment":[]}}
+{"seq":187,"at":"2026-09-14T14:53:40.739Z","kind":"gate.passed","summary":"Gate N18 (GATE) -> PASS: PASS after seven rounds; k3 verdict \"ship it\". No (s) plurals survive, no footer trails off, numbers cross-check.","by":"agent","refs":["N18"]}

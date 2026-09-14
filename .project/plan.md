@@ -21,8 +21,9 @@ Rationale: Four goals are already implemented but unclosed; three need building;
 - [COMPLETED] N17 TASK — Serve a phone dashboard (after N16) {goal:G13}
     Serve a read-only page listing all projects, their current task and aggregated pending decisions.
     outputs: /project phone serves one page with every workspace project, its state and current task; Pending decisions from all projects aggregated, each with choices to select; Read-only: non-GET refused with 405; a test asserts no request changes anything on disk; Project text is escaped; a planted script tag and onerror handler do not survive; 159 tests pass (13 new), command and TUI smoke pass
-- [RUNNING] N18 REVIEW — Verify and publish everything (after N14, N15, N16, N17)
+- [COMPLETED] N18 REVIEW — Verify and publish everything (after N14, N15, N16, N17)
     Full check, TUI smoke, k3 frame review, then push and verify from a clean clone.
+    outputs: gate PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off, numbers cross-check.
 
 ## Edges
 
@@ -34,6 +35,10 @@ N14 -> N18
 N15 -> N18
 N16 -> N18
 N17 -> N18
+
+## Gate Results
+
+- 2026-09-14T14:53:40.739Z N18 PASS — PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off, numbers cross-check.
 
 ## Plan Changes
 

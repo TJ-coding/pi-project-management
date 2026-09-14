@@ -413,7 +413,7 @@ plans:
       - id: N18
         title: Verify and publish everything
         type: REVIEW
-        status: RUNNING
+        status: COMPLETED
         description: Full check, TUI smoke, k3 frame review, then push and verify from a clean clone.
         depends_on:
           - N14
@@ -423,16 +423,24 @@ plans:
         goal: null
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - 'gate PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no
+            footer trails off, numbers cross-check.'
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T11:49:34.407Z
+        updated: 2026-09-14T14:53:40.739Z
         started: 2026-09-14T11:49:34.407Z
-        finished: null
-    gates: []
+        finished: 2026-09-14T14:53:40.739Z
+    gates:
+      - node: N18
+        outcome: PASS
+        notes: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off,
+          numbers cross-check.
+        evaluator: agent
+        at: 2026-09-14T14:53:40.739Z
 changes:
   - from: P1
     to: P2
