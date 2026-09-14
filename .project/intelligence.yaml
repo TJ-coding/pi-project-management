@@ -196,18 +196,30 @@
   answered: 2026-09-13T17:30:24.907Z
 - id: Q9
   question: Do any other lookups resolve an id across plan versions?
-  answer: ""
-  status: UNKNOWN
+  answer: Mostly no. DAG validation is already per plan; the one real leak is a goal satisfiability
+    hint reading any plan's nodes, so a stale id can make a goal look done.
+  status: ANSWERED
   importance: 0.6
-  uncertainty: 0.5
+  uncertainty: 0.3
   decision_impact: 0.6
-  confidence: 0
-  evidence: []
+  confidence: 0.7
+  evidence:
+    - description: validateDag runs per plan inside a loop over plans, so node-level checks stay scoped
+        correctly (src/validate.ts:75)
+      kind: doc
+      ref: src/validate.ts:75
+    - description: A goal's task ids are resolved against every plan at once, so P1/N2 answers for P3/N2
+        (src/replan.ts:256)
+      kind: doc
+      ref: src/replan.ts:256
+    - description: propagate.ts matches nodes by goal, not by id, so it is unaffected (src/propagate.ts:65)
+      kind: doc
+      ref: src/propagate.ts:65
   goals:
     - G1
   risks: []
   tasks: []
   decisions: []
   created: 2026-09-14T09:34:25.574Z
-  updated: 2026-09-14T09:34:25.574Z
-  answered: null
+  updated: 2026-09-14T09:34:41.130Z
+  answered: 2026-09-14T09:34:41.130Z
