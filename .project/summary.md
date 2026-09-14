@@ -18,7 +18,7 @@ All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at gi
 - ✓ G2 Enforce brevity on every write (COMPLETED)
 - ✓ G3 Close the two known gaps (COMPLETED)
 - ✓ G4 Minimalism (COMPLETED)
-- → G5 Visual DAG (ACTIVE)
+- ✓ G5 Visual DAG (COMPLETED)
 - ✓ G6 Auto complete / Propagate (COMPLETED)
 - ✓ G7 Upload the project to github repository (COMPLETED)
 - ✓ G8 Reconsider ordering of panels. (COMPLETED)

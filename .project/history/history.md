@@ -153,3 +153,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:35:42.145Z **task.updated** — Node N13 PENDING -> RUNNING: Audit and close the met goals [N13] (by agent)
 - 2026-09-14T10:36:06.958Z **goal.completed** — Goal G1 COMPLETED: Keep every panel readable at 80 columns [G1] (by agent)
 - 2026-09-14T10:36:07.135Z **goal.completed** — Goal G2 COMPLETED: Enforce brevity on every write [G2] (by agent)
+- 2026-09-14T10:36:10.565Z **goal.completed** — Goal G5 COMPLETED: Visual DAG [G5] (by agent)
