@@ -197,14 +197,14 @@
     - Any entity can be archived and stops counting as active.
     - Archived items stay readable and are never deleted.
     - The dashboard says how many are hidden and can show them on request.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
   risks: []
   tasks: []
   created: 2026-09-14T09:26:40.136Z
-  updated: 2026-09-14T10:35:29.150Z
+  updated: 2026-09-14T11:10:41.466Z
 - id: G13
   title: Phone view of all projects
   description: I want to know which projects are running, what task is being conducted at a glance. I
