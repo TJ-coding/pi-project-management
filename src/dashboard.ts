@@ -721,6 +721,14 @@ function heading(theme: Theme, title: string, width: number): string[] {
  * that want attention", which is why risks counts open ones and history counts
  * days with activity.
  */
+/**
+ * `1 goal` / `2 goals`. A count that reads "1 open questions" looks broken, and
+ * k3 found it on three surfaces (k3 round 5).
+ */
+export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : pluralForm}`;
+}
+
 /** Archived things stay readable but never count as active work. */
 export function isArchived(entity: { archived?: boolean }): boolean {
   return entity.archived === true;
@@ -892,10 +900,10 @@ const dashboardView: ViewDefinition = {
         theme.fg("text", `${doneGoals.length}/${liveGoals.length} done`) +
           theme.fg("dim", "   ") +
           theme.fg("text", `${openQuestions.length}`) +
-          theme.fg("dim", " open questions") +
+          theme.fg("dim", openQuestions.length === 1 ? " open question" : " open questions") +
           theme.fg("dim", " · ") +
           theme.fg("text", `${openRisks.length}`) +
-          theme.fg("dim", " open risks"),
+          theme.fg("dim", openRisks.length === 1 ? " open risk" : " open risks"),
           width - 4,
           7,
         ),
@@ -932,10 +940,10 @@ const dashboardView: ViewDefinition = {
     // three lines above (k3 round 2).
     const withArchived = (total: number, shown: number): string =>
       total === shown ? `${total}` : `${total} (${total - shown} archived)`;
-    if (project.goals.length > 0) full.push(`${withArchived(project.goals.length, live(project.goals).length)} goals`);
-    if (project.questions.length > 0) full.push(`${withArchived(project.questions.length, live(project.questions).length)} questions`);
-    if (project.risks.length > 0) full.push(`${withArchived(project.risks.length, live(project.risks).length)} risks`);
-    if (plan) full.push(`${withArchived(plan.nodes.length, live(plan.nodes).length)} nodes`);
+    if (project.goals.length > 0) full.push(`${withArchived(project.goals.length, live(project.goals).length)} goal(s)`);
+    if (project.questions.length > 0) full.push(`${withArchived(project.questions.length, live(project.questions).length)} question(s)`);
+    if (project.risks.length > 0) full.push(`${withArchived(project.risks.length, live(project.risks).length)} risk(s)`);
+    if (plan) full.push(`${withArchived(plan.nodes.length, live(plan.nodes).length)} node(s)`);
     if (full.length > 0) lines.push(`  ${theme.fg("dim", `full lists: ${full.join(" · ")}`)}`);
     // One number, not a wall of warnings: the exact list is in /project review.
     const bloated = overBudgetByView(project);
@@ -2065,6 +2073,14 @@ export class ProjectBrowser {
     const end = Math.min(content.length, this.scroll + viewport);
     const window = content.slice(this.scroll, end);
     out.push(...window);
+    // The right-hand indicator is computed before the footer so the footer can be
+    // sized against its real width: reserving a guessed 14 columns let the plan
+    // footer pick a density that still overflowed, so it was cut with a dangling
+    // "…" and lost the line count entirely (k3 round 5).
+    const scrollable = content.length > viewport;
+    const range = content.length === 0 ? "0 lines" : scrollable ? `${this.scroll + 1}-${end}/${content.length} lines` : `all ${content.length} lines`;
+    const scrollHint = scrollable && !showingHelp && this.currentView !== "plan" ? " · j/k scroll" : "";
+
     // Pad only while scrolling, so the panel height is stable mid-scroll but a
     // short view stays short (padding an empty view just wastes screen rows).
     if (content.length > viewport) {
@@ -2072,9 +2088,6 @@ export class ProjectBrowser {
     }
 
     // Footer: contextual keys on the left, scroll position on the right.
-    const scrollable = content.length > viewport;
-    const range = content.length === 0 ? "0 lines" : scrollable ? `${this.scroll + 1}-${end}/${content.length} lines` : `all ${content.length} lines`;
-    const scrollHint = scrollable && !showingHelp && this.currentView !== "plan" ? " · j/k scroll" : "";
     const rows = this.rowIds();
     // Views with their own hint line state the select/read keys themselves, so the
     // footer drops them — but only when that line is actually on screen. On a short
@@ -2104,11 +2117,17 @@ export class ProjectBrowser {
         const tabs = density === "minimal" ? "tab" : "tab · 1-9/0 jump";
         return `${sel}${edit}${tabs}${hint}${scroll}${help}${quit}`;
       }
-      const edit = this.editableViews.has(this.currentView) ? " · e edit · E raw" : "";
-      return `tab · 1-9/0 jump${edit}${this.viewDef().detail ? " · enter read in full" : ""}${hint}${scroll}${help} · r reload${quit}`;
+      // The empty-rows branch must respect density too: at 60 columns this line
+      // was still the full-length form and trailed off in an ellipsis.
+      const edit = this.editableViews.has(this.currentView) ? (density === "minimal" ? " · e" : " · e edit · E raw") : "";
+      const read = this.viewDef().detail ? (density === "minimal" ? " · enter" : " · enter read in full") : "";
+      const tabs = density === "minimal" ? "tab" : "tab · 1-9/0 jump";
+      return `${tabs}${edit}${read}${hint}${scroll}${help}${density === "minimal" ? "" : " · r reload"}${quit}`;
     };
-    // The scroll counter sits on the right, so leave it room when there is one.
-    const budget = (): number => width - (scrollable ? 14 : 1);
+    // Reserve exactly what the right-hand indicator needs, so the keys are sized
+    // against the space that actually remains.
+    const rightWidth = visibleWidth(` ${scrollable ? "↕ " : ""}${range} `);
+    const budget = (): number => width - rightWidth - 1;
     let keys = build("full");
     if (visibleWidth(` ${plain(keys)}`) > budget()) keys = build("tight");
     if (visibleWidth(` ${plain(keys)}`) > budget()) keys = build("minimal");
@@ -2141,7 +2160,7 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
   lines.push(
     theme.fg("accent", `◈ ${project.meta.name}`) +
       theme.fg("dim", project.meta.yolo ? " [YOLO]" : "") +
-      theme.fg("muted", `  ${goals} active goals · ${openQuestions} open questions · ${openRisksText(project)}`),
+      theme.fg("muted", `  ${plural(goals, "active goal")} · ${plural(openQuestions, "open question")} · ${openRisksText(project)}`),
   );
   if (project.meta.paused) {
     lines.push(theme.fg("warning", "  ⏸ PAUSED") + theme.fg("dim", project.meta.resumeNote ? ` · resume: ${project.meta.resumeNote}` : ""));
@@ -2171,7 +2190,7 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
 /** `2 open risks` — the qualifier matches the rail badge, which also counts open ones. */
 function openRisksText(project: Project): string {
   const open = live(project.risks).filter((risk) => risk.status === "OPEN" || risk.status === "MITIGATING").length;
-  return `${open} open risks`;
+  return plural(open, "open risk");
 }
 
 /** Plan progress used by the footer status. */

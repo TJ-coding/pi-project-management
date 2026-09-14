@@ -159,7 +159,7 @@ describe("dashboard", () => {
     assert.doesNotMatch(text, /▌ VISION/, "vision is quiet context, not a competing header");
     assert.match(text, /┏━ PROGRESS/);
     assert.match(text, /┏━ SIGNALS/);
-    assert.match(text, /open questions/);
+    assert.match(text, /open question/);
     assert.match(text, /Demonstrate output/);
     assert.doesNotMatch(text, /Build prototype/, "completed goals stay out of the dashboard");
   });
@@ -458,11 +458,79 @@ describe("dashboard", () => {
     const project = await manager.read((current) => current);
     const widget = widgetLines(project, theme).join("\n");
     assert.match(widget, /Dashboard Demo/);
-    assert.match(widget, /active goals/);
+    assert.match(widget, /active goal/);
     assert.match(widget, /P1 v1/);
     const status = statusText(project);
     assert.match(status, /Dashboard Demo: /);
     assert.match(status, /ready/);
+  });
+
+  test("every count reads as singular when it is one", async () => {
+    // k3 round 5: "1 open questions" / "1 risks" appeared on three surfaces. A
+    // count that reads wrong looks like a bug even when the number is right.
+    const root = await tempDir();
+    dirs.push(root);
+    const manager = await ProjectManager.init(root, { name: "Plural", clock: fixedClock(), by: "test" });
+    await manager.createGoal({ title: "Only goal" }, { commit: false });
+    await manager.createQuestion({ question: "Only question?", importance: 1, uncertainty: 1, decisionImpact: 1 }, { commit: false });
+    await manager.createRisk({ title: "Only risk", probability: 0.5, impact: 0.5 }, { commit: false });
+    const project = await manager.read((current) => current);
+
+    const surfaces: Array<[string, string]> = [
+      ["dashboard", VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n")],
+      ["widget", widgetLines(project, theme).join("\n")],
+    ];
+    for (const [name, text] of surfaces) {
+      // Only the plural forms are wrong at a count of one.
+      assert.doesNotMatch(text, /1 active goals|1 open questions|1 open risks/, `${name} pluralises a count of one`);
+      assert.match(text, /1 (active goal|open question|open risk)/, `${name} should read singular`);
+    }
+
+    // Many is still plural.
+    await manager.createGoal({ title: "Second goal" }, { commit: false });
+    await manager.createRisk({ title: "Second risk", probability: 0.5, impact: 0.2 }, { commit: false });
+    const many = await manager.read((current) => current);
+    const widget = widgetLines(many, theme).join("\n");
+    assert.match(widget, /2 active goals/);
+    assert.match(widget, /2 open risks/);
+  });
+
+  test("the footer keeps its line count instead of trailing off in an ellipsis", async () => {
+    // k3 round 5: the plan footer at 80 columns picked a density too long to leave
+    // room for the right-hand indicator, so it was cut with a dangling "…" and the
+    // line count vanished. The footer now yields to the indicator, not the reverse.
+    const root = await tempDir();
+    dirs.push(root);
+    const manager = await ProjectManager.init(root, { name: "Footer", clock: fixedClock(), by: "test" });
+    await manager.createGoal({ title: "A" }, { commit: false });
+    await manager.createGoal({ title: "B" }, { commit: false });
+    await manager.setArchived("goal", "G2", true, { commit: false });
+    await manager.createRisk({ title: "R", probability: 0.5, impact: 0.5 }, { commit: false });
+    await manager.applyReplan(
+      { trigger: "t", rationale: "r", title: "P", notes: [], superseded: [], carried: [], nodes: [{ title: "n1", type: "TASK", goal: "G1" }] },
+      { commit: false },
+    );
+    const project = await manager.read((current) => current);
+
+    for (const width of [60, 80, 100, 120]) {
+      for (const id of ["goals", "risks", "intelligence", "plan", "dashboard"]) {
+        const browser = new ProjectBrowser({
+          project,
+          theme,
+          onClose: () => undefined,
+          initialView: id,
+          getTerminalRows: () => 40,
+        });
+        const lines = browser.render(width);
+        const footer = lines[lines.length - 1] ?? "";
+        assert.doesNotMatch(footer, /…/, `${id}@${width}: the footer trails off: ${JSON.stringify(footer)}`);
+        assert.match(
+          footer,
+          /all \d+ lines|\d+-\d+\/\d+ lines/,
+          `${id}@${width}: the footer lost the line count: ${JSON.stringify(footer)}`,
+        );
+      }
+    }
   });
 
   test("the footer never elides the quit key, at any width or view", async () => {
