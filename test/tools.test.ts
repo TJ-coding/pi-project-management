@@ -98,6 +98,8 @@ describe("agent tools", () => {
       "project_resource",
       "project_rename",
       "project_pause",
+      "project_archive",
+      "project_objective",
     ]) {
       const tool = tools.get(name) as unknown as { description?: string; parameters?: unknown };
       assert.ok(tool, `${name} missing`);
@@ -141,6 +143,41 @@ describe("agent tools", () => {
 
     const validation = text(await run("project_status", { section: "validation" }, ctx));
     assert.match(validation, /Validation/);
+  });
+
+  test("objective and archive round trip through their tools", async () => {
+    const root = await tempDir();
+    dirs.push(root);
+    const { ctx } = fakeContext(root);
+    await run("project_init", { name: "Tools archive", vision: "v" }, ctx);
+    await run("project_goal", { action: "create", title: "Archivable goal" }, ctx);
+    await run("project_goal", { action: "create", title: "Staying goal" }, ctx);
+
+    // Objective: show before, set, read back, clear.
+    assert.match(text(await run("project_objective", { action: "show" }, ctx)), /none set/);
+    const set = text(await run("project_objective", { action: "set", objective: "Finish the tools test" }, ctx));
+    assert.match(set, /Finish the tools test/);
+    assert.match(set, /## Done when/, "setting shows what done means");
+    assert.match(text(await run("project_objective", { action: "show" }, ctx)), /Finish the tools test/);
+    assert.match(text(await run("project_objective", { action: "clear" }, ctx)), /Objective cleared/);
+    assert.match(text(await run("project_objective", { action: "show" }, ctx)), /none set/);
+    // Setting an empty objective is a mistake, not a silent no-op.
+    await assert.rejects(() => run("project_objective", { action: "set", objective: "  " }, ctx), /objective is required/);
+
+    // Archive: list, archive, list again, restore.
+    assert.match(text(await run("project_archive", { action: "list" }, ctx)), /No archived items/);
+    const archived = text(await run("project_archive", { action: "archive", kind: "goal", id: "G1", reason: "test" }, ctx));
+    assert.match(archived, /goal G1 archived/);
+    const listed = text(await run("project_archive", { action: "list" }, ctx));
+    assert.match(listed, /1 archived/);
+    assert.match(listed, /Archivable goal/);
+    assert.doesNotMatch(listed, /Staying goal/, "only archived items are listed");
+    assert.match(text(await run("project_archive", { action: "restore", kind: "goal", id: "G1" }, ctx)), /restored/);
+    assert.match(text(await run("project_archive", { action: "list" }, ctx)), /No archived items/);
+
+    // Missing arguments and unknown ids fail loudly.
+    await assert.rejects(() => run("project_archive", { action: "archive", kind: "goal" }, ctx), /kind and id are required/);
+    await assert.rejects(() => run("project_archive", { action: "archive", kind: "goal", id: "G99" }, ctx), /goal G99/i);
   });
 
   test("goal, risk, question and decision round trip through tools", async () => {

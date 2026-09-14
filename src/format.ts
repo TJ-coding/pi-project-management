@@ -11,6 +11,55 @@ import { formatAwaySummary, planEvolution, summarizeSince } from "./history.ts";
 import { byQuestionPriority, byRiskPriority, riskExposure, scoreBand, priorityBand } from "./scoring.ts";
 import type { Goal, NodeStatus, Project, Question, Risk } from "./types.ts";
 
+/**
+ * The objective, its progress and what "done" means, as plain text.
+ * Shared by the tool and `/project objective` so both read identically, and
+ * so a missing objective is stated rather than rendering as an empty section.
+ */
+export function renderObjectiveText(project: Project): string {
+  const objective = project.meta.objective;
+  if (!objective) {
+    return [
+      `# Objective\n`,
+      `_none set for ${project.meta.name}_`,
+      "",
+      "The objective is the one sentence this stretch of work is for, separate from\n" +
+        "vision (why the project exists) and goals (durable end states). Set it with:\n" +
+        "  /project objective <sentence>",
+    ].join("\n");
+  }
+
+  const active = plan(project);
+  const lines = [`# Objective\n`, objective, ""];
+  if (project.meta.objectiveSetAt) lines.push(`set: ${project.meta.objectiveSetAt.slice(0, 10)}`);
+  lines.push("");
+
+  lines.push("## Progress");
+  if (!active || active.nodes.length === 0) {
+    lines.push("no plan yet, so there is nothing measurable to finish");
+  } else {
+    const stats = dagStats(active.nodes);
+    lines.push(`plan ${active.id} v${active.version}: ${stats.byStatus.COMPLETED}/${stats.total} nodes done, ${stats.byStatus.RUNNING} running, ${stats.ready} ready`);
+    const next = readyNodes(active.nodes)[0];
+    if (next) lines.push(`next: ${next.id} ${next.title}`);
+    else if (stats.byStatus.COMPLETED === stats.total) lines.push("all nodes done — verify the goals, then complete or replan");
+  }
+
+  lines.push("", "## Done when");
+  const aimed = project.goals.filter((goal) => goal.status === "ACTIVE" && (!active || active.nodes.some((n) => n.goal === goal.id)));
+  const target = aimed.length > 0 ? aimed : project.goals.filter((goal) => goal.status === "ACTIVE");
+  if (target.length === 0) {
+    lines.push("no active goal is linked to this work — link a goal, or say what finished looks like");
+  } else {
+    for (const goal of target) {
+      lines.push(`${goal.id} ${goal.title} [${goal.status}]`);
+      if (goal.successCriteria.length === 0) lines.push("  (no success criteria recorded)");
+      for (const criterion of goal.successCriteria) lines.push(`  - ${criterion}`);
+    }
+  }
+  return lines.join("\n");
+}
+
 export function renderStatusText(project: Project): string {
   const active = plan(project);
   const stats = active ? dagStats(active.nodes) : null;

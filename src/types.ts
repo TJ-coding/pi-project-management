@@ -334,6 +334,7 @@ export const HISTORY_KINDS = [
   "project.paused",
   "project.resumed",
   "project.completed",
+  "objective.changed",
   "direction.changed",
   "state.changed",
   "goal.created",
@@ -399,6 +400,14 @@ export interface ProjectMeta {
   pausedAt?: string | null;
   /** What to do first when work resumes; shown while paused. */
   resumeNote?: string | null;
+  /**
+   * The one sentence this project is currently pursuing, in the human's words.
+   * Distinct from vision (why the project exists, rarely changes) and from the
+   * plan (how we get there, changes constantly): the objective is what this
+   * stretch of work is for, and it is what an agent should wake up to.
+   */
+  objective?: string | null;
+  objectiveSetAt?: string | null;
 }
 
 export interface PlansFile {

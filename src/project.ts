@@ -1417,6 +1417,35 @@ export class ProjectManager {
     ).value;
   }
 
+  /**
+   * Set or clear the project's current objective.
+   *
+   * An objective is not a goal and not a plan: goals are the durable end states
+   * and the plan is how we get there, while the objective is the single sentence
+   * this stretch of work is pursuing. It is recorded like a decision, because
+   * changing what the project is for should be visible in the history.
+   */
+  async setObjective(objective: string | null, options: MutateOptions & { reason?: string } = {}): Promise<Project> {
+    const cleaned = objective === null ? "" : cleanProse(objective);
+    return (
+      await this.mutate(cleaned === "" ? "project: clear objective" : "project: set objective", (project) => {
+        const previous = project.meta.objective ?? null;
+        const next = cleaned === "" ? null : cleaned;
+        if (previous === next && !options.reason) return project;
+        project.meta.objective = next;
+        project.meta.objectiveSetAt = next === null ? null : this.clock.now();
+        const summary =
+          next === null
+            ? `Objective cleared${previous ? ` (was: ${previous})` : ""}`
+            : previous
+              ? `Objective changed to: ${next} (was: ${previous})`
+              : `Objective set: ${next}`;
+        this.record("objective.changed", options.reason ? `${summary} — ${cleanProse(options.reason)}` : summary, [], { reason: options.reason });
+        return project;
+      }, options)
+    ).value;
+  }
+
   async setYolo(enabled: boolean, options: MutateOptions = {}): Promise<Project> {
     return (
       await this.mutate(`project: yolo ${enabled ? "on" : "off"}`, (project) => {

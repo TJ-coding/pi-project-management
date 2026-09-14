@@ -763,7 +763,12 @@ const dashboardView: ViewDefinition = {
     const doneGoals = project.goals.filter((goal) => goal.status === "COMPLETED");
     const runningRuns = project.runs.filter((run) => run.status === "RUNNING" || run.status === "STARTED");
 
-    // Quiet context first: what this project is.
+    // Quiet context first: what this project is. The objective leads the vision
+    // because it is the more specific statement of what we are doing now.
+    if (project.meta.objective) {
+      lines.push(`  ${theme.fg("accent", "◆ ")}${theme.fg("text", truncateToWidth(project.meta.objective, width - 6, "…"))}`);
+      lines.push("");
+    }
     if (project.direction.vision) {
       lines.push(...truncateWrapped(project.direction.vision, width, 2).map((line) => `  ${theme.fg("muted", line)}`));
       lines.push("");
@@ -2052,6 +2057,10 @@ export function widgetLines(project: Project, theme: Theme, maxLines = 6): strin
   if (project.meta.paused) {
     lines.push(theme.fg("warning", "  ⏸ PAUSED") + theme.fg("dim", project.meta.resumeNote ? ` · resume: ${project.meta.resumeNote}` : ""));
     return lines.slice(0, maxLines);
+  }
+  // The objective is what the work is for; it earns a line whenever it is set.
+  if (project.meta.objective) {
+    lines.push(theme.fg("muted", "  ◆ ") + theme.fg("text", truncateToWidth(project.meta.objective, 120, "…")));
   }
   if (plan && stats) {
     lines.push(

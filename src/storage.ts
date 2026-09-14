@@ -932,6 +932,8 @@ export async function loadProject(root: string, clock: Clock = systemClock): Pro
     paused: asBoolean(metaRaw.paused, false),
     pausedAt: asNullable(metaRaw.paused_at ?? metaRaw.pausedAt),
     resumeNote: asNullable(metaRaw.resume_note ?? metaRaw.resumeNote),
+    objective: asNullable(metaRaw.objective),
+    objectiveSetAt: asNullable(metaRaw.objective_set_at ?? metaRaw.objectiveSetAt),
   };
 
   const directionText = (await readTextIfExists(join(dir, "direction.md"))) ?? "";
@@ -1043,6 +1045,8 @@ export async function saveProject(project: Project, options: SaveOptions = {}): 
       paused: project.meta.paused,
       paused_at: project.meta.pausedAt ?? null,
       resume_note: project.meta.resumeNote ?? null,
+      objective: project.meta.objective ?? null,
+      objective_set_at: project.meta.objectiveSetAt ?? null,
     }),
   );
 

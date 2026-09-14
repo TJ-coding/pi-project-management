@@ -7,7 +7,7 @@
  * node, goal, question or risk.
  */
 
-import { readyNodes, blockedByDependencies, runningNodes } from "./dag.ts";
+import { readyNodes, blockedByDependencies, runningNodes, dagStats } from "./dag.ts";
 import { budgetSummary } from "./limits.ts";
 import { byQuestionPriority, byRiskPriority, priorityBand, scoreBand } from "./scoring.ts";
 import { truncate } from "./format.ts";
@@ -37,6 +37,14 @@ export function buildDigest(project: Project): string {
   const lines: string[] = [];
 
   lines.push(`PROJECT: ${project.meta.name} (${project.meta.workspace ?? project.root})`);
+  // The objective leads, before vision: vision is why the project exists at all,
+  // the objective is what this stretch of work is for right now. An agent that
+  // reads only one line should read this one.
+  if (project.meta.objective) {
+    lines.push(`OBJECTIVE: ${truncate(project.meta.objective, 300)}`);
+    const progress = objectiveProgress(project);
+    if (progress) lines.push(`OBJECTIVE PROGRESS: ${progress}`);
+  }
   if (project.direction.vision) lines.push(`VISION: ${truncate(project.direction.vision, 300)}`);
   if (project.direction.values.length > 0) lines.push(`VALUES: ${truncate(project.direction.values.join(", "), 220)}`);
   if (project.direction.concepts.length > 0) {
@@ -74,6 +82,40 @@ export function buildDigest(project: Project): string {
   // Twitter-length budget: the agent writes short first time instead of being rejected.
   lines.push(`BUDGETS (over-budget writes are rejected): ${budgetSummary()}`);
   return lines.join("\n");
+}
+
+/**
+ * What "done" looks like for the current objective, in one line.
+ *
+ * An objective with no stated finish line is how a project drifts, so the digest
+ * pairs the objective with its measurable end: the plan's completion, and the
+ * success criteria of the goals the plan is working towards. When neither can be
+ * derived it says so rather than inventing a condition.
+ */
+function objectiveProgress(project: Project): string | null {
+  const active = activePlan(project);
+  if (!active || active.nodes.length === 0) {
+    return project.meta.objective ? "no plan yet — nothing measurable to finish" : null;
+  }
+  const stats = dagStats(active.nodes);
+  const parts = [`plan ${active.id}: ${stats.byStatus.COMPLETED}/${stats.total} nodes done`];
+  const next = readyNodes(active.nodes)[0];
+  if (next) parts.push(`next: ${next.id} ${truncate(next.title, 60)}`);
+  else if (stats.byStatus.COMPLETED === stats.total) parts.push("all nodes done — verify the goals, then complete or replan");
+
+  // The goals the work is aimed at, with their own criteria counts: that is the
+  // closest thing to "what done means" the project actually records.
+  const linked = project.goals.filter((goal) => goal.status === "ACTIVE" && active.nodes.some((node) => node.goal === goal.id));
+  const aimed = linked.length > 0 ? linked : project.goals.filter((goal) => goal.status === "ACTIVE");
+  if (aimed.length > 0) {
+    const described = aimed.slice(0, 2).map((goal) => {
+      const criteria = goal.successCriteria.length;
+      return `${goal.id} (${criteria} ${criteria === 1 ? "criterion" : "criteria"})`;
+    });
+    const more = aimed.length - described.length;
+    parts.push(`done when ${described.join(", ")}${more > 0 ? ` +${more} more` : ""} satisfied`);
+  }
+  return parts.join(" · ");
 }
 
 /** Context for a specific piece of work, with explicit relevance selection. */

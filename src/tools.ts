@@ -22,6 +22,7 @@ import {
   renderGoalsText,
   renderHistoryText,
   renderIntelligenceText,
+  renderObjectiveText,
   renderPlanEvolutionText,
   renderPlanText,
   renderRisksText,
@@ -1366,6 +1367,45 @@ export function registerProjectTools(pi: ExtensionAPI): void {
           ? "COMPLETED"
           : "ACTIVE";
       return ok(`${project.meta.name}: ${paused}`);
+    },
+  });
+
+  /* ---------------- objective ---------------- */
+
+  pi.registerTool({
+    name: "project_objective",
+    label: "Project: objective",
+    description:
+      "Set, show or clear the one sentence this project is currently pursuing. An objective is not a goal and not a " +
+      "plan: goals are durable end states, the plan is how we get there, and the objective is what the current " +
+      "stretch of work is for. It is shown first in the digest, with progress and what done means, so a new session " +
+      "wakes up knowing what it is doing.",
+    promptSnippet: "Set, show or clear the project's current one-sentence objective",
+    promptGuidelines: [
+      "Read the objective at the start of work; it states what this stretch of the project is for, and what done means.",
+      "Propose an objective when the human describes what they want next, rather than editing vision or major goals.",
+    ],
+    parameters: Type.Object({
+      action: StringEnum(["set", "show", "clear"] as const),
+      objective: Type.Optional(Type.String({ description: "One sentence: what this stretch of work is for" })),
+      reason: Type.Optional(Type.String({ description: "Why the objective changed (recorded in history)" })),
+    }),
+    async execute(_id, params, _signal, _update, ctx) {
+      const manager = await requireManager(ctx);
+      if (params.action === "show") {
+        const project = await manager.read((current) => current);
+        return ok(renderObjectiveText(project));
+      }
+      if (params.action === "set") {
+        if (!params.objective || params.objective.trim() === "") {
+          throw new Error("objective is required to set one; use action=clear to remove it");
+        }
+        await manager.setObjective(params.objective, { reason: params.reason });
+        return ok(renderObjectiveText(manager.project));
+      }
+      const had = manager.project.meta.objective;
+      await manager.setObjective(null, { reason: params.reason });
+      return ok(had ? `Objective cleared (was: ${had}).` : "No objective was set.");
     },
   });
 

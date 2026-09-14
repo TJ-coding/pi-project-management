@@ -29,6 +29,7 @@ import {
   renderGoalsText,
   renderHistoryText,
   renderIntelligenceText,
+  renderObjectiveText,
   renderPlanText,
   renderRisksText,
   renderRunsText,
@@ -64,6 +65,7 @@ export const PROJECT_SUBCOMMANDS = [
   "rename",
   "pause",
   "start",
+  "objective",
   "complete",
   "watch",
   "projects",
@@ -125,6 +127,13 @@ export const SUBCOMMAND_INFO: Record<Subcommand, { usage: string; summary: strin
   rename: { usage: "/project rename <name>", summary: "rename the project (label and slug only)" },
   pause: { usage: "/project pause [note]", summary: "park the project; note what resumes it" },
   start: { usage: "/project start", summary: "resume a paused project" },
+  objective: {
+    usage: "/project objective [<sentence>|clear]",
+    summary: "what this stretch of work is for",
+    details:
+      "Shows the current objective with its progress and what \"done\" means, or sets one from the text you give. " +
+      "Separate from vision (why the project exists) and goals (durable end states); the agent sees it first in its digest.",
+  },
   complete: { usage: "/project complete", summary: "mark the project complete and show the summary" },
   watch: { usage: "/project watch [on|off]", summary: "toggle the editor widget" },
   projects: { usage: "/project projects", summary: "list projects in the local workspace" },
@@ -144,7 +153,7 @@ export function renderHelp(pi?: ExtensionAPI): string {
   const lines: string[] = ["Project commands", ""];
   const groups: Array<[string, Subcommand[]]> = [
     ["View", ["dashboard", "status", "direction", "goals", "state", "intelligence", "risks", "strategy", "plan", "history", "evolution", "runs", "summary"]],
-    ["Act", ["init", "edit", "review", "replan", "resume", "rename", "pause", "start", "yolo", "complete", "watch"]],
+    ["Act", ["init", "edit", "review", "replan", "resume", "rename", "pause", "start", "objective", "yolo", "complete", "watch"]],
     ["Discover", ["tools", "projects", "help"]],
   ];
   for (const [title, names] of groups) {
@@ -385,6 +394,9 @@ async function handleProjectCommand(
     case "pause":
       await runPause(pi, ctx, manager, rest);
       return;
+    case "objective":
+      await runObjective(pi, ctx, manager, rest);
+      return;
     case "start":
       await runStart(pi, ctx, manager);
       return;
@@ -547,6 +559,31 @@ async function runPause(
       ? `Project paused. Resume with: ${project.meta.resumeNote}`
       : "Project paused. Add a note with `/project pause <what to do next>` so resuming is one step.",
   );
+}
+
+/**
+ * `/project objective [<sentence>|clear]`. With no argument it shows the
+ * objective with its progress and finish line; with text it sets one.
+ */
+async function runObjective(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  manager: ProjectManager,
+  rest: string,
+): Promise<void> {
+  const text = rest.trim();
+  if (text === "") {
+    await showText(pi, ctx, renderObjectiveText(manager.project));
+    return;
+  }
+  if (text === "clear" || text === "none") {
+    const had = manager.project.meta.objective;
+    await manager.setObjective(null);
+    await showText(pi, ctx, had ? `Objective cleared (was: ${had}).` : "No objective was set.");
+    return;
+  }
+  await manager.setObjective(text);
+  await showText(pi, ctx, renderObjectiveText(manager.project));
 }
 
 async function runStart(pi: ExtensionAPI, ctx: ExtensionCommandContext, manager: ProjectManager): Promise<void> {
