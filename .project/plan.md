@@ -23,7 +23,7 @@ Rationale: Four goals are already implemented but unclosed; three need building;
     outputs: /project phone serves one page with every workspace project, its state and current task; Pending decisions from all projects aggregated, each with choices to select; Read-only: non-GET refused with 405; a test asserts no request changes anything on disk; Project text is escaped; a planted script tag and onerror handler do not survive; 159 tests pass (13 new), command and TUI smoke pass
 - [COMPLETED] N18 REVIEW — Verify and publish everything (after N14, N15, N16, N17)
     Full check, TUI smoke, k3 frame review, then push and verify from a clean clone.
-    outputs: gate PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off, numbers cross-check.
+    outputs: gate PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no footer trails off, numbers cross-check.; 171 tests pass, plus TUI and command smoke; Seven k3 rounds found 11 defects, all fixed; final verdict was ship it; Repo public at c7fbca7 and the full check passes from a clean clone
 
 ## Edges
 

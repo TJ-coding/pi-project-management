@@ -426,14 +426,17 @@ plans:
         outputs:
           - 'gate PASS: PASS after seven rounds; k3 verdict "ship it". No (s) plurals survive, no
             footer trails off, numbers cross-check.'
+          - 171 tests pass, plus TUI and command smoke
+          - Seven k3 rounds found 11 defects, all fixed; final verdict was ship it
+          - Repo public at c7fbca7 and the full check passes from a clean clone
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T14:53:40.739Z
+        updated: 2026-09-14T14:53:47.240Z
         started: 2026-09-14T11:49:34.407Z
-        finished: 2026-09-14T14:53:40.739Z
+        finished: 2026-09-14T14:53:47.240Z
     gates:
       - node: N18
         outcome: PASS
