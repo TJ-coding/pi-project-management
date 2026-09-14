@@ -28,7 +28,7 @@ All goals closed: 14 COMPLETED, and G15 abandoned as the smoke-test fixture it w
 - ✓ G12 Archive anything (COMPLETED)
 - ✓ G13 Phone view of all projects (COMPLETED)
 - ✓ G14 One persistent objective (COMPLETED)
-- ⊘ G15 Validate tools (ABANDONED [ARCHIVED])
+- ⊘ G15 Validate tools (ABANDONED)
 
 ## Major Risks
 

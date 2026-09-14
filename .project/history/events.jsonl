@@ -193,4 +193,4 @@
 {"seq":193,"at":"2026-09-14T14:57:27.368Z","kind":"risk.updated","summary":"Risk R5 updated: Propagation overwrites human text","by":"agent","refs":["R5"]}
 {"seq":194,"at":"2026-09-14T14:57:28.197Z","kind":"risk.updated","summary":"Risk R1 updated: A panel regression ships without review","by":"agent","refs":["R1"]}
 {"seq":195,"at":"2026-09-14T15:10:27.056Z","kind":"decision.made","summary":"Decision D8 (SIGNIFICANT): A smoke must fail when nothing loaded","by":"agent","refs":["D8","G7"],"details":{"autoAccepted":false}}
-{"seq":196,"at":"2026-09-14T15:16:22.689Z","kind":"goal.archived","summary":"Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work)","by":"agent","refs":["G15"],"details":{"reason":"smoke-test fixture from scripts/rpc-smoke.mjs; never project work"}}
+{"seq":196,"at":"2026-09-14T15:16:22.689Z","kind":"task.updated","summary":"Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work)","by":"agent","refs":["G15"],"details":{"reason":"smoke-test fixture from scripts/rpc-smoke.mjs; never project work"}}

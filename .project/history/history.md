@@ -197,4 +197,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T14:57:27.368Z **risk.updated** — Risk R5 updated: Propagation overwrites human text [R5] (by agent)
 - 2026-09-14T14:57:28.197Z **risk.updated** — Risk R1 updated: A panel regression ships without review [R1] (by agent)
 - 2026-09-14T15:10:27.056Z **decision.made** — Decision D8 (SIGNIFICANT): A smoke must fail when nothing loaded [D8, G7] (by agent)
-- 2026-09-14T15:16:22.689Z **goal.archived** — Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work) [G15] (by agent)
+- 2026-09-14T15:16:22.689Z **task.updated** — Goal G15 archived: Validate tools (smoke-test fixture from scripts/rpc-smoke.mjs; never project work) [G15] (by agent)
