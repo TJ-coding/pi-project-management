@@ -232,6 +232,51 @@ describe("project manager", () => {
     assert.equal(node("P1", "N2").title, "second");
   });
 
+  test("a goal whose work is only in a superseded plan is not satisfiable", async () => {
+    // R7: the check used to search every plan at once, so a node called N2 in a
+    // superseded plan answered for a goal whose work is not in the active plan at
+    // all — and the agent would be advised to complete a goal with no work.
+    const { root, manager } = await newProject("Stale link");
+    dirs.push(root);
+    await manager.createGoal({ title: "Linked to a stale node", tasks: ["N2"] }, { commit: false });
+
+    await manager.applyReplan(
+      { trigger: "v1", rationale: "r", title: "P1", notes: [], superseded: [], carried: [], nodes: [
+        { title: "first", type: "TASK" },
+        { title: "second", type: "TASK" },
+      ] },
+      { commit: false },
+    );
+    // P2 keeps N1 and gains N3; N2 now lives only in the superseded P1.
+    await manager.applyReplan(
+      { trigger: "v2", rationale: "r", title: "P2", notes: [], superseded: [], carried: [], nodes: [
+        { ref: "N1", title: "first", type: "TASK" },
+        { title: "third", type: "TASK" },
+      ] },
+      { commit: false },
+    );
+    const active = manager.project.plans.plans.find((plan) => plan.id === manager.project.plans.active)!;
+    assert.ok(!active.nodes.some((node) => node.id === "N2"), "the active plan has no N2");
+
+    // Even with the stale node marked done, the goal is not satisfiable.
+    const superseded = manager.project.plans.plans.find((plan) => plan.id === "P1")!;
+    superseded.nodes.find((node) => node.id === "N2")!.status = "COMPLETED";
+    const stale = manager.analyzeReplan({ trigger: "t" }).recommendations?.goals ?? [];
+    assert.ok(!stale.some((line) => /satisfiable/.test(line)), "a superseded node must not satisfy the goal");
+
+    // The legitimate case still works: work done in the active plan is flagged.
+    await manager.applyReplan(
+      { trigger: "v3", rationale: "r", title: "P3", notes: [], superseded: [], carried: [], nodes: [
+        { ref: "N3", title: "third", type: "TASK" },
+      ] },
+      { commit: false },
+    );
+    await manager.setNodeStatus("N3", "COMPLETED", { commit: false });
+    await manager.updateGoal("G1", { tasks: ["N3"] }, { commit: false });
+    const genuine = manager.analyzeReplan({ trigger: "t" }).recommendations?.goals ?? [];
+    assert.ok(genuine.some((line) => /satisfiable/.test(line)), "finished active work must still be flagged");
+  });
+
   test("runs can be started, logged, finished and reconciled", async () => {
     const { root, manager } = await newProject("Runs");
     dirs.push(root);

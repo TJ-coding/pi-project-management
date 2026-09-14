@@ -224,6 +224,8 @@ export function analyzeReplan(project: Project, inputs: ReplanInputs): ReplanPro
  */
 function buildRecommendations(project: Project, nodes: ProposedNode[]): ReplanRecommendations {
   const goalStatus = new Map(project.goals.map((goal) => [goal.id, goal.status]));
+  // The plan the recommendations are about: links are resolved against this one.
+  const current = activePlan(project);
   const linkedQuestions = new Set(nodes.filter((node) => node.question).map((node) => node.question as string));
   const linkedRisks = new Set(nodes.filter((node) => node.risk).map((node) => node.risk as string));
   const linkedGoals = new Set(nodes.filter((node) => node.goal).map((node) => node.goal as string));
@@ -255,7 +257,11 @@ function buildRecommendations(project: Project, nodes: ProposedNode[]): ReplanRe
         goal.questions.includes(question.id) && (question.status === "UNKNOWN" || question.status === "PARTIAL"),
     ).length;
     if (openLinked === 0 && goal.tasks.length > 0 && goal.tasks.every((taskId) => {
-      const node = project.plans.plans.flatMap((plan) => plan.nodes).find((candidate) => candidate.id === taskId);
+      // Resolve against the active plan only. Ids are unique within a plan, and
+      // applyReplan reuses a gap id, so searching every plan let a superseded P1
+      // node called N2 answer for a goal whose work is not in the current plan
+      // at all (R7). A link the active plan does not carry is not satisfied.
+      const node = current?.nodes.find((candidate) => candidate.id === taskId);
       return node && (node.status === "COMPLETED" || node.status === "SUPERSEDED");
     })) {
       goals.push(`Goal ${goal.id} ("${goal.title}") looks satisfiable: verify success criteria and consider completing it.`);
