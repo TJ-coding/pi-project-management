@@ -60,6 +60,7 @@ All goals closed: 14 COMPLETED, and G15 abandoned as the smoke-test fixture it w
 - D5 Verify the uncommitted active-plan fix (SIGNIFICANT)
 - D6 Redact paths, not names (SIGNIFICANT)
 - D7 Four k3 rounds before signing off (SIGNIFICANT)
+- D8 A smoke must fail when nothing loaded (SIGNIFICANT)
 
 ## Plan Evolution
 

@@ -192,3 +192,4 @@
 {"seq":192,"at":"2026-09-14T14:57:19.356Z","kind":"state.changed","summary":"State changed: Every goal closed and verified; the project is complete","by":"agent","refs":[]}
 {"seq":193,"at":"2026-09-14T14:57:27.368Z","kind":"risk.updated","summary":"Risk R5 updated: Propagation overwrites human text","by":"agent","refs":["R5"]}
 {"seq":194,"at":"2026-09-14T14:57:28.197Z","kind":"risk.updated","summary":"Risk R1 updated: A panel regression ships without review","by":"agent","refs":["R1"]}
+{"seq":195,"at":"2026-09-14T15:10:27.056Z","kind":"decision.made","summary":"Decision D8 (SIGNIFICANT): A smoke must fail when nothing loaded","by":"agent","refs":["D8","G7"],"details":{"autoAccepted":false}}
