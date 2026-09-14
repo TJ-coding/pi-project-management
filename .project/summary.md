@@ -27,7 +27,7 @@ All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at gi
 - ✓ G11 Progress percent on tasks and goals (COMPLETED)
 - ✓ G12 Archive anything (COMPLETED)
 - → G13 Phone view of all projects (ACTIVE)
-- → G14 One persistent objective (ACTIVE)
+- ✓ G14 One persistent objective (COMPLETED)
 - → G15 Validate tools (ACTIVE)
 
 ## Major Risks

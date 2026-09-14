@@ -12,7 +12,6 @@
   goals:
     - G1
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-13T15:59:01.967Z
   updated: 2026-09-13T17:14:06.203Z
@@ -29,7 +28,6 @@
   goals:
     - G1
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-13T15:59:02.121Z
   updated: 2026-09-13T17:10:08.996Z
@@ -44,7 +42,6 @@
   questions: []
   goals: []
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-13T15:59:02.269Z
   updated: 2026-09-13T15:59:02.269Z
@@ -60,7 +57,6 @@
   questions: []
   goals: []
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-13T15:59:43.363Z
   updated: 2026-09-13T16:38:12.769Z
@@ -76,7 +72,6 @@
   goals:
     - G6
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-13T16:16:11.805Z
   updated: 2026-09-13T16:16:11.805Z
@@ -94,7 +89,6 @@
   goals:
     - G7
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-13T16:16:11.993Z
   updated: 2026-09-14T10:28:10.747Z
@@ -110,7 +104,6 @@
     - Q9
   goals: []
   tasks: []
-  archived: false
   owner: ""
   created: 2026-09-14T09:34:33.360Z
   updated: 2026-09-14T09:34:33.360Z

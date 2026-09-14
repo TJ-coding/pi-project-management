@@ -1,7 +1,7 @@
 name: Pi Project
 id: pi-project
 created: 2026-09-13T15:59:00.845Z
-updated: 2026-09-14T11:24:26.503Z
+updated: 2026-09-14T11:27:15.986Z
 repositories:
   - ~/Projects/pi-project-management
 resources: []
@@ -14,5 +14,3 @@ completed_at: null
 paused: false
 paused_at: null
 resume_note: null
-objective: null
-objective_set_at: null
