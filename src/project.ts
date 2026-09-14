@@ -1411,7 +1411,14 @@ function mustFind<T extends { id: string }>(items: T[], id: string, kind: string
 }
 
 function locateNode(project: Project, id: string): { plan: Plan; node: PlanNode } {
-  for (const plan of project.plans.plans) {
+  // Prefer the active plan: ids are only unique *within* a plan version, and
+  // `applyReplan` reuses gap ids, so historical plans routinely share ids with
+  // the current one. Searching oldest-first silently edited a superseded plan.
+  const ordered = [
+    ...project.plans.plans.filter((plan) => plan.id === project.plans.active),
+    ...project.plans.plans.filter((plan) => plan.id !== project.plans.active),
+  ];
+  for (const plan of ordered) {
     const node = plan.nodes.find((item) => item.id === id);
     if (node) return { plan, node };
   }

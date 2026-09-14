@@ -129,6 +129,13 @@ function checkDuplicates(project: Project, issues: string[]): void {
   for (const risk of project.risks) record(risk.id, "risk");
   for (const decision of project.decisions) record(decision.id, "decision");
   for (const run of project.runs) record(run.id, "run");
+  // Node ids are only unique inside a plan: applyReplan reuses a gap id, so a
+  // node called N2 here is a different node from the N2 in a superseded plan.
+  // Checking per plan is what makes locateNode's active-plan search correct;
+  // a global check would reject every legitimate replan.
+  for (const plan of project.plans.plans) {
+    for (const node of plan.nodes) record(`${node.id}@${plan.id}`, "node");
+  }
   for (const [key, count] of seen) {
     if (count > 1) issues.push(`duplicate id ${key}`);
   }

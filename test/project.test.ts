@@ -190,6 +190,48 @@ describe("project manager", () => {
     assert.ok(manager.project.history.some((event) => event.kind === "pivot"));
   });
 
+  test("a node id shared with a superseded plan edits the active plan", async () => {
+    const { root, manager } = await newProject("Plan ids");
+    dirs.push(root);
+    const plans = () => manager.project.plans.plans;
+    const node = (planId: string, id: string) => plans().find((plan) => plan.id === planId)!.nodes.find((n) => n.id === id)!;
+
+    // A planner that always hands out the first free id walks from N1 each time.
+    const replan = async (title: string, nodes: { ref?: string; title: string }[]) => {
+      const result = await manager.applyReplan(
+        { trigger: title, rationale: "test", title, notes: [], superseded: [], carried: [], nodes: nodes.map((n) => ({ ...n, type: "TASK" as const })) },
+        { commit: false },
+      );
+      assert.equal(result.status, "applied");
+    };
+
+    await replan("P1", [{ title: "first" }, { title: "second" }]);
+    assert.deepEqual(plans()[0]!.nodes.map((n) => n.id), ["N1", "N2"]);
+
+    // P2 keeps N1 and gains N3, so the N2 slot is still owned by P1's history.
+    await replan("P2", [{ ref: "N1", title: "first" }, { title: "third" }]);
+    assert.deepEqual(plans()[1]!.nodes.map((n) => n.id), ["N1", "N3"]);
+
+    // P3 drops N1; the freed id is reused, so N2 now means two different nodes.
+    await replan("P3", [{ title: "fresh" }]);
+    assert.equal(plans()[2]!.id, "P3");
+    assert.deepEqual(plans()[2]!.nodes.map((n) => n.id), ["N2"]);
+    assert.equal(plans()[0]!.nodes.some((n) => n.id === "N2"), true, "P1 must still own its N2");
+
+    // Every mutation must land on the active plan, never on a superseded one.
+    await manager.setNodeStatus("N2", "COMPLETED", { commit: false });
+    assert.equal(node("P3", "N2").status, "COMPLETED");
+    assert.equal(node("P1", "N2").status, "SUPERSEDED");
+
+    await manager.updateNode("N2", { title: "renamed" }, { commit: false });
+    assert.equal(node("P3", "N2").title, "renamed");
+    assert.equal(node("P1", "N2").title, "second");
+
+    await manager.removeNode("N2", { commit: false });
+    assert.equal(plans()[2]!.nodes.length, 0);
+    assert.equal(node("P1", "N2").title, "second");
+  });
+
   test("runs can be started, logged, finished and reconciled", async () => {
     const { root, manager } = await newProject("Runs");
     dirs.push(root);
