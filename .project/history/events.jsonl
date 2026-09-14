@@ -138,3 +138,4 @@
 {"seq":138,"at":"2026-09-14T10:28:10.567Z","kind":"decision.made","summary":"Decision D6 (SIGNIFICANT): Redact paths, not names","by":"agent","refs":["D6","G7"],"details":{"autoAccepted":false}}
 {"seq":139,"at":"2026-09-14T10:28:10.747Z","kind":"risk.resolved","summary":"Risk R6 resolved: Publishing leaks secrets or private project data","by":"agent","refs":["R6"]}
 {"seq":140,"at":"2026-09-14T10:28:13.945Z","kind":"state.changed","summary":"State changed: N10 and G7 closed; the repo is public and verified from a clean clone","by":"agent","refs":[]}
+{"seq":141,"at":"2026-09-14T10:35:07.375Z","kind":"run.started","summary":"Run RUN3 started: Complete the eight open goals (G1,G2,G5,G9,G11-G14) (node N13)","by":"agent","refs":["RUN3"],"details":{"environment":[{"kind":"local","target":"~/Projects/pi-project-management"}]}}

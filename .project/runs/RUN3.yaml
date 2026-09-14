@@ -1,0 +1,19 @@
+id: RUN3
+title: Complete the eight open goals (G1,G2,G5,G9,G11-G14)
+node: N13
+status: STARTED
+environment:
+  - kind: local
+    target: ~/Projects/pi-project-management
+command: null
+cwd: /Users/tomoyuki-j/Projects/pi-project-management
+pid: null
+host: null
+session: /Users/tomoyuki-j/.pi/agent/sessions/--Users-tomoyuki-j-Projects-pi-project-management--/2026-09-14T09-25-08-297Z_01a09f3c-0e48-70ec-a0ce-72d04b3b97b6.jsonl
+log: null
+exit_code: null
+started: 2026-09-14T10:35:07.375Z
+finished: null
+updated: 2026-09-14T10:35:07.375Z
+entries: []
+outputs: []

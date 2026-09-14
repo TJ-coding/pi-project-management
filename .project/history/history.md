@@ -142,3 +142,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:28:10.567Z **decision.made** — Decision D6 (SIGNIFICANT): Redact paths, not names [D6, G7] (by agent)
 - 2026-09-14T10:28:10.747Z **risk.resolved** — Risk R6 resolved: Publishing leaks secrets or private project data [R6] (by agent)
 - 2026-09-14T10:28:13.945Z **state.changed** — State changed: N10 and G7 closed; the repo is public and verified from a clean clone (by agent)
+- 2026-09-14T10:35:07.375Z **run.started** — Run RUN3 started: Complete the eight open goals (G1,G2,G5,G9,G11-G14) (node N13) [RUN3] (by agent)
