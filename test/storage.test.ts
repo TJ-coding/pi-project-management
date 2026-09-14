@@ -173,4 +173,64 @@ describe("storage round-trip", () => {
       await cleanup(dir);
     }
   });
+  test("a project written by a newer schema refuses to be saved over", async () => {
+    // The failure this guards: a pi session holds the extension it loaded at
+    // startup, so a long session writes through older code than what is on disk.
+    // That stripped `archived` from every goal four times on this project, with
+    // no error and no clue until a flag was noticed missing much later.
+    const root = await tempDir();
+    try {
+      const manager = await ProjectManager.init(root, { name: "Schema", clock: fixedClock(), by: "test" });
+      await manager.createGoal({ title: "Original", percent: 60 }, { commit: false });
+      await manager.setArchived("goal", "G1", true, { commit: false });
+
+      const file = join(root, PROJECT_DIR, "project.yaml");
+      const before = await readFile(file, "utf8");
+      assert.match(before, /^schema: \d+$/m, "the schema is stamped in project.yaml");
+
+      // Pretend a newer build wrote this file.
+      await writeFile(file, before.replace(/^schema: \d+$/m, "schema: 99"));
+
+      await assert.rejects(
+        () => manager.updateGoal("G1", { title: "Edited by a stale build" }, { commit: false }),
+        /newer version of the extension/,
+        "a stale writer must refuse rather than drop the fields it cannot model",
+      );
+
+      // The file is untouched, so the loss never happened.
+      const after = await readFile(file, "utf8");
+      assert.match(after, /schema: 99/, "the newer file was not overwritten");
+      const reloaded = await loadProject(root, fixedClock());
+      assert.equal(reloaded.goals[0]!.archived, true, "the archived flag survived");
+      assert.equal(reloaded.goals[0]!.percent, 60, "and so did the percent");
+    } finally {
+      await cleanup(root);
+    }
+  });
+
+  test("a stamp-less file still loads and saves, and gains the current stamp", async () => {
+    // Older projects predate the stamp. Refusing to write them would be worse
+    // than the risk the stamp guards against, so absence is not a regression.
+    const root = await tempDir();
+    try {
+      const manager = await ProjectManager.init(root, { name: "Legacy", clock: fixedClock(), by: "test" });
+      await manager.createGoal({ title: "Old project" }, { commit: false });
+
+      const file = join(root, PROJECT_DIR, "project.yaml");
+      const stripped = (await readFile(file, "utf8")).replace(/^schema: \d+$/m, "");
+      await writeFile(file, stripped);
+
+      const reloaded = await loadProject(root, fixedClock());
+      assert.equal(reloaded.meta.schema ?? null, null, "no stamp reads as absent");
+
+      const legacy = await ProjectManager.open(root, { clock: fixedClock(), by: "test" });
+      await legacy.updateGoal("G1", { title: "Edited anyway" }, { commit: false });
+      assert.equal(legacy.project.goals[0]!.title, "Edited anyway");
+
+      const stamped = await readFile(file, "utf8");
+      assert.match(stamped, /^schema: \d+$/m, "saving stamps the current schema");
+    } finally {
+      await cleanup(root);
+    }
+  });
 });

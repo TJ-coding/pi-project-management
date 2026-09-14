@@ -418,6 +418,19 @@ export interface ProjectMeta {
    */
   objective?: string | null;
   objectiveSetAt?: string | null;
+  /**
+   * The schema this file was last written with.
+   *
+   * A pi session holds the extension it loaded at startup, so a long session can
+   * write through older code than what is on disk. When that happened, fields the
+   * old code did not know about (`archived`, then `percent`) were silently
+   * dropped from every entity — four times on this project, each only visible later
+   * as a missing flag in a git diff.
+   *
+   * Stamping the schema lets a stale writer recognise that the file holds fields
+   * it cannot reproduce and refuse the write, instead of quietly deleting them.
+   */
+  schema?: number | null;
 }
 
 export interface PlansFile {

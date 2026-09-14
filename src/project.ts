@@ -24,6 +24,7 @@ import {
   findProjectRoot,
   initProject,
   loadProject,
+  PROJECT_SCHEMA,
   projectMarkerPath,
   registerInWorkspace,
   saveProject,
@@ -144,6 +145,33 @@ export interface GoalInput {
 }
 
 /**
+ * Refuse a write that would drop fields this build does not model.
+ *
+ * The failure this guards against is real and happened four times here: a pi
+ * session holds the extension it loaded at startup, so a long session writes
+ * through older code than what is on disk. The old code's Goal type had no
+ * `archived`, so it parsed goals without the field and wrote them back without
+ * it — deleting a flag from every entity, with no error and no clue beyond a
+ * missing value noticed much later.
+ *
+ * The check is by observation, not by version number alone: if the stored file
+ * carries a newer schema than this build writes, the write is refused. That way
+ * the guard still works for a build that never bumped the stamp, which is
+ * exactly the build most likely to be the stale one.
+ */
+function assertSchemaNotRegressed(project: Project): void {
+  const stored = project.meta.schema;
+  if (stored === null || stored === undefined) return;
+  if (stored > PROJECT_SCHEMA) {
+    throw new Error(
+      `This project was written by a newer version of the extension (schema ${stored}, this build writes ${PROJECT_SCHEMA}). ` +
+        "Saving it from here would drop the newer fields, so the write was refused. " +
+        "Restart pi so the current extension is loaded, then try again.",
+    );
+  }
+}
+
+/**
  * Percent as given by a caller: absent means "no estimate", which is null.
  * Anything present but outside 0..100 throws, so a bad value never reaches
  * disk — G11 asks for a number the human can trust, not a silently clamped one.
@@ -159,7 +187,9 @@ function newPercent(value: number | null | undefined): number | null {
   return clampInt(value, 0, 100, 0);
 }
 
-/** Everything that can be taken out of the way without being deleted. */
+/**
+ * Everything that can be taken out of the way without being deleted.
+ */
 export const ARCHIVABLE_KINDS = ["goal", "question", "risk", "node"] as const;
 export type ArchivableKind = (typeof ARCHIVABLE_KINDS)[number];
 
@@ -361,6 +391,12 @@ export class ProjectManager {
       const before = collectTextFields(project);
       const value = await fn(project);
       assertBudgets(before, collectTextFields(project));
+      // Refuse a write that would lose fields this build does not know about.
+      // A long session holds the extension it loaded at startup, so it can write
+      // through older code; that silently stripped `archived` from this project
+      // four times. A stamp plus this check turns a silent deletion into an error.
+      assertSchemaNotRegressed(project);
+      project.meta.schema = PROJECT_SCHEMA;
       await saveProject(project, { clock: this.clock });
       let git: GitResult | null = null;
       if (message && options.commit !== false && project.meta.autoCommit) {

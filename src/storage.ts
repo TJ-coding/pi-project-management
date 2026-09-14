@@ -80,6 +80,19 @@ const execFileAsync = promisify(execFile);
 
 export const PROJECT_DIR = ".project";
 
+/**
+ * The `.project` schema this build writes.
+ *
+ * Bump this whenever a field is added to an entity, and a build that predates
+ * the field can no longer save over a file that carries it (see
+ * assertSchemaNotRegressed). Bumping is cheap; silently losing data is not.
+ *
+ * 1: baseline (direction/state/intelligence/risks/strategy/plan/history/runs)
+ * 2: percent on goals and nodes; archived on goals/questions/risks/nodes
+ * 3: objective on the project
+ */
+export const PROJECT_SCHEMA = 3;
+
 export interface Clock {
   now: () => string;
 }
@@ -874,6 +887,9 @@ export function defaultMeta(name: string, clock: Clock = systemClock): ProjectMe
     paused: false,
     pausedAt: null,
     resumeNote: null,
+    objective: null,
+    objectiveSetAt: null,
+    schema: PROJECT_SCHEMA,
   };
 }
 
@@ -934,6 +950,7 @@ export async function loadProject(root: string, clock: Clock = systemClock): Pro
     resumeNote: asNullable(metaRaw.resume_note ?? metaRaw.resumeNote),
     objective: asNullable(metaRaw.objective),
     objectiveSetAt: asNullable(metaRaw.objective_set_at ?? metaRaw.objectiveSetAt),
+    schema: asNumber(metaRaw.schema, Number.NaN) || null,
   };
 
   const directionText = (await readTextIfExists(join(dir, "direction.md"))) ?? "";
@@ -1047,6 +1064,7 @@ export async function saveProject(project: Project, options: SaveOptions = {}): 
       resume_note: project.meta.resumeNote ?? null,
       objective: project.meta.objective ?? null,
       objective_set_at: project.meta.objectiveSetAt ?? null,
+      schema: project.meta.schema ?? PROJECT_SCHEMA,
     }),
   );
 
