@@ -151,3 +151,4 @@ _High-level semantic history. Git holds the low-level history._
 - 2026-09-14T10:35:33.211Z **goal.updated** — Goal G14 updated: One persistent objective [G14] (by agent)
 - 2026-09-14T10:35:38.403Z **plan.changed** — Plan P1 -> P2: Four goals are already implemented but unclosed; three need building; G13 depends on the aggregation work in G14. [P2, P1] (by agent)
 - 2026-09-14T10:35:42.145Z **task.updated** — Node N13 PENDING -> RUNNING: Audit and close the met goals [N13] (by agent)
+- 2026-09-14T10:36:06.958Z **goal.completed** — Goal G1 COMPLETED: Keep every panel readable at 80 columns [G1] (by agent)

@@ -6,14 +6,14 @@
     - No rendered line exceeds the terminal width at 40, 80 or 120 columns.
     - Any truncated row is readable in full after pressing Enter.
     - k3 signs off on the frames after each panel change.
-  status: ACTIVE
+  status: COMPLETED
   parent: null
   superseded_by: null
   questions: []
   risks: []
   tasks: []
   created: 2026-09-13T15:59:01.156Z
-  updated: 2026-09-13T15:59:01.156Z
+  updated: 2026-09-14T10:36:06.958Z
 - id: G2
   title: Enforce brevity on every write
   description: Text budgets live in code and are checked before anything is saved.
