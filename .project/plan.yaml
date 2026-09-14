@@ -388,7 +388,7 @@ plans:
       - id: N17
         title: Serve a phone dashboard
         type: TASK
-        status: RUNNING
+        status: COMPLETED
         description: Serve a read-only page listing all projects, their current task and aggregated pending
           decisions.
         depends_on:
@@ -396,15 +396,20 @@ plans:
         goal: G13
         risk: null
         question: null
-        outputs: []
+        outputs:
+          - /project phone serves one page with every workspace project, its state and current task
+          - Pending decisions from all projects aggregated, each with choices to select
+          - "Read-only: non-GET refused with 405; a test asserts no request changes anything on disk"
+          - Project text is escaped; a planted script tag and onerror handler do not survive
+          - 159 tests pass (13 new), command and TUI smoke pass
         failure_reason: null
         assignee: agent
         gate: null
         run: null
         created: 2026-09-14T10:35:38.403Z
-        updated: 2026-09-14T11:27:20.643Z
+        updated: 2026-09-14T11:42:59.611Z
         started: 2026-09-14T11:27:20.643Z
-        finished: null
+        finished: 2026-09-14T11:42:59.611Z
       - id: N18
         title: Verify and publish everything
         type: REVIEW

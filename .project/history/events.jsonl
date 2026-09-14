@@ -164,3 +164,4 @@
 {"seq":164,"at":"2026-09-14T11:27:15.986Z","kind":"goal.completed","summary":"Goal G14 COMPLETED: One persistent objective","by":"agent","refs":["G14"],"details":{"reason":"One objective sentence persists in meta, the digest states it with progress and what done means, and a tool plus command set show and clear it."}}
 {"seq":165,"at":"2026-09-14T11:27:16.226Z","kind":"task.updated","summary":"Node N16 RUNNING -> COMPLETED: Add a persistent objective","by":"agent","refs":["N16"],"details":{}}
 {"seq":166,"at":"2026-09-14T11:27:20.643Z","kind":"task.updated","summary":"Node N17 PENDING -> RUNNING: Serve a phone dashboard","by":"agent","refs":["N17"],"details":{}}
+{"seq":167,"at":"2026-09-14T11:42:59.611Z","kind":"task.updated","summary":"Node N17 RUNNING -> COMPLETED: Serve a phone dashboard","by":"agent","refs":["N17"],"details":{}}
