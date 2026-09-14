@@ -28,7 +28,7 @@ Project complete. All 15 goals closed: 14 COMPLETED (G1-G14) and G15 ABANDONED a
 - ✓ G12 Archive anything (COMPLETED)
 - ✓ G13 Phone view of all projects (COMPLETED)
 - ✓ G14 One persistent objective (COMPLETED)
-- ⊘ G15 Validate tools (ABANDONED)
+- ⊘ G15 Validate tools (ABANDONED [ARCHIVED])
 
 ## Major Risks
 
