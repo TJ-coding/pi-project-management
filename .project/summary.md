@@ -10,7 +10,7 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Final State
 
-11 of 12 nodes done. Closed: G3 (rename, digest), G10 (pause/start), G4 (panel audit), G6 (goal fill-in), G8 (rail order), plus G1 via the k3 gate. 119 tests, TUI smoke and five k3 review rounds pass. N10 (publish) is queued and waiting on human approval. R7 (id lookups across plan versions) is the open correctness issue.
+All 12 nodes done and G7/G3/G10/G4/G6/G8/G1 are closed. The repo is public at github.com/TJ-coding/pi-project-management: 119 tests pass from a clean clone. Eight goals remain open (G2, G5, G9, G11-G14); R7 is the known correctness gap.
 
 ## Goals
 
@@ -65,6 +65,4 @@ Improve project maangement capability, and better utilize idle time, and allow a
 
 ## Lessons / Findings
 
-- project_plan add_node ignores an explicit id, so node ids are assigned in insertion order.
-- No credentials anywhere in the tracked tree or git history, so G7 is safe to publish.
-- A node id can exist in several plans at once: applyReplan reuses gap ids, so mutations must resolve the active plan first.
+- A text dump embedded with image syntax renders as a broken image on GitHub; fenced code preserves the TUI layout.
