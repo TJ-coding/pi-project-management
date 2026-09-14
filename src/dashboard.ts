@@ -321,9 +321,10 @@ const summaryView: ViewDefinition = {
     for (const goal of project.goals) {
       const glyph = statusGlyph(goal.status);
       const color = goal.status === "COMPLETED" ? "success" : goal.status === "FAILED" ? "error" : "muted";
-      // An archived goal keeps its status but is not active work, and printing a
-      // bare ACTIVE here was a factual error (k3 round 2).
-      const state = goal.archived ? `${goal.status} · archived` : goal.status;
+      // Archived replaces the status, it does not join it: "ACTIVE · archived"
+      // asserts active while calling it archived, and everywhere else in the UI
+      // archived means *not* active (k3 rounds 2 and 3).
+      const state = goal.archived ? "ARCHIVED" : goal.status;
       lines.push(...bulletLines(theme, "• ", `${theme.fg(color, glyph)} ${theme.fg("text", `${goal.id} ${goal.title}`)} ${theme.fg("dim", state)}`, width));
     }
 
@@ -1074,13 +1075,14 @@ const goalsView: ViewDefinition = {
         // The word, not ⌫: that glyph means delete/backspace, and D really does
         // delete here, so a ⌫ beside a row reads as "marked for deletion".
         const archivedMark = isArchived(goal) ? theme.fg("dim", "archived ") : "";
-        // A goal at 100% but still ACTIVE would otherwise read as done while the
-        // progress line counts it as open. The tick makes the difference explicit:
-        // the work is finished, the goal is not yet closed (k3 frame review).
+        // A goal at 100% but still ACTIVE is not closed, and the plan panel spends
+        // the ✓ glyph on a *done* node, so reusing it here for an open goal taught
+        // the reader that ✓100% means done while the counter said 0/1 (k3). The
+        // word does the work instead: the tick stays a completion mark.
         const percent =
           goal.percent === null
             ? ""
-            : `${theme.fg("accent", `${goal.percent === 100 && goal.status === "ACTIVE" ? "✓" : ""}${percentBadge(goal.percent).padStart(goal.percent === 100 && goal.status === "ACTIVE" ? 3 : 4)}`)} `;
+            : `${theme.fg("accent", percentBadge(goal.percent).padStart(4))}${goal.percent === 100 && goal.status === "ACTIVE" ? theme.fg("dim", " finished?") : ""} `;
         const extra = goal.successCriteria.length > 0 ? `${goal.successCriteria.length} ${goal.successCriteria.length === 1 ? "criterion" : "criteria"}` : "no criteria";
         const tail = `${percent}${bandColor(theme, band)(band.padEnd(8))} ${theme.fg("dim", extra)}`;
         const available = Math.max(10, 66 - visibleWidth(head) - visibleWidth(tail) - 2);

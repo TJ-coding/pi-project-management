@@ -263,8 +263,8 @@ describe("archiving", () => {
     const summary = VIEWS.find((view) => view.id === "summary")!.render(project, theme, 100).join("\n");
     const row = summary.split("\n").find((line) => line.includes("Put away"))!;
     assert.ok(row, "the archived goal stays in the honest record");
-    assert.match(row, /archived/, "but it is labelled where it is listed");
-    assert.doesNotMatch(row, /ACTIVE\s*$/, "and never printed as a bare status");
+    assert.match(row, /ARCHIVED/, "but it is marked archived where it is listed");
+    assert.doesNotMatch(row, /ACTIVE/, "and never asserts ACTIVE, which it is not");
 
     const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
     const footer = dashboard.split("\n").find((line) => line.includes("full lists"))!;
@@ -351,8 +351,10 @@ describe("archived items across panels (k3 frame review)", () => {
     assert.doesNotMatch(shown, /⌫/, "no delete-looking glyph on an archived row");
   });
 
-  test("a 100% goal that is still open is ticked, not silently counted as done", async () => {
-    // k3 issue 2: `100%` beside `0/2 done` gave opposite answers one line apart.
+  test("a 100% goal that is still open is marked in words, not with the done glyph", async () => {
+    // k3, round 3: the plan panel uses ✓ for a *done* node, so reusing that glyph
+    // on an open goal taught "✓100% = done" while the counter said 0/2. The word
+    // carries the meaning now and ✓ stays a completion mark.
     const { root, manager } = await newProject("Hundred");
     dirs.push(root);
     await manager.createGoal({ title: "Work finished", percent: 100 }, { commit: false });
@@ -360,9 +362,15 @@ describe("archived items across panels (k3 frame review)", () => {
     const project = await manager.read((current) => current);
 
     const goals = VIEWS.find((view) => view.id === "goals")!.render(project, theme, 100).join("\n");
-    assert.match(goals, /✓100%/, "the tick says the work is finished");
+    assert.match(goals, /100% finished\?/, "the open 100% goal says so in words");
+    assert.doesNotMatch(goals, /✓/, "and does not borrow the completion glyph");
     const dashboard = VIEWS.find((view) => view.id === "dashboard")!.render(project, theme, 100).join("\n");
-    assert.match(dashboard, /0\/2 done/, "while the counter still says the goal is not closed");
+    assert.match(dashboard, /0\/2 done/, "the counter still says the goal is not closed");
+
+    // A genuinely closed 100% goal needs no hedge.
+    await manager.setGoalStatus("G1", "COMPLETED", { commit: false });
+    const closed = VIEWS.find((view) => view.id === "goals")!.render(await manager.read((c) => c), theme, 100).join("\n");
+    assert.doesNotMatch(closed, /finished\?/, "a closed goal carries no question mark");
   });
 
   test("progress bars use one vocabulary and one width everywhere", () => {
